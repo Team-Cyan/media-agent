@@ -10,11 +10,20 @@ media-agent healthcheck --config /app/config/config.yaml
 media-agent config-check --config /app/config/config.yaml
 ```
 
-Future runtime commands are scaffolded but not implemented yet:
+The current import runtime supports:
 
 ```bash
 media-agent import-run-once --config /app/config/config.yaml
 media-agent import-schedule --config /app/config/config.yaml
+media-agent import-run-once --config /app/config/config.yaml --execute
+```
+
+Dry-run is the default. `--execute` is required to create links unless the
+operator-local config explicitly enables scheduler execution.
+
+The Web UI command is still a placeholder:
+
+```bash
 media-agent web --config /app/config/config.yaml
 ```
 

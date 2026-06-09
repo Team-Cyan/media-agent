@@ -30,8 +30,9 @@ The split is intentional:
 
 ## Current Scope
 
-Version 0.1.0 is a bootstrap runtime with config validation, Docker packaging,
-and CI. The intended v1 runtime shape is:
+Version 0.1.0 is a working local import MVP with config validation, source
+scanning, filename-based media guesses, dry-run planning, SQLite state, JSONL
+audit, and explicit hardlink/symlink execution.
 
 ```bash
 media-agent import-run-once --config config/config.yaml
@@ -41,13 +42,18 @@ media-agent web --config config/config.yaml --host 0.0.0.0 --port 8775
 
 The default behavior must remain dry-run unless execution is explicitly enabled.
 
-The real import commands are scaffolded but intentionally not implemented yet.
-Use the current bootstrap commands to validate deployment shape:
+Current working commands:
 
 ```bash
 media-agent config-check --config config/example.yaml
 media-agent healthcheck --config config/example.yaml
+media-agent import-run-once --config config/config.yaml --state-dir .media-agent --json
+media-agent import-run-once --config config/config.yaml --state-dir .media-agent --execute
 ```
+
+`import-run-once` currently uses conservative filename parsing rather than live
+TMDB matching. TMDB-backed candidate selection and Web UI review remain roadmap
+items.
 
 ## Docker Image
 
@@ -65,6 +71,35 @@ docker run --rm \
 
 Operators can provide their own Compose, Unraid, Kubernetes, or systemd wrapper
 outside this repository.
+
+## Import Behavior
+
+`import-run-once` scans enabled profile source folders for common video files,
+builds Plex/Jellyfin-friendly target paths, and records every planned action.
+
+Movies:
+
+```text
+Arrival.2016.1080p.BluRay.mkv
+-> Movies/Arrival (2016)/Arrival (2016).mkv
+```
+
+Episodes:
+
+```text
+Breaking.Bad.S01E01.Pilot.mkv
+-> TV/Breaking Bad/Season 01/Breaking Bad - S01E01 - Pilot.mkv
+```
+
+State and audit files:
+
+```text
+.media-agent/state.db
+.media-agent/audit.jsonl
+```
+
+Dry-run is the default. `--execute` creates links and still records audit rows.
+Existing target files are not overwritten.
 
 ## Example Config
 

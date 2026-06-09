@@ -14,14 +14,17 @@ The repo currently contains:
 
 - project documentation and AI routing docs,
 - config examples,
-- Python package bootstrap,
+- Python package and CLI runtime,
 - `media-agent config-check`,
 - `media-agent healthcheck`,
+- working `media-agent import-run-once`,
+- filename-based movie and episode path planning,
+- SQLite state and JSONL audit output,
+- explicit hardlink/symlink execution with dry-run default,
 - Docker image scaffold and GHCR publishing workflow.
 
-The real import runtime is not implemented yet. `import-run-once`, `import-schedule`,
-and `web` are CLI placeholders that validate config and exit with a
-not-implemented status.
+`import-schedule` loops over the same import pass. `web` is still a placeholder
+that validates config and exits with a not-implemented status.
 
 ## Decision Summary
 
@@ -61,13 +64,17 @@ Keep the first real import slice narrow:
 
 - [x] Python package bootstrap.
 - [x] Basic config validation.
-- [ ] Typed config model.
+- [x] Typed config model.
+- [x] Source scan model.
+- [x] State and audit initialization.
+- [x] Dry-run import plan generation for movies and TV episodes.
+- [x] Explicit hardlink/symlink execution.
 - [ ] TMDB client interface with mocked tests.
-- [ ] Source scan model.
-- [ ] State and audit initialization.
-- [ ] Dry-run import plan generation for movies only.
+- [ ] Review queue for ambiguous filename or TMDB matches.
+- [ ] Anime fixture coverage.
 
-Then add TV/anime once the path planner and state/audit model are stable.
+Next slices should add TMDB-backed matching, review queue behavior, and anime
+fixture coverage without widening into downloader automation.
 
 ## Known Risks
 

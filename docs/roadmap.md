@@ -3,10 +3,16 @@
 ## Current State
 
 `media-agent` is a new standalone repo. The initial Docker/CI/runtime scaffold
-exists, but real scan, match, link, review, and Web UI behavior is not
-implemented yet.
+exists, and `import-run-once` now provides a working local MVP:
 
-The goal of this bootstrap is to preserve the product boundary and handoff context before implementation begins.
+- scan enabled source folders for video files,
+- parse common movie and episode filenames,
+- generate dry-run import plans,
+- write SQLite state and JSONL audit,
+- create hardlinks or symlinks only when `--execute` is explicit.
+
+TMDB matching, review UI, richer state queries, and Web UI behavior are still
+not implemented.
 
 ## P0 - Project Bootstrap
 
@@ -22,29 +28,30 @@ The goal of this bootstrap is to preserve the product boundary and handoff conte
 
 ## P0 - Runtime Foundation
 
-- Implement typed config models.
+- [x] Implement typed config models.
 - Add structured logging and redaction helpers.
-- Initialize `.media-agent/state.db`.
-- Append `.media-agent/audit.jsonl` records for planned actions.
-- Add fixture-based tests for representative movie, TV, and anime paths.
+- [x] Initialize `.media-agent/state.db`.
+- [x] Append `.media-agent/audit.jsonl` records for planned and executed actions.
+- [x] Add fixture-based tests for representative movie and TV paths.
+- Add fixture-based tests for anime paths.
 
 ## P0 - Media Import Core
 
-- Parse config profiles for `movie`, `tv`, and `anime`.
-- Scan source folders for video files.
-- Represent scan candidates in local state.
+- [x] Parse config profiles for `movie`, `tv`, and `anime`.
+- [x] Scan source folders for video files.
+- [x] Represent planned import actions in local state.
 - Query TMDB using a secret reference.
 - Score TMDB matches.
-- Generate target paths.
-- Produce dry-run import plans.
+- [x] Generate target paths from filename guesses.
+- [x] Produce dry-run import plans.
 
 ## P0 - File Link Execution
 
-- Implement hardlink execution.
-- Implement optional symlink fallback.
-- Detect cross-device hardlink failures.
-- Refuse overwrites by default.
-- Persist audit records for every planned and executed action.
+- [x] Implement hardlink execution.
+- [x] Implement optional symlink fallback for cross-device hardlink failures.
+- [x] Detect cross-device hardlink failures.
+- [x] Refuse overwrites by default.
+- [x] Persist audit records for every planned and executed action.
 
 ## P0 - Review Queue
 

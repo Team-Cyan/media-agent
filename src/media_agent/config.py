@@ -17,6 +17,49 @@ class ConfigSummary:
     dry_run_default: bool
 
 
+@dataclass(frozen=True)
+class LinkConfig:
+    mode: str = "hardlink"
+    allow_symlink_fallback: bool = False
+
+
+@dataclass(frozen=True)
+class NamingConfig:
+    collection_folders: bool = False
+    movie_folder_template: str = "{title} ({year})"
+    movie_file_template: str = "{title} ({year}){extension}"
+    series_folder_template: str = "{series_title}"
+    season_folder_template: str = "Season {season:02d}"
+    episode_file_template: str = (
+        "{series_title} - S{season:02d}E{episode:02d} - {episode_title}{extension}"
+    )
+
+
+@dataclass(frozen=True)
+class ProfileConfig:
+    name: str
+    type: str
+    enabled: bool
+    source: Path
+    target: Path
+    link: LinkConfig
+    naming: NamingConfig
+
+
+@dataclass(frozen=True)
+class SchedulerConfig:
+    interval_minutes: int = 30
+    execute: bool = False
+
+
+@dataclass(frozen=True)
+class AppConfig:
+    mode: str
+    tmdb_api_key_ref: str
+    scheduler: SchedulerConfig
+    profiles: tuple[ProfileConfig, ...]
+
+
 class ConfigError(ValueError):
     """Raised when a media-agent config file is invalid."""
 
@@ -63,6 +106,22 @@ def validate_config(config: dict[str, Any]) -> ConfigSummary:
     )
 
 
+def parse_config(config: dict[str, Any]) -> AppConfig:
+    validate_config(config)
+    tmdb = _mapping(config, "tmdb")
+    scheduler = _mapping(config, "scheduler", required=False)
+    profiles = tuple(_parse_profile(profile) for profile in config["profiles"])
+    return AppConfig(
+        mode=str(config.get("mode", "semi_auto")),
+        tmdb_api_key_ref=str(tmdb["api_key_ref"]),
+        scheduler=SchedulerConfig(
+            interval_minutes=int(scheduler.get("interval_minutes", 30)),
+            execute=bool(scheduler.get("execute", False)),
+        ),
+        profiles=profiles,
+    )
+
+
 def _validate_profile(profile: dict[str, Any], index: int) -> None:
     prefix = f"profiles[{index}]"
     for key in ("name", "type", "source", "target"):
@@ -78,6 +137,40 @@ def _validate_profile(profile: dict[str, Any], index: int) -> None:
     if link_mode not in VALID_LINK_MODES:
         valid_modes = ", ".join(sorted(VALID_LINK_MODES))
         raise ConfigError(f"{prefix}.link.mode must be one of: {valid_modes}")
+
+
+def _parse_profile(profile: dict[str, Any]) -> ProfileConfig:
+    link = _mapping(profile, "link", required=False)
+    naming = _mapping(profile, "naming", required=False)
+    return ProfileConfig(
+        name=str(profile["name"]),
+        type=str(profile["type"]),
+        enabled=bool(profile.get("enabled", True)),
+        source=Path(str(profile["source"])),
+        target=Path(str(profile["target"])),
+        link=LinkConfig(
+            mode=str(link.get("mode", "hardlink")),
+            allow_symlink_fallback=bool(link.get("allow_symlink_fallback", False)),
+        ),
+        naming=NamingConfig(
+            collection_folders=bool(naming.get("collection_folders", False)),
+            movie_folder_template=str(
+                naming.get("movie_folder_template", "{title} ({year})")
+            ),
+            movie_file_template=str(
+                naming.get("movie_file_template", "{title} ({year}){extension}")
+            ),
+            series_folder_template=str(naming.get("series_folder_template", "{series_title}")),
+            season_folder_template=str(naming.get("season_folder_template", "Season {season:02d}")),
+            episode_file_template=str(
+                naming.get(
+                    "episode_file_template",
+                    "{series_title} - S{season:02d}E{episode:02d} - "
+                    "{episode_title}{extension}",
+                )
+            ),
+        ),
+    )
 
 
 def _mapping(data: dict[str, Any], key: str, *, required: bool = True) -> dict[str, Any]:
