@@ -1,0 +1,54 @@
+mode: semi_auto
+
+tmdb:
+  api_key_ref: local/secrets/tmdb.api-key
+  language: en-US
+
+matching:
+  auto_plan_min_confidence: 0.85
+  review_min_confidence: 0.55
+  max_review_choices: 5
+
+scheduler:
+  interval_minutes: 30
+  execute: false
+
+profiles:
+  - name: movies
+    type: movie
+    enabled: true
+    source: /downloads/movies
+    target: /media/Movies
+    link:
+      mode: hardlink
+      allow_symlink_fallback: true
+    naming:
+      collection_folders: true
+      movie_folder_template: "{title} ({year})"
+      movie_file_template: "{title} ({year}){edition}{extension}"
+
+  - name: tv
+    type: tv
+    enabled: true
+    source: /downloads/tv
+    target: /media/TV
+    link:
+      mode: hardlink
+      allow_symlink_fallback: true
+    naming:
+      series_folder_template: "{series_title}"
+      season_folder_template: "Season {season:02d}"
+      episode_file_template: "{series_title} - S{season:02d}E{episode:02d} - {episode_title}{extension}"
+
+  - name: anime
+    type: anime
+    enabled: true
+    source: /downloads/anime
+    target: /media/Anime
+    link:
+      mode: hardlink
+      allow_symlink_fallback: true
+    naming:
+      series_folder_template: "{series_title}"
+      season_folder_template: "Season {season:02d}"
+      episode_file_template: "{series_title} - S{season:02d}E{episode:02d} - {episode_title}{extension}"

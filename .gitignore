@@ -1,0 +1,18 @@
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+
+# Local runtime state and secrets.
+.media-agent/*
+!.media-agent/.gitkeep
+local/secrets/*
+!local/secrets/.gitkeep
+
+# Operator-local config may contain private paths. Keep the example committed.
+config/*.local.yaml
+config/config.yaml
+
+# Scratch outputs.
+tmp/
+local/tmp/
