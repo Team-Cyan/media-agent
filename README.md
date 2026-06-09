@@ -51,9 +51,9 @@ media-agent import-run-once --config config/config.yaml --state-dir .media-agent
 media-agent import-run-once --config config/config.yaml --state-dir .media-agent --execute
 ```
 
-`import-run-once` currently uses conservative filename parsing rather than live
-TMDB matching. TMDB-backed candidate selection and Web UI review remain roadmap
-items.
+`import-run-once` uses TMDB when `tmdb.api_key_ref` or
+`tmdb.bearer_token_ref` points to a readable local secret file. If TMDB secrets
+are absent, it falls back to conservative filename parsing.
 
 ## Docker Image
 
@@ -113,6 +113,7 @@ Keep TMDB credentials in:
 
 ```text
 local/secrets/tmdb.api-key
+local/secrets/tmdb.bearer-token
 ```
 
 The checked-in config stores only the secret file reference.

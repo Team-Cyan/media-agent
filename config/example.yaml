@@ -2,6 +2,7 @@ mode: semi_auto
 
 tmdb:
   api_key_ref: local/secrets/tmdb.api-key
+  bearer_token_ref: local/secrets/tmdb.bearer-token
   language: en-US
 
 matching:

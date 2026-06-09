@@ -15,9 +15,10 @@ from media_agent.import_runner import run_import_once, summary_to_dict
 DEFAULT_CONFIG = os.environ.get("MEDIA_AGENT_CONFIG", "config/config.yaml")
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: Sequence[str] | None = None, *, tmdb_client: object | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    args.tmdb_client = tmdb_client
 
     try:
         return args.func(args)
@@ -132,7 +133,12 @@ def run_not_implemented(args: argparse.Namespace) -> int:
 def run_import_run_once(args: argparse.Namespace) -> int:
     config = _load_app_config(args.config)
     execute = bool(args.execute or config.scheduler.execute)
-    summary = run_import_once(config, state_dir=Path(args.state_dir), execute=execute)
+    summary = run_import_once(
+        config,
+        state_dir=Path(args.state_dir),
+        execute=execute,
+        tmdb_client=args.tmdb_client,
+    )
     _print_summary(summary, as_json=args.json)
     return 1 if summary.failed else 0
 
@@ -142,7 +148,12 @@ def run_import_schedule(args: argparse.Namespace) -> int:
     interval = args.interval_minutes or config.scheduler.interval_minutes
     execute = bool(args.execute or config.scheduler.execute)
     while True:
-        summary = run_import_once(config, state_dir=Path(args.state_dir), execute=execute)
+        summary = run_import_once(
+            config,
+            state_dir=Path(args.state_dir),
+            execute=execute,
+            tmdb_client=args.tmdb_client,
+        )
         _print_summary(summary, as_json=args.json)
         time.sleep(interval * 60)
 

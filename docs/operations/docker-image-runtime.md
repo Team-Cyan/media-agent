@@ -39,6 +39,15 @@ Expected paths inside a containerized runtime:
 
 Config paths are container paths, not host paths.
 
+TMDB credential refs should point to files inside `/app/local` or another
+operator-managed secret mount:
+
+```yaml
+tmdb:
+  api_key_ref: /app/local/secrets/tmdb.api-key
+  bearer_token_ref: /app/local/secrets/tmdb.bearer-token
+```
+
 ## Safety Defaults
 
 - Execution must remain disabled by default.

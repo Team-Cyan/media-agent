@@ -7,12 +7,12 @@ exists, and `import-run-once` now provides a working local MVP:
 
 - scan enabled source folders for video files,
 - parse common movie and episode filenames,
+- enrich movie and TV titles through TMDB when local secrets are configured,
 - generate dry-run import plans,
 - write SQLite state and JSONL audit,
 - create hardlinks or symlinks only when `--execute` is explicit.
 
-TMDB matching, review UI, richer state queries, and Web UI behavior are still
-not implemented.
+Review UI, richer state queries, and Web UI behavior are still not implemented.
 
 ## P0 - Project Bootstrap
 
@@ -40,8 +40,8 @@ not implemented.
 - [x] Parse config profiles for `movie`, `tv`, and `anime`.
 - [x] Scan source folders for video files.
 - [x] Represent planned import actions in local state.
-- Query TMDB using a secret reference.
-- Score TMDB matches.
+- [x] Query TMDB using a secret reference.
+- [x] Score TMDB movie and TV search results.
 - [x] Generate target paths from filename guesses.
 - [x] Produce dry-run import plans.
 

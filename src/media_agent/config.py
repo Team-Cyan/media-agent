@@ -56,6 +56,8 @@ class SchedulerConfig:
 class AppConfig:
     mode: str
     tmdb_api_key_ref: str
+    tmdb_bearer_token_ref: str | None
+    tmdb_language: str
     scheduler: SchedulerConfig
     profiles: tuple[ProfileConfig, ...]
 
@@ -114,6 +116,10 @@ def parse_config(config: dict[str, Any]) -> AppConfig:
     return AppConfig(
         mode=str(config.get("mode", "semi_auto")),
         tmdb_api_key_ref=str(tmdb["api_key_ref"]),
+        tmdb_bearer_token_ref=(
+            str(tmdb["bearer_token_ref"]) if tmdb.get("bearer_token_ref") else None
+        ),
+        tmdb_language=str(tmdb.get("language", "en-US")),
         scheduler=SchedulerConfig(
             interval_minutes=int(scheduler.get("interval_minutes", 30)),
             execute=bool(scheduler.get("execute", False)),

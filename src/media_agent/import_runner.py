@@ -11,6 +11,14 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from media_agent.config import AppConfig, ConfigError, ProfileConfig
+from media_agent.tmdb import (
+    TmdbClient,
+    result_id,
+    result_title,
+    result_year,
+    select_best_movie,
+    select_best_tv,
+)
 
 VIDEO_EXTENSIONS = {
     ".avi",
@@ -37,6 +45,7 @@ class MediaGuess:
     episode: int | None = None
     episode_title: str | None = None
     confidence: float = 0.7
+    tmdb_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -65,8 +74,10 @@ def run_import_once(
     *,
     state_dir: Path,
     execute: bool,
+    tmdb_client: object | None = None,
 ) -> ImportSummary:
     state = ImportState(state_dir)
+    tmdb = tmdb_client if tmdb_client is not None else tmdb_client_from_config(config)
     scanned = 0
     planned = 0
     executed = 0
@@ -82,6 +93,7 @@ def run_import_once(
             if guess is None:
                 skipped += 1
                 continue
+            guess = enrich_guess_with_tmdb(guess, tmdb)
             action = plan_action(profile, source_path, guess)
             planned += 1
             state.record_plan(action, dry_run=not execute)
@@ -127,6 +139,45 @@ def guess_media(profile: ProfileConfig, source_path: Path) -> MediaGuess | None:
     return None
 
 
+def enrich_guess_with_tmdb(guess: MediaGuess, tmdb_client: object | None) -> MediaGuess:
+    if tmdb_client is None:
+        return guess
+    if guess.media_type == "movie":
+        results = tmdb_client.search_movie(guess.title, year=guess.year)
+        best = select_best_movie(
+            query_title=guess.title,
+            query_year=guess.year,
+            candidates=results,
+        )
+        if best is None:
+            return guess
+        return MediaGuess(
+            media_type=guess.media_type,
+            title=result_title(best),
+            year=result_year(best) or guess.year,
+            confidence=0.9,
+            tmdb_id=result_id(best),
+        )
+    if guess.media_type in {"tv", "anime"} and guess.series_title:
+        results = tmdb_client.search_tv(guess.series_title)
+        best = select_best_tv(query_title=guess.series_title, candidates=results)
+        if best is None:
+            return guess
+        series_title = result_title(best)
+        return MediaGuess(
+            media_type=guess.media_type,
+            title=series_title,
+            year=result_year(best),
+            series_title=series_title,
+            season=guess.season,
+            episode=guess.episode,
+            episode_title=guess.episode_title,
+            confidence=0.88,
+            tmdb_id=result_id(best),
+        )
+    return guess
+
+
 def plan_action(profile: ProfileConfig, source_path: Path, guess: MediaGuess) -> ImportAction:
     extension = source_path.suffix
     if guess.media_type == "movie":
@@ -140,7 +191,11 @@ def plan_action(profile: ProfileConfig, source_path: Path, guess: MediaGuess) ->
             extension=extension,
         )
         target_path = profile.target / sanitize_path_part(folder) / sanitize_path_part(filename)
-        metadata_id = f"local:movie:{guess.title}:{guess.year}"
+        metadata_id = (
+            f"tmdb:movie:{guess.tmdb_id}"
+            if guess.tmdb_id is not None
+            else f"local:movie:{guess.title}:{guess.year}"
+        )
     else:
         if guess.season is None or guess.episode is None or guess.series_title is None:
             return _fallback_action(profile, source_path, guess)
@@ -160,10 +215,7 @@ def plan_action(profile: ProfileConfig, source_path: Path, guess: MediaGuess) ->
             / sanitize_path_part(season)
             / sanitize_path_part(filename)
         )
-        metadata_id = (
-            f"local:{guess.media_type}:{guess.series_title}:"
-            f"s{guess.season}e{guess.episode}"
-        )
+        metadata_id = _episode_metadata_id(guess)
 
     return ImportAction(
         profile=profile.name,
@@ -291,6 +343,32 @@ class ImportState:
 
 def summary_to_dict(summary: ImportSummary) -> dict[str, object]:
     return asdict(summary)
+
+
+def tmdb_client_from_config(config: AppConfig) -> TmdbClient | None:
+    api_key = _read_secret_ref(config.tmdb_api_key_ref)
+    bearer_token = (
+        _read_secret_ref(config.tmdb_bearer_token_ref) if config.tmdb_bearer_token_ref else None
+    )
+    if not api_key and not bearer_token:
+        return None
+    return TmdbClient(api_key=api_key, bearer_token=bearer_token, language=config.tmdb_language)
+
+
+def _episode_metadata_id(guess: MediaGuess) -> str:
+    if guess.tmdb_id is not None:
+        return f"tmdb:{guess.media_type}:{guess.tmdb_id}:s{guess.season}e{guess.episode}"
+    return f"local:{guess.media_type}:{guess.series_title}:s{guess.season}e{guess.episode}"
+
+
+def _read_secret_ref(path_ref: str | None) -> str | None:
+    if not path_ref:
+        return None
+    path = Path(path_ref)
+    if not path.exists() or not path.is_file():
+        return None
+    value = path.read_text(encoding="utf-8").strip()
+    return value or None
 
 
 def _guess_movie(source_path: Path) -> MediaGuess | None:
