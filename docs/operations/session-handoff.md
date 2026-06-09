@@ -23,6 +23,8 @@ The repo currently contains:
 - SQLite state and JSONL audit output,
 - explicit hardlink/symlink execution with dry-run default,
 - Docker image scaffold and GHCR publishing workflow.
+- release branch convention: archive medium versions as `release/<major>.<minor>`
+  while continuing work on `main`.
 
 `import-schedule` loops over the same import pass. `web` is still a placeholder
 that validates config and exits with a not-implemented status.

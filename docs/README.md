@@ -13,6 +13,7 @@
 
 - `docs/operations/docker-image-runtime.md`
 - `docs/operations/docker-image-publishing.md`
+- `docs/operations/release-branching.md`
 - `docs/operations/session-handoff.md`
 
 ## Planning
