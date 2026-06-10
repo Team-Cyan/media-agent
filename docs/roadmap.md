@@ -12,7 +12,8 @@ exists, and `import-run-once` now provides a working local MVP:
 - write SQLite state and JSONL audit,
 - create hardlinks or symlinks only when `--execute` is explicit.
 
-Review UI, richer state queries, and Web UI behavior are still not implemented.
+The Web UI now exposes status, pending review, recent actions, dry scan, and
+execute triggers. Rich manual candidate selection is still not implemented.
 
 ## P0 - Project Bootstrap
 
@@ -33,7 +34,8 @@ Review UI, richer state queries, and Web UI behavior are still not implemented.
 - [x] Initialize `.media-agent/state.db`.
 - [x] Append `.media-agent/audit.jsonl` records for planned and executed actions.
 - [x] Add fixture-based tests for representative movie and TV paths.
-- Add fixture-based tests for anime paths.
+- [x] Add fixture-based tests for anime paths.
+- [x] Add runtime-status and heartbeat healthcheck support.
 
 ## P0 - Media Import Core
 
@@ -55,16 +57,16 @@ Review UI, richer state queries, and Web UI behavior are still not implemented.
 
 ## P0 - Review Queue
 
-- Store uncertain TMDB matches.
+- [x] Store uncertain filename/TMDB matches as pending review items.
 - Expose candidate choices.
 - Allow manual selection.
 - Re-run import planning after user selection.
 
 ## P1 - Scheduler And Web UI
 
-- Add `import-schedule`.
-- Add health/heartbeat output.
-- Add Web UI for scan status, pending review, import preview, and execution.
+- [x] Add `import-schedule`.
+- [x] Add health/heartbeat output.
+- [x] Add Web UI for scan status, pending review, import preview, and execution.
 - Keep execution explicit and visible.
 
 ## P1 - Library Refresh

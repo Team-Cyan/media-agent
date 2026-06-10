@@ -109,6 +109,62 @@ def test_import_run_once_plans_tv_episode(tmp_path, capsys) -> None:
     assert audit[0]["target_path"] == str(planned)
 
 
+def test_import_run_once_plans_anime_episode(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "anime"
+    target = tmp_path / "media" / "Anime"
+    state_dir = tmp_path / "state"
+    episode = source / "Frieren.S01E01.The.Journeys.End.mkv"
+    episode.parent.mkdir(parents=True)
+    episode.write_bytes(b"episode")
+    config = _write_config(tmp_path, source, target, profile_type="anime")
+
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["planned"] == 1
+    planned = target / "Frieren" / "Season 01" / "Frieren - S01E01 - The Journeys End.mkv"
+    audit = [json.loads(line) for line in (state_dir / "audit.jsonl").read_text().splitlines()]
+    assert audit[0]["target_path"] == str(planned)
+
+
+def test_import_run_once_records_review_item_for_uncertain_movie(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    movie = source / "Unknown.Movie.Release.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    config = _write_config(tmp_path, source, target)
+
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    with sqlite3.connect(state_dir / "state.db") as db:
+        rows = db.execute(
+            "select source_path, media_type, reason, status from review_items"
+        ).fetchall()
+    assert rows == [(str(movie), "movie", "low_confidence", "pending")]
+
+
 def test_import_run_once_uses_tmdb_movie_match(tmp_path, capsys) -> None:
     source = tmp_path / "downloads" / "movies"
     target = tmp_path / "media" / "Movies"
@@ -151,9 +207,10 @@ def _write_config(
     target: Path,
     *,
     profile_type: str = "movie",
-    tmdb_api_key_ref: Path | str = "local/secrets/tmdb.api-key",
+    tmdb_api_key_ref: Path | str | None = None,
 ) -> Path:
     config = tmp_path / "config.yaml"
+    tmdb_api_key_ref = tmdb_api_key_ref or (tmp_path / "missing-tmdb.api-key")
     config.write_text(
         f"""
 mode: semi_auto

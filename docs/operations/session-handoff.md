@@ -18,6 +18,8 @@ The repo currently contains:
 - `media-agent config-check`,
 - `media-agent healthcheck`,
 - working `media-agent import-run-once`,
+- working `media-agent web` operational UI,
+- `runtime-status` and heartbeat-aware `healthcheck`,
 - TMDB movie/TV search from gitignored local secret refs,
 - filename-based movie and episode path planning,
 - SQLite state and JSONL audit output,
@@ -74,8 +76,9 @@ Keep the first real import slice narrow:
 - [x] Explicit hardlink/symlink execution.
 - [x] TMDB client interface with mocked tests.
 - [x] TMDB-backed movie and TV title enrichment.
-- [ ] Review queue for ambiguous filename or TMDB matches.
-- [ ] Anime fixture coverage.
+- [x] Review queue storage for ambiguous filename or TMDB matches.
+- [x] Anime fixture coverage.
+- [ ] Manual candidate selection in Web UI.
 
 Next slices should add TMDB-backed matching, review queue behavior, and anime
 fixture coverage without widening into downloader automation.

@@ -97,6 +97,13 @@ def run_import_once(
             action = plan_action(profile, source_path, guess)
             planned += 1
             state.record_plan(action, dry_run=not execute)
+            if guess.confidence < 0.55:
+                state.record_review_item(
+                    source_path=source_path,
+                    media_type=guess.media_type,
+                    reason="low_confidence",
+                    title=guess.title,
+                )
             if execute:
                 result = execute_action(action, profile)
                 state.record_execution(action, result)
@@ -293,6 +300,20 @@ class ImportState:
                 )
                 """
             )
+            db.execute(
+                """
+                create table if not exists review_items (
+                    id integer primary key autoincrement,
+                    created_at real not null,
+                    source_path text not null,
+                    media_type text not null,
+                    reason text not null,
+                    title text not null,
+                    status text not null,
+                    unique(source_path, reason)
+                )
+                """
+            )
 
     def _record_action(self, action: ImportAction, *, status: str, dry_run: bool) -> None:
         with sqlite3.connect(self.db_path) as db:
@@ -315,6 +336,28 @@ class ImportState:
                     int(dry_run),
                     status,
                 ),
+            )
+
+    def record_review_item(
+        self,
+        *,
+        source_path: Path,
+        media_type: str,
+        reason: str,
+        title: str,
+    ) -> None:
+        with sqlite3.connect(self.db_path) as db:
+            db.execute(
+                """
+                insert into review_items (
+                    created_at, source_path, media_type, reason, title, status
+                ) values (?, ?, ?, ?, ?, ?)
+                on conflict(source_path, reason) do update set
+                    media_type = excluded.media_type,
+                    title = excluded.title,
+                    status = excluded.status
+                """,
+                (time.time(), str(source_path), media_type, reason, title, "pending"),
             )
 
     def _append_audit(

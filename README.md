@@ -47,8 +47,11 @@ Current working commands:
 ```bash
 media-agent config-check --config config/example.yaml
 media-agent healthcheck --config config/example.yaml
+media-agent runtime-status --config config/example.yaml --state-dir .media-agent
 media-agent import-run-once --config config/config.yaml --state-dir .media-agent --json
+media-agent import-schedule --config config/config.yaml --state-dir .media-agent --heartbeat-file state/media-agent-heartbeat.json
 media-agent import-run-once --config config/config.yaml --state-dir .media-agent --execute
+media-agent web --config config/config.yaml --state-dir .media-agent --host 127.0.0.1 --port 8775
 ```
 
 `import-run-once` uses TMDB when `tmdb.api_key_ref` or
