@@ -25,6 +25,7 @@ The repo currently contains:
 - SQLite state and JSONL audit output,
 - explicit hardlink/symlink execution with dry-run default,
 - Docker image scaffold and GHCR publishing workflow.
+- Unraid DockerMan template at `deploy/unraid/media-agent.xml`.
 - release branch convention: archive medium versions as `release/<major>.<minor>`
   while continuing work on `main`.
 

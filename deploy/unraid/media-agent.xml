@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Container version="2">
+  <Name>media-agent</Name>
+  <Repository>ghcr.io/team-cyan/media-agent:latest</Repository>
+  <Registry>https://github.com/Team-Cyan/media-agent/pkgs/container/media-agent</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Team-Cyan/media-agent/issues</Support>
+  <Project>https://github.com/Team-Cyan/media-agent</Project>
+  <ReadMe>https://github.com/Team-Cyan/media-agent#readme</ReadMe>
+  <Overview>Docker-first completed-media import and linking tool for Plex, Jellyfin, and Emby libraries. Scans completed downloads, matches TMDB metadata, plans dry-run imports, and links files only when explicitly enabled.</Overview>
+  <Category>MediaApp:Tools:Utilities</Category>
+  <WebUI>http://[IP]:[PORT:8775]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Team-Cyan/media-agent/main/deploy/unraid/media-agent.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Team-Cyan/media-agent/main/docs/assets/media-agent-icon.png</Icon>
+  <ExtraSearchTerms>plex jellyfin emby tmdb hardlink media library nas</ExtraSearchTerms>
+  <ExtraParams>--restart=unless-stopped --health-cmd='media-agent healthcheck --config /workspace/runtime/config/config.yaml --heartbeat-file /workspace/runtime/state/media-agent-heartbeat.json --max-staleness-minutes 90' --health-interval=1m --health-timeout=20s --health-retries=3 --health-start-period=2m</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>0</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <CategoryList>MediaApp</CategoryList>
+  <CategoryList>Tools-Utilities</CategoryList>
+  <Author>Team-Cyan</Author>
+  <Config Name="Appdata Root" Target="/workspace" Default="/mnt/user/appdata/media-agent" Mode="rw" Description="Single mounted root containing runtime/config, runtime/local, runtime/.media-agent, and runtime/state." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/media-agent</Config>
+  <Config Name="Downloads Root" Target="/downloads" Default="/mnt/user/downloads" Mode="rw" Description="Completed-download source root visible to media-agent. Use rw for hardlinks; dry-run scans do not mutate source files." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/downloads</Config>
+  <Config Name="Media Root" Target="/media" Default="/mnt/user/media" Mode="rw" Description="Target media-library root where movie, TV, and anime folders are linked." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/media</Config>
+  <Config Name="Timezone" Target="TZ" Default="Asia/Shanghai" Mode="" Description="Container timezone." Type="Variable" Display="always" Required="true" Mask="false">Asia/Shanghai</Config>
+  <Config Name="Mode" Target="MEDIA_AGENT_MODE" Default="import-schedule" Mode="" Description="Primary entry mode for the container." Type="Variable" Display="always" Required="true" Mask="false">import-schedule</Config>
+  <Config Name="Config Path" Target="MEDIA_AGENT_CONFIG" Default="/workspace/runtime/config/config.yaml" Mode="" Description="Path to the runtime config file inside the mounted root." Type="Variable" Display="always" Required="true" Mask="false">/workspace/runtime/config/config.yaml</Config>
+  <Config Name="State Dir" Target="MEDIA_AGENT_STATE_DIR" Default="/workspace/runtime/.media-agent" Mode="" Description="Writable SQLite state and JSONL audit directory." Type="Variable" Display="always" Required="true" Mask="false">/workspace/runtime/.media-agent</Config>
+  <Config Name="Execute" Target="MEDIA_AGENT_EXECUTE" Default="false" Mode="" Description="Keep false for dry-run scheduler mode. Set true only after reviewing import plans." Type="Variable" Display="always" Required="true" Mask="false">false</Config>
+  <Config Name="Interval Minutes" Target="MEDIA_AGENT_INTERVAL_MINUTES" Default="30" Mode="" Description="Polling interval for import-schedule mode." Type="Variable" Display="always" Required="true" Mask="false">30</Config>
+  <Config Name="Heartbeat File" Target="MEDIA_AGENT_HEARTBEAT_FILE" Default="/workspace/runtime/state/media-agent-heartbeat.json" Mode="" Description="Heartbeat file used by Docker health checks and runtime visibility." Type="Variable" Display="always" Required="true" Mask="false">/workspace/runtime/state/media-agent-heartbeat.json</Config>
+  <Config Name="Max Staleness Minutes" Target="MEDIA_AGENT_MAX_STALENESS_MINUTES" Default="90" Mode="" Description="Healthcheck staleness threshold for the scheduler heartbeat." Type="Variable" Display="advanced" Required="true" Mask="false">90</Config>
+  <Config Name="Web UI Host" Target="MEDIA_AGENT_WEB_HOST" Default="0.0.0.0" Mode="" Description="Bind address for the in-container Web UI server. Keep 0.0.0.0 for Docker bridge publishing." Type="Variable" Display="advanced" Required="true" Mask="false">0.0.0.0</Config>
+  <Config Name="Web UI Internal Port" Target="MEDIA_AGENT_WEB_PORT" Default="8775" Mode="" Description="Internal Web UI port inside the container. Keep this aligned with the container side of the port mapping." Type="Variable" Display="advanced" Required="true" Mask="false">8775</Config>
+  <Config Name="WebUI Host Port" Target="8775" Default="8775" Mode="tcp" Description="Host port for DockerMan's WebUI button. Change only the host side if 8775 is already in use." Type="Port" Display="always" Required="true" Mask="false">8775</Config>
+  <TailscaleStateDir/>
+</Container>

@@ -26,6 +26,7 @@ execute triggers. Rich manual candidate selection is still not implemented.
 - [x] Add Dockerfile and entrypoint.
 - [x] Add GitHub CI and GHCR publish workflows.
 - [x] Add Docker image runtime and publishing notes.
+- [x] Add Unraid DockerMan template and operator docs.
 
 ## P0 - Runtime Foundation
 
