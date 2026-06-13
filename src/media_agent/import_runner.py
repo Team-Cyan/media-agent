@@ -150,7 +150,10 @@ def enrich_guess_with_tmdb(guess: MediaGuess, tmdb_client: object | None) -> Med
     if tmdb_client is None:
         return guess
     if guess.media_type == "movie":
-        results = tmdb_client.search_movie(guess.title, year=guess.year)
+        try:
+            results = tmdb_client.search_movie(guess.title, year=guess.year)
+        except Exception:
+            return guess
         best = select_best_movie(
             query_title=guess.title,
             query_year=guess.year,
@@ -166,7 +169,10 @@ def enrich_guess_with_tmdb(guess: MediaGuess, tmdb_client: object | None) -> Med
             tmdb_id=result_id(best),
         )
     if guess.media_type in {"tv", "anime"} and guess.series_title:
-        results = tmdb_client.search_tv(guess.series_title)
+        try:
+            results = tmdb_client.search_tv(guess.series_title)
+        except Exception:
+            return guess
         best = select_best_tv(query_title=guess.series_title, candidates=results)
         if best is None:
             return guess

@@ -201,6 +201,41 @@ def test_import_run_once_uses_tmdb_movie_match(tmp_path, capsys) -> None:
     assert audit[0]["target_path"] == str(target / "The Matrix (1999)" / "The Matrix (1999).mkv")
 
 
+def test_import_run_once_falls_back_when_tmdb_is_unreachable(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    secret = tmp_path / "tmdb.key"
+    movie = source / "The.Matrix.1999.1080p.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    secret.write_text("unused", encoding="utf-8")
+    config = _write_config(tmp_path, source, target, tmdb_api_key_ref=secret)
+
+    class BrokenTmdb:
+        def search_movie(self, title: str, *, year: int | None = None):
+            raise OSError("network is unreachable")
+
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ],
+        tmdb_client=BrokenTmdb(),
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["planned"] == 1
+    audit = [json.loads(line) for line in (state_dir / "audit.jsonl").read_text().splitlines()]
+    assert audit[0]["metadata_id"] == "local:movie:The Matrix:1999"
+    assert audit[0]["target_path"] == str(target / "The Matrix (1999)" / "The Matrix (1999).mkv")
+
+
 def _write_config(
     tmp_path: Path,
     source: Path,
