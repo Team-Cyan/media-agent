@@ -73,6 +73,7 @@ Recommended defaults:
 - `MEDIA_AGENT_STATE_DIR=/workspace/runtime/.media-agent`
 - `MEDIA_AGENT_HEARTBEAT_FILE=/workspace/runtime/state/media-agent-heartbeat.json`
 - `MEDIA_AGENT_EXECUTE=false` until plans have been reviewed
+- `MEDIA_AGENT_STARTUP_STATUS=true`
 - `MEDIA_AGENT_WEB_ENABLED=true`
 - `MEDIA_AGENT_WEB_HOST=0.0.0.0`
 - `MEDIA_AGENT_WEB_PORT=8775`
@@ -81,6 +82,9 @@ Recommended defaults:
   `docs/assets/media-agent-icon.png`.
 
 ## Runtime Visibility
+
+Every non-healthcheck container start can print one redacted `runtime-status`
+JSON line to Docker logs when `MEDIA_AGENT_STARTUP_STATUS=true`.
 
 From the Unraid Docker console:
 

@@ -15,11 +15,13 @@ def test_unraid_template_has_required_runtime_wiring() -> None:
     assert values["Repository"] == "ghcr.io/team-cyan/media-agent:latest"
     assert values["WebUI"] == "http://[IP]:[PORT:8775]"
     assert "media-agent healthcheck" in values["ExtraParams"]
+    assert "--health-start-period=4m" in values["ExtraParams"]
     assert configs["/workspace"].attrib["Default"] == "/mnt/user/appdata/media-agent"
     assert configs["/downloads"].attrib["Default"] == "/mnt/user/downloads"
     assert configs["/media"].attrib["Default"] == "/mnt/user/media"
     assert configs["MEDIA_AGENT_MODE"].text == "import-schedule"
     assert configs["MEDIA_AGENT_WEB_ENABLED"].text == "true"
+    assert configs["MEDIA_AGENT_STARTUP_STATUS"].text == "true"
     assert configs["MEDIA_AGENT_CONFIG"].text == "/workspace/runtime/config/config.yaml"
     assert configs["MEDIA_AGENT_STATE_DIR"].text == "/workspace/runtime/.media-agent"
     assert configs["MEDIA_AGENT_HEARTBEAT_FILE"].text.endswith("media-agent-heartbeat.json")

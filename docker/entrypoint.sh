@@ -12,6 +12,12 @@ case "$mode" in
     if [ "$#" -gt 0 ] && [ "$1" = "$mode" ]; then
       shift
     fi
+    if [ "${MEDIA_AGENT_STARTUP_STATUS:-false}" = "true" ] && [ "$mode" != "healthcheck" ]; then
+      media-agent runtime-status \
+        --config "$config" \
+        --state-dir "$state_dir" \
+        --heartbeat-file "${MEDIA_AGENT_HEARTBEAT_FILE:-}" || true
+    fi
     if [ "$mode" = "import-schedule" ] && [ "${MEDIA_AGENT_WEB_ENABLED:-false}" = "true" ]; then
       media-agent web \
         --config "$config" \

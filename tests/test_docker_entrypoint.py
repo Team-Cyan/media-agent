@@ -23,3 +23,11 @@ def test_entrypoint_starts_web_sidecar_for_scheduler() -> None:
     assert "MEDIA_AGENT_WEB_ENABLED" in entrypoint
     assert "media-agent web" in entrypoint
     assert "media-agent \"$mode\"" in entrypoint
+
+
+def test_entrypoint_can_print_startup_runtime_status() -> None:
+    entrypoint = Path("docker/entrypoint.sh").read_text(encoding="utf-8")
+
+    assert "MEDIA_AGENT_STARTUP_STATUS" in entrypoint
+    assert "media-agent runtime-status" in entrypoint
+    assert '--heartbeat-file "${MEDIA_AGENT_HEARTBEAT_FILE:-}"' in entrypoint
