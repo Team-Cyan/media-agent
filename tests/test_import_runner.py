@@ -109,6 +109,40 @@ def test_import_run_once_plans_tv_episode(tmp_path, capsys) -> None:
     assert audit[0]["target_path"] == str(planned)
 
 
+def test_import_run_once_strips_tv_release_year_before_episode_marker(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "tv"
+    target = tmp_path / "media" / "TV"
+    state_dir = tmp_path / "state"
+    episode = source / "The.Boys.2024.S04E08.Assassination.Run.mkv"
+    episode.parent.mkdir(parents=True)
+    episode.write_bytes(b"episode")
+    config = _write_config(tmp_path, source, target, profile_type="tv")
+
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["planned"] == 1
+    planned = (
+        target
+        / "The Boys"
+        / "Season 04"
+        / "The Boys - S04E08 - Assassination Run.mkv"
+    )
+    audit = [json.loads(line) for line in (state_dir / "audit.jsonl").read_text().splitlines()]
+    assert audit[0]["target_path"] == str(planned)
+    assert "The Boys 2024" not in audit[0]["target_path"]
+
+
 def test_import_run_once_plans_anime_episode(tmp_path, capsys) -> None:
     source = tmp_path / "downloads" / "anime"
     target = tmp_path / "media" / "Anime"

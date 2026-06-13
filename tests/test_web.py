@@ -52,6 +52,10 @@ def test_render_dashboard_contains_operational_controls() -> None:
     assert "Run dry scan" in html
     assert "Run execute" in html
     assert "Pending Review" in html
+    assert "Config & Secrets" in html
+    assert "Validate" in html
+    assert "API read access token" in html
+    assert "API key" in html
 
 
 def test_web_server_serves_status_and_runs_scan(tmp_path) -> None:
@@ -126,6 +130,42 @@ def test_web_server_reads_and_writes_config(tmp_path) -> None:
             payload = json.loads(response.read())
         assert payload["ok"] is True
         assert "Films" in config.read_text(encoding="utf-8")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_web_server_validates_config_without_writing(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    config = _write_config(tmp_path, source, target)
+    original = config.read_text(encoding="utf-8")
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        draft_config = original.replace("Movies", "Films")
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/config/validate",
+            data=draft_config.encode(),
+            method="POST",
+            headers={"Content-Type": "application/x-yaml"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read())
+        assert payload == {
+            "ok": True,
+            "summary": {"dry_run_default": True, "enabled_profiles": 1, "profiles": 1},
+        }
+        assert config.read_text(encoding="utf-8") == original
     finally:
         server.shutdown()
         server.server_close()

@@ -452,7 +452,7 @@ def _guess_episode(media_type: str, source_path: Path) -> MediaGuess | None:
     match = re.search(r"[Ss](\d{1,2})[ ._-]*[Ee](\d{1,3})", stem)
     if not match:
         return None
-    series_title = _clean_title(stem[: match.start()])
+    series_title = _strip_episode_release_year(_clean_title(stem[: match.start()]))
     episode_title = _clean_title(stem[match.end() :]) or f"Episode {int(match.group(2)):02d}"
     return MediaGuess(
         media_type=media_type,
@@ -482,3 +482,10 @@ def _clean_title(value: str) -> str:
     cleaned = re.sub(r"[._-]+", " ", value)
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned.title()
+
+
+def _strip_episode_release_year(title: str) -> str:
+    parts = title.split()
+    if len(parts) > 1 and re.fullmatch(r"(?:19|20)\d{2}", parts[-1]):
+        return " ".join(parts[:-1])
+    return title

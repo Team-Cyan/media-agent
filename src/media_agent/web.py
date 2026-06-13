@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-from media_agent.config import ConfigError, load_config, parse_config
+from media_agent.config import ConfigError, load_config, parse_config, validate_config
 from media_agent.import_runner import run_import_once, summary_to_dict
 
 
@@ -93,7 +93,7 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
     header {{ background: #ffffff; border-bottom: 1px solid #d9dee7; padding: 18px 24px; }}
     main {{ max-width: 1180px; margin: 0 auto; padding: 24px; }}
     h1 {{ margin: 0; font-size: 22px; }}
-    h2 {{ font-size: 16px; margin: 28px 0 12px; }}
+    h2 {{ font-size: 16px; margin: 0; }}
     .toolbar {{ display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }}
     button {{
       border: 1px solid #9aa6b2;
@@ -150,6 +150,88 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
       border-radius: 6px;
       padding: 8px 10px;
     }}
+    .section-heading {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 28px 0 12px;
+    }}
+    .config-grid {{
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }}
+    .panel {{
+      background: #ffffff;
+      border: 1px solid #d9dee7;
+      border-radius: 8px;
+      padding: 16px;
+    }}
+    .panel-head {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }}
+    .panel-head p {{
+      margin: 4px 0 0;
+      color: #667085;
+      font-size: 13px;
+    }}
+    .pill {{
+      border: 1px solid #cbd5df;
+      border-radius: 999px;
+      color: #475467;
+      font-size: 12px;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }}
+    .editor {{
+      min-height: 420px;
+      resize: vertical;
+      line-height: 1.45;
+      tab-size: 2;
+    }}
+    .panel-actions {{
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }}
+    .status {{
+      color: #475467;
+      font-size: 13px;
+      min-height: 20px;
+    }}
+    .status.error {{ color: #b42318; }}
+    .status.ok {{ color: #027a48; }}
+    .field {{ margin-bottom: 12px; }}
+    .field label {{
+      display: block;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }}
+    .field input {{
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }}
+    .field small {{
+      display: block;
+      color: #667085;
+      font-size: 12px;
+      margin-top: 5px;
+    }}
+    @media (max-width: 860px) {{
+      main {{ padding: 16px; }}
+      .config-grid {{ grid-template-columns: 1fr; }}
+    }}
   </style>
 </head>
 <body>
@@ -168,21 +250,65 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
       <div class="stat">Failed<strong>{counts["failed"]}</strong></div>
       <div class="stat">Pending Review<strong>{counts["pending_review"]}</strong></div>
     </section>
-    <h2>Pending Review</h2>
+    <div class="section-heading"><h2>Pending Review</h2></div>
     {_table_or_empty(review_rows, "No pending review items.", "review")}
-    <h2>Recent Actions</h2>
+    <div class="section-heading"><h2>Recent Actions</h2></div>
     {_table_or_empty(action_rows, "No import actions yet.", "actions")}
-    <h2>Configuration</h2>
-    <textarea id="configText">{html.escape(config_text)}</textarea>
-    <div class="toolbar">
-      <button class="primary" onclick="saveConfig()">Save config</button>
-    </div>
-    <h2>TMDB Secrets</h2>
-    <div class="form-row">
-      <input id="tmdbApiKey" type="password" placeholder="TMDB API key">
-      <input id="tmdbBearer" type="password" placeholder="TMDB bearer token">
-      <button onclick="saveSecrets()">Save secrets</button>
-    </div>
+    <div class="section-heading"><h2>Config & Secrets</h2></div>
+    <section class="config-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Runtime Config</h2>
+            <p>YAML profile, scheduler, naming, and library path settings.</p>
+          </div>
+          <span class="pill">config.yaml</span>
+        </div>
+        <textarea
+          id="configText"
+          class="editor"
+          spellcheck="false"
+        >{html.escape(config_text)}</textarea>
+        <div class="panel-actions">
+          <button onclick="validateConfig()">Validate</button>
+          <button class="primary" onclick="saveConfig()">Save config</button>
+          <span id="configStatus" class="status"></span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>TMDB Credentials</h2>
+            <p>Values are written only to the configured local secret files.</p>
+          </div>
+          <span class="pill">local secrets</span>
+        </div>
+        <div class="field">
+          <label for="tmdbBearer">API read access token</label>
+          <input
+            id="tmdbBearer"
+            type="password"
+            autocomplete="off"
+            placeholder="Paste TMDB read access token"
+          >
+          <small>Used as an Authorization: Bearer token.</small>
+        </div>
+        <div class="field">
+          <label for="tmdbApiKey">API key</label>
+          <input
+            id="tmdbApiKey"
+            type="password"
+            autocomplete="off"
+            placeholder="Paste TMDB API key"
+          >
+          <small>Used as the v3 api_key fallback.</small>
+        </div>
+        <div class="panel-actions">
+          <button class="primary" onclick="saveSecrets()">Save secrets</button>
+          <span id="secretStatus" class="status"></span>
+        </div>
+      </div>
+    </section>
   </main>
   <script>
     async function runImport(execute) {{
@@ -190,25 +316,66 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
       await fetch(path, {{ method: "POST" }});
       location.reload();
     }}
+    function setStatus(id, message, ok) {{
+      const node = document.getElementById(id);
+      node.textContent = message;
+      node.className = ok ? "status ok" : "status error";
+    }}
+    async function readJson(response) {{
+      const payload = await response.json();
+      if (!response.ok) {{
+        throw new Error(payload.error || "Request failed");
+      }}
+      return payload;
+    }}
+    function formatConfigSummary(summary) {{
+      const mode = summary.dry_run_default ? "dry-run default" : "execute default";
+      return `${{summary.enabled_profiles}}/${{summary.profiles}} profiles enabled, ${{mode}}`;
+    }}
+    async function validateConfig() {{
+      try {{
+        const response = await fetch("/api/config/validate", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/x-yaml" }},
+          body: document.getElementById("configText").value
+        }});
+        const payload = await readJson(response);
+        setStatus("configStatus", `Valid: ${{formatConfigSummary(payload.summary)}}`, true);
+      }} catch (error) {{
+        setStatus("configStatus", error.message, false);
+      }}
+    }}
     async function saveConfig() {{
-      await fetch("/api/config", {{
-        method: "POST",
-        headers: {{ "Content-Type": "application/x-yaml" }},
-        body: document.getElementById("configText").value
-      }});
-      location.reload();
+      try {{
+        const response = await fetch("/api/config", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/x-yaml" }},
+          body: document.getElementById("configText").value
+        }});
+        const payload = await readJson(response);
+        setStatus("configStatus", `Saved: ${{formatConfigSummary(payload.summary)}}`, true);
+      }} catch (error) {{
+        setStatus("configStatus", error.message, false);
+      }}
     }}
     async function saveSecrets() {{
-      await fetch("/api/secrets", {{
-        method: "POST",
-        headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{
-          api_key: document.getElementById("tmdbApiKey").value,
-          bearer_token: document.getElementById("tmdbBearer").value
-        }})
-      }});
-      document.getElementById("tmdbApiKey").value = "";
-      document.getElementById("tmdbBearer").value = "";
+      try {{
+        const response = await fetch("/api/secrets", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{
+            api_key: document.getElementById("tmdbApiKey").value,
+            bearer_token: document.getElementById("tmdbBearer").value
+          }})
+        }});
+        const payload = await readJson(response);
+        document.getElementById("tmdbApiKey").value = "";
+        document.getElementById("tmdbBearer").value = "";
+        const names = payload.written.length ? payload.written.join(", ") : "no fields";
+        setStatus("secretStatus", `Saved: ${{names}}`, true);
+      }} catch (error) {{
+        setStatus("secretStatus", error.message, false);
+      }}
     }}
   </script>
 </body>
@@ -253,6 +420,9 @@ def _make_handler(*, config_path: Path, state_dir: Path):
             if self.path == "/api/config":
                 self._save_config()
                 return
+            if self.path == "/api/config/validate":
+                self._validate_config()
+                return
             if self.path == "/api/secrets":
                 self._save_secrets()
                 return
@@ -295,16 +465,23 @@ def _make_handler(*, config_path: Path, state_dir: Path):
             length = int(self.headers.get("Content-Length", "0"))
             body = self.rfile.read(length).decode("utf-8")
             try:
-                loaded = yaml.safe_load(body) or {}
-                if not isinstance(loaded, dict):
-                    raise ConfigError("config root must be a mapping")
-                parse_config(loaded)
+                summary = _validate_config_text(body)
             except (ConfigError, yaml.YAMLError) as exc:
                 self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
                 return
             config_path.parent.mkdir(parents=True, exist_ok=True)
             config_path.write_text(body, encoding="utf-8")
-            self._send_json({"ok": True})
+            self._send_json({"ok": True, "summary": summary})
+
+        def _validate_config(self) -> None:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length).decode("utf-8")
+            try:
+                summary = _validate_config_text(body)
+            except (ConfigError, yaml.YAMLError) as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+            self._send_json({"ok": True, "summary": summary})
 
         def _save_secrets(self) -> None:
             length = int(self.headers.get("Content-Length", "0"))
@@ -330,6 +507,18 @@ def _read_config_text(config_path: Path) -> str:
     if not config_path.exists():
         return ""
     return config_path.read_text(encoding="utf-8")
+
+
+def _validate_config_text(config_text: str) -> dict[str, object]:
+    loaded = yaml.safe_load(config_text) or {}
+    if not isinstance(loaded, dict):
+        raise ConfigError("config root must be a mapping")
+    summary = validate_config(loaded)
+    return {
+        "profiles": summary.profile_count,
+        "enabled_profiles": summary.enabled_profile_count,
+        "dry_run_default": summary.dry_run_default,
+    }
 
 
 def _write_secret_ref(path_ref: str, value: str) -> None:
