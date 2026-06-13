@@ -73,6 +73,7 @@ Recommended defaults:
 - `MEDIA_AGENT_STATE_DIR=/workspace/runtime/.media-agent`
 - `MEDIA_AGENT_HEARTBEAT_FILE=/workspace/runtime/state/media-agent-heartbeat.json`
 - `MEDIA_AGENT_EXECUTE=false` until plans have been reviewed
+- `MEDIA_AGENT_WEB_ENABLED=true`
 - `MEDIA_AGENT_WEB_HOST=0.0.0.0`
 - `MEDIA_AGENT_WEB_PORT=8775`
 - WebUI host port `8775` mapped to container port `8775/tcp`

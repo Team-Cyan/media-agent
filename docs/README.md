@@ -14,6 +14,7 @@
 - `docs/operations/docker-image-runtime.md`
 - `docs/operations/docker-image-publishing.md`
 - `docs/operations/release-branching.md`
+- `docs/operations/release-process.md`
 - `docs/operations/unraid-dockerman.md`
 - `docs/operations/session-handoff.md`
 

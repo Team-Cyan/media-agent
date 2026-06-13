@@ -13,7 +13,16 @@ from media_agent.config import ConfigError, load_config, parse_config, validate_
 from media_agent.import_runner import run_import_once, summary_to_dict
 from media_agent.web import run_web_server
 
-DEFAULT_CONFIG = os.environ.get("MEDIA_AGENT_CONFIG", "config/config.yaml")
+
+def _env_bool(name: str, *, default: bool = False) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _default_config() -> str:
+    return os.environ.get("MEDIA_AGENT_CONFIG", "config/config.yaml")
 
 
 def main(argv: Sequence[str] | None = None, *, tmdb_client: object | None = None) -> int:
@@ -38,26 +47,36 @@ def build_parser() -> argparse.ArgumentParser:
         "healthcheck",
         help="validate runtime config and state path",
     )
-    healthcheck.add_argument("--config", default=DEFAULT_CONFIG)
+    healthcheck.add_argument("--config", default=_default_config())
     healthcheck.add_argument(
         "--state-dir",
         default=os.environ.get("MEDIA_AGENT_STATE_DIR", ".media-agent"),
     )
-    healthcheck.add_argument("--heartbeat-file")
-    healthcheck.add_argument("--max-staleness-minutes", type=int)
+    healthcheck.add_argument(
+        "--heartbeat-file",
+        default=os.environ.get("MEDIA_AGENT_HEARTBEAT_FILE"),
+    )
+    healthcheck.add_argument(
+        "--max-staleness-minutes",
+        type=int,
+        default=int(os.environ.get("MEDIA_AGENT_MAX_STALENESS_MINUTES", "0")) or None,
+    )
     healthcheck.set_defaults(func=run_healthcheck)
 
     runtime_status = subparsers.add_parser("runtime-status", help="print runtime status")
-    runtime_status.add_argument("--config", default=DEFAULT_CONFIG)
+    runtime_status.add_argument("--config", default=_default_config())
     runtime_status.add_argument(
         "--state-dir",
         default=os.environ.get("MEDIA_AGENT_STATE_DIR", ".media-agent"),
     )
-    runtime_status.add_argument("--heartbeat-file")
+    runtime_status.add_argument(
+        "--heartbeat-file",
+        default=os.environ.get("MEDIA_AGENT_HEARTBEAT_FILE"),
+    )
     runtime_status.set_defaults(func=run_runtime_status)
 
     config_check = subparsers.add_parser("config-check", help="validate a config file")
-    config_check.add_argument("--config", default=DEFAULT_CONFIG)
+    config_check.add_argument("--config", default=_default_config())
     config_check.set_defaults(func=run_config_check)
 
     import_once = subparsers.add_parser("import-run-once", help="scan and plan one import pass")
@@ -69,13 +88,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="run import passes on an interval",
     )
     add_import_args(import_schedule)
-    import_schedule.add_argument("--interval-minutes", type=int)
-    import_schedule.add_argument("--heartbeat-file")
+    import_schedule.add_argument(
+        "--interval-minutes",
+        type=int,
+        default=int(os.environ.get("MEDIA_AGENT_INTERVAL_MINUTES", "0")) or None,
+    )
+    import_schedule.add_argument(
+        "--heartbeat-file",
+        default=os.environ.get("MEDIA_AGENT_HEARTBEAT_FILE"),
+    )
     import_schedule.add_argument("--once", action="store_true")
     import_schedule.set_defaults(func=run_import_schedule)
 
     web = subparsers.add_parser("web", help="serve the operational Web UI")
-    web.add_argument("--config", default=DEFAULT_CONFIG)
+    web.add_argument("--config", default=_default_config())
     web.add_argument(
         "--state-dir",
         default=os.environ.get("MEDIA_AGENT_STATE_DIR", ".media-agent"),
@@ -92,7 +118,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def add_import_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--config", default=DEFAULT_CONFIG)
+    parser.add_argument("--config", default=_default_config())
     parser.add_argument(
         "--state-dir",
         default=os.environ.get("MEDIA_AGENT_STATE_DIR", ".media-agent"),
@@ -100,6 +126,7 @@ def add_import_args(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--execute",
         action="store_true",
+        default=_env_bool("MEDIA_AGENT_EXECUTE"),
         help="create links instead of dry-run only",
     )
     parser.add_argument("--json", action="store_true", help="print machine-readable summary")

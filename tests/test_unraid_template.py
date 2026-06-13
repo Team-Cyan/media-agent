@@ -19,10 +19,12 @@ def test_unraid_template_has_required_runtime_wiring() -> None:
     assert configs["/downloads"].attrib["Default"] == "/mnt/user/downloads"
     assert configs["/media"].attrib["Default"] == "/mnt/user/media"
     assert configs["MEDIA_AGENT_MODE"].text == "import-schedule"
+    assert configs["MEDIA_AGENT_WEB_ENABLED"].text == "true"
     assert configs["MEDIA_AGENT_CONFIG"].text == "/workspace/runtime/config/config.yaml"
     assert configs["MEDIA_AGENT_STATE_DIR"].text == "/workspace/runtime/.media-agent"
     assert configs["MEDIA_AGENT_HEARTBEAT_FILE"].text.endswith("media-agent-heartbeat.json")
     assert configs["8775"].attrib["Mode"] == "tcp"
+    assert values["Icon"].endswith("docs/assets/media-agent-icon.svg")
 
 
 def test_dockerignore_excludes_local_state_and_docs() -> None:

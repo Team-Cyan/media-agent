@@ -8,7 +8,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from media_agent.config import load_config, parse_config
+import yaml
+
+from media_agent.config import ConfigError, load_config, parse_config
 from media_agent.import_runner import run_import_once, summary_to_dict
 
 
@@ -71,7 +73,7 @@ def build_status(state_dir: Path) -> dict[str, Any]:
     }
 
 
-def render_dashboard(status: dict[str, Any]) -> str:
+def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
     counts = {"planned": 0, "linked": 0, "failed": 0, "pending_review": 0}
     counts.update(status["counts"])
     review_rows = "\n".join(_render_review_row(row) for row in status["review_items"])
@@ -130,6 +132,24 @@ def render_dashboard(status: dict[str, Any]) -> str:
       border-radius: 8px;
       padding: 14px;
     }}
+    textarea {{
+      width: 100%;
+      min-height: 260px;
+      box-sizing: border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      border: 1px solid #cbd5df;
+      border-radius: 8px;
+      padding: 12px;
+    }}
+    .form-row {{ display: flex; gap: 10px; margin: 8px 0; flex-wrap: wrap; }}
+    input {{
+      min-width: 260px;
+      flex: 1;
+      border: 1px solid #cbd5df;
+      border-radius: 6px;
+      padding: 8px 10px;
+    }}
   </style>
 </head>
 <body>
@@ -152,12 +172,43 @@ def render_dashboard(status: dict[str, Any]) -> str:
     {_table_or_empty(review_rows, "No pending review items.", "review")}
     <h2>Recent Actions</h2>
     {_table_or_empty(action_rows, "No import actions yet.", "actions")}
+    <h2>Configuration</h2>
+    <textarea id="configText">{html.escape(config_text)}</textarea>
+    <div class="toolbar">
+      <button class="primary" onclick="saveConfig()">Save config</button>
+    </div>
+    <h2>TMDB Secrets</h2>
+    <div class="form-row">
+      <input id="tmdbApiKey" type="password" placeholder="TMDB API key">
+      <input id="tmdbBearer" type="password" placeholder="TMDB bearer token">
+      <button onclick="saveSecrets()">Save secrets</button>
+    </div>
   </main>
   <script>
     async function runImport(execute) {{
       const path = execute ? "/api/import-run-once?execute=true" : "/api/import-run-once";
       await fetch(path, {{ method: "POST" }});
       location.reload();
+    }}
+    async function saveConfig() {{
+      await fetch("/api/config", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/x-yaml" }},
+        body: document.getElementById("configText").value
+      }});
+      location.reload();
+    }}
+    async function saveSecrets() {{
+      await fetch("/api/secrets", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{
+          api_key: document.getElementById("tmdbApiKey").value,
+          bearer_token: document.getElementById("tmdbBearer").value
+        }})
+      }});
+      document.getElementById("tmdbApiKey").value = "";
+      document.getElementById("tmdbBearer").value = "";
     }}
   </script>
 </body>
@@ -183,14 +234,28 @@ def _make_handler(*, config_path: Path, state_dir: Path):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if self.path == "/" or self.path.startswith("/?"):
-                self._send_html(render_dashboard(build_status(state_dir)))
+                self._send_html(
+                    render_dashboard(
+                        build_status(state_dir),
+                        config_text=_read_config_text(config_path),
+                    )
+                )
                 return
             if self.path == "/api/status":
                 self._send_json(build_status(state_dir))
                 return
+            if self.path == "/api/config":
+                self._send_text(_read_config_text(config_path), content_type="application/x-yaml")
+                return
             self.send_error(HTTPStatus.NOT_FOUND)
 
         def do_POST(self) -> None:
+            if self.path == "/api/config":
+                self._save_config()
+                return
+            if self.path == "/api/secrets":
+                self._save_secrets()
+                return
             if not self.path.startswith("/api/import-run-once"):
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
@@ -202,23 +267,79 @@ def _make_handler(*, config_path: Path, state_dir: Path):
         def log_message(self, format: str, *args) -> None:
             return
 
-        def _send_json(self, payload: dict[str, Any]) -> None:
+        def _send_json(
+            self,
+            payload: dict[str, Any],
+            *,
+            status: HTTPStatus = HTTPStatus.OK,
+        ) -> None:
             body = json.dumps(payload, sort_keys=True).encode("utf-8")
-            self.send_response(HTTPStatus.OK)
+            self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
 
         def _send_html(self, html_body: str) -> None:
-            body = html_body.encode("utf-8")
+            self._send_text(html_body, content_type="text/html; charset=utf-8")
+
+        def _send_text(self, text: str, *, content_type: str) -> None:
+            body = text.encode("utf-8")
             self.send_response(HTTPStatus.OK)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
 
+        def _save_config(self) -> None:
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length).decode("utf-8")
+            try:
+                loaded = yaml.safe_load(body) or {}
+                if not isinstance(loaded, dict):
+                    raise ConfigError("config root must be a mapping")
+                parse_config(loaded)
+            except (ConfigError, yaml.YAMLError) as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+            config_path.parent.mkdir(parents=True, exist_ok=True)
+            config_path.write_text(body, encoding="utf-8")
+            self._send_json({"ok": True})
+
+        def _save_secrets(self) -> None:
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            except json.JSONDecodeError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+            config = parse_config(load_config(config_path))
+            written: list[str] = []
+            if payload.get("api_key"):
+                _write_secret_ref(config.tmdb_api_key_ref, str(payload["api_key"]))
+                written.append("api_key")
+            if payload.get("bearer_token") and config.tmdb_bearer_token_ref:
+                _write_secret_ref(config.tmdb_bearer_token_ref, str(payload["bearer_token"]))
+                written.append("bearer_token")
+            self._send_json({"ok": True, "written": written})
+
     return Handler
+
+
+def _read_config_text(config_path: Path) -> str:
+    if not config_path.exists():
+        return ""
+    return config_path.read_text(encoding="utf-8")
+
+
+def _write_secret_ref(path_ref: str, value: str) -> None:
+    path = Path(path_ref)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(value, encoding="utf-8")
+    try:
+        path.chmod(0o600)
+    except OSError:
+        pass
 
 
 def _table_or_empty(rows: str, empty_text: str, kind: str) -> str:

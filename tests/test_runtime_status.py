@@ -125,3 +125,37 @@ profiles:
     assert summary["planned"] == 1
     assert heartbeat_payload["summary"]["planned"] == 1
     assert heartbeat_payload["ok"] is True
+
+
+def test_import_schedule_uses_environment_defaults(tmp_path, monkeypatch, capsys) -> None:
+    source = tmp_path / "downloads"
+    target = tmp_path / "media"
+    state_dir = tmp_path / "state"
+    heartbeat = tmp_path / "heartbeat.json"
+    movie = source / "Arrival.2016.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        f"""
+tmdb:
+  api_key_ref: {tmp_path / "missing"}
+profiles:
+  - name: movies
+    type: movie
+    source: {source}
+    target: {target}
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("MEDIA_AGENT_CONFIG", str(config))
+    monkeypatch.setenv("MEDIA_AGENT_STATE_DIR", str(state_dir))
+    monkeypatch.setenv("MEDIA_AGENT_HEARTBEAT_FILE", str(heartbeat))
+    monkeypatch.setenv("MEDIA_AGENT_INTERVAL_MINUTES", "5")
+    monkeypatch.setenv("MEDIA_AGENT_EXECUTE", "false")
+
+    exit_code = main(["import-schedule", "--once", "--json"])
+
+    assert exit_code == 0
+    assert json.loads(capsys.readouterr().out)["planned"] == 1
+    assert json.loads(heartbeat.read_text(encoding="utf-8"))["summary"]["planned"] == 1

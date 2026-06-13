@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -94,13 +95,130 @@ def test_web_server_serves_status_and_runs_scan(tmp_path) -> None:
         server.server_close()
 
 
-def _write_config(tmp_path: Path, source: Path, target: Path) -> Path:
+def test_web_server_reads_and_writes_config(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    config = _write_config(tmp_path, source, target)
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/config", timeout=5) as response:
+            body = response.read().decode()
+        assert "profiles:" in body
+
+        new_config = body.replace("Movies", "Films")
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/config",
+            data=new_config.encode(),
+            method="POST",
+            headers={"Content-Type": "application/x-yaml"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read())
+        assert payload["ok"] is True
+        assert "Films" in config.read_text(encoding="utf-8")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_web_server_rejects_invalid_config(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    config = _write_config(tmp_path, source, target)
+    original = config.read_text(encoding="utf-8")
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/config",
+            data=b"profiles: []",
+            method="POST",
+            headers={"Content-Type": "application/x-yaml"},
+        )
+        try:
+            urllib.request.urlopen(request, timeout=5)
+        except urllib.error.HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 400
+            assert payload["ok"] is False
+        else:
+            raise AssertionError("invalid config was accepted")
+        assert config.read_text(encoding="utf-8") == original
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_web_server_writes_tmdb_secrets_to_configured_refs(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    api_key = tmp_path / "secrets" / "tmdb.api-key"
+    bearer = tmp_path / "secrets" / "tmdb.bearer-token"
+    config = _write_config(tmp_path, source, target, api_key=api_key, bearer=bearer)
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/secrets",
+            data=json.dumps({"api_key": "abc", "bearer_token": "def"}).encode(),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read())
+        assert payload["ok"] is True
+        assert api_key.read_text(encoding="utf-8") == "abc"
+        assert bearer.read_text(encoding="utf-8") == "def"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def _write_config(
+    tmp_path: Path,
+    source: Path,
+    target: Path,
+    *,
+    api_key: Path | None = None,
+    bearer: Path | None = None,
+) -> Path:
     config = tmp_path / "config.yaml"
+    api_key = api_key or tmp_path / "missing"
+    bearer = bearer or tmp_path / "missing-bearer"
     config.write_text(
         f"""
 mode: semi_auto
 tmdb:
-  api_key_ref: local/secrets/tmdb.api-key
+  api_key_ref: {api_key}
+  bearer_token_ref: {bearer}
 scheduler:
   interval_minutes: 30
   execute: false

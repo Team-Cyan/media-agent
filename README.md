@@ -160,5 +160,6 @@ Collection folders are enabled for movie collections. Series folders are always 
 - [Product Boundary Spec](docs/specs/2026-06-09-media-agent-product-boundary.md)
 - [Docker Image Runtime](docs/operations/docker-image-runtime.md)
 - [Docker Image Publishing](docs/operations/docker-image-publishing.md)
+- [Release Process](docs/operations/release-process.md)
 - [Unraid DockerMan Install](docs/operations/unraid-dockerman.md)
 - [Session Handoff](docs/operations/session-handoff.md)
