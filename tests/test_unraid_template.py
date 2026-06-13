@@ -24,7 +24,7 @@ def test_unraid_template_has_required_runtime_wiring() -> None:
     assert configs["MEDIA_AGENT_STATE_DIR"].text == "/workspace/runtime/.media-agent"
     assert configs["MEDIA_AGENT_HEARTBEAT_FILE"].text.endswith("media-agent-heartbeat.json")
     assert configs["8775"].attrib["Mode"] == "tcp"
-    assert values["Icon"].endswith("docs/assets/media-agent-icon.svg")
+    assert values["Icon"].endswith("docs/assets/media-agent-icon.png")
 
 
 def test_dockerignore_excludes_local_state_and_docs() -> None:
