@@ -46,12 +46,6 @@ print("xml ok")
 PY
 ```
 
-If Docker is available, build locally:
-
-```bash
-docker build -t media-agent:local .
-```
-
 ## Unraid Release Expectations
 
 Before calling a release deployable to Unraid:
