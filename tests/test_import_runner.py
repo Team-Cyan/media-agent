@@ -236,6 +236,44 @@ def test_import_run_once_falls_back_when_tmdb_is_unreachable(tmp_path, capsys) -
     assert audit[0]["target_path"] == str(target / "The Matrix (1999)" / "The Matrix (1999).mkv")
 
 
+def test_import_run_once_disables_tmdb_after_first_lookup_failure(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    secret = tmp_path / "tmdb.key"
+    secret.write_text("unused", encoding="utf-8")
+    for name in ["The.Matrix.1999.1080p.mkv", "Arrival.2016.1080p.BluRay.mkv"]:
+        movie = source / name
+        movie.parent.mkdir(parents=True, exist_ok=True)
+        movie.write_bytes(b"movie")
+    config = _write_config(tmp_path, source, target, tmdb_api_key_ref=secret)
+
+    class BrokenTmdb:
+        calls = 0
+
+        def search_movie(self, title: str, *, year: int | None = None):
+            self.calls += 1
+            raise OSError("network is unreachable")
+
+    tmdb = BrokenTmdb()
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ],
+        tmdb_client=tmdb,
+    )
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["planned"] == 2
+    assert tmdb.calls == 1
+
+
 def _write_config(
     tmp_path: Path,
     source: Path,

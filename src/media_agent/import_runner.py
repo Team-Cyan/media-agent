@@ -83,6 +83,7 @@ def run_import_once(
     executed = 0
     skipped = 0
     failed = 0
+    tmdb_disabled = tmdb is None
 
     for profile in config.profiles:
         if not profile.enabled:
@@ -93,7 +94,10 @@ def run_import_once(
             if guess is None:
                 skipped += 1
                 continue
-            guess = enrich_guess_with_tmdb(guess, tmdb)
+            if not tmdb_disabled:
+                guess, tmdb_failed = _enrich_guess_with_tmdb(guess, tmdb)
+                if tmdb_failed:
+                    tmdb_disabled = True
             action = plan_action(profile, source_path, guess)
             planned += 1
             state.record_plan(action, dry_run=not execute)
@@ -149,46 +153,59 @@ def guess_media(profile: ProfileConfig, source_path: Path) -> MediaGuess | None:
 def enrich_guess_with_tmdb(guess: MediaGuess, tmdb_client: object | None) -> MediaGuess:
     if tmdb_client is None:
         return guess
+    return _enrich_guess_with_tmdb(guess, tmdb_client)[0]
+
+
+def _enrich_guess_with_tmdb(
+    guess: MediaGuess,
+    tmdb_client: object,
+) -> tuple[MediaGuess, bool]:
     if guess.media_type == "movie":
         try:
             results = tmdb_client.search_movie(guess.title, year=guess.year)
         except Exception:
-            return guess
+            return guess, True
         best = select_best_movie(
             query_title=guess.title,
             query_year=guess.year,
             candidates=results,
         )
         if best is None:
-            return guess
-        return MediaGuess(
-            media_type=guess.media_type,
-            title=result_title(best),
-            year=result_year(best) or guess.year,
-            confidence=0.9,
-            tmdb_id=result_id(best),
+            return guess, False
+        return (
+            MediaGuess(
+                media_type=guess.media_type,
+                title=result_title(best),
+                year=result_year(best) or guess.year,
+                confidence=0.9,
+                tmdb_id=result_id(best),
+            ),
+            False,
         )
     if guess.media_type in {"tv", "anime"} and guess.series_title:
         try:
             results = tmdb_client.search_tv(guess.series_title)
         except Exception:
-            return guess
+            return guess, True
         best = select_best_tv(query_title=guess.series_title, candidates=results)
         if best is None:
-            return guess
+            return guess, False
         series_title = result_title(best)
-        return MediaGuess(
-            media_type=guess.media_type,
-            title=series_title,
-            year=result_year(best),
-            series_title=series_title,
-            season=guess.season,
-            episode=guess.episode,
-            episode_title=guess.episode_title,
-            confidence=0.88,
-            tmdb_id=result_id(best),
+        return (
+            MediaGuess(
+                media_type=guess.media_type,
+                title=series_title,
+                year=result_year(best),
+                series_title=series_title,
+                season=guess.season,
+                episode=guess.episode,
+                episode_title=guess.episode_title,
+                confidence=0.88,
+                tmdb_id=result_id(best),
+            ),
+            False,
         )
-    return guess
+    return guess, False
 
 
 def plan_action(profile: ProfileConfig, source_path: Path, guess: MediaGuess) -> ImportAction:
