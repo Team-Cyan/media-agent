@@ -54,8 +54,10 @@ def test_render_dashboard_contains_operational_controls() -> None:
     assert "Pending Review" in html
     assert "Config & Secrets" in html
     assert "Validate" in html
-    assert "API read access token" in html
-    assert "API key" in html
+    assert "TMDB API Access" in html
+    assert "API 读访问令牌 / Read Access Token" in html
+    assert "API 密钥 / API Key" in html
+    assert "Fallback only" in html
 
 
 def test_web_server_serves_status_and_runs_scan(tmp_path) -> None:

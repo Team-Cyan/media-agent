@@ -278,30 +278,30 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
       <div class="panel">
         <div class="panel-head">
           <div>
-            <h2>TMDB Credentials</h2>
-            <p>Values are written only to the configured local secret files.</p>
+            <h2>TMDB API Access</h2>
+            <p>Use the names shown on the TMDB API settings page.</p>
           </div>
           <span class="pill">local secrets</span>
         </div>
         <div class="field">
-          <label for="tmdbBearer">API read access token</label>
+          <label for="tmdbBearer">API 读访问令牌 / Read Access Token</label>
           <input
             id="tmdbBearer"
             type="password"
             autocomplete="off"
-            placeholder="Paste TMDB read access token"
+            placeholder="Paste the long JWT token starting with eyJ..."
           >
-          <small>Used as an Authorization: Bearer token.</small>
+          <small>Recommended. Sent as Authorization: Bearer &lt;token&gt;.</small>
         </div>
         <div class="field">
-          <label for="tmdbApiKey">API key</label>
+          <label for="tmdbApiKey">API 密钥 / API Key</label>
           <input
             id="tmdbApiKey"
             type="password"
             autocomplete="off"
-            placeholder="Paste TMDB API key"
+            placeholder="Paste the short TMDB v3 API key"
           >
-          <small>Used as the v3 api_key fallback.</small>
+          <small>Fallback only. Sent as the v3 api_key query parameter.</small>
         </div>
         <div class="panel-actions">
           <button class="primary" onclick="saveSecrets()">Save secrets</button>
@@ -371,7 +371,13 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
         const payload = await readJson(response);
         document.getElementById("tmdbApiKey").value = "";
         document.getElementById("tmdbBearer").value = "";
-        const names = payload.written.length ? payload.written.join(", ") : "no fields";
+        const labels = {{
+          api_key: "API 密钥 / API Key",
+          bearer_token: "API 读访问令牌 / Read Access Token"
+        }};
+        const names = payload.written.length
+          ? payload.written.map((name) => labels[name] || name).join(", ")
+          : "no credential fields";
         setStatus("secretStatus", `Saved: ${{names}}`, true);
       }} catch (error) {{
         setStatus("secretStatus", error.message, false);
