@@ -1,6 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="media-agent">
-  <rect width="256" height="256" rx="48" fill="#115e59"/>
-  <path d="M58 78c0-11 9-20 20-20h100c11 0 20 9 20 20v100c0 11-9 20-20 20H78c-11 0-20-9-20-20V78Z" fill="#f8fafc"/>
-  <path d="M94 93v70l68-35-68-35Z" fill="#0f766e"/>
-  <path d="M72 78h112M72 178h112M78 58l20 40M128 58l20 40M178 58l20 40" stroke="#99f6e4" stroke-width="12" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">media-agent icon</title>
+  <desc id="desc">A compact cyan, green, and blue media file processor mark for media-agent.</desc>
+  <defs>
+    <linearGradient id="media-agent-gradient" x1="40" y1="34" x2="216" y2="222" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="0.52" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <path d="M76 24h104c28.7 0 52 23.3 52 52v104c0 28.7-23.3 52-52 52H76c-28.7 0-52-23.3-52-52V76c0-28.7 23.3-52 52-52Z" fill="url(#media-agent-gradient)"/>
+  <path d="M84 58h78l34 34v80c0 14.4-11.6 26-26 26H86c-14.4 0-26-11.6-26-26V82c0-13.3 10.7-24 24-24Z" fill="#08111f"/>
+  <path d="M162 58v34h34L162 58Z" fill="#dffcf7"/>
+  <path d="M84 96h88c5.5 0 10 4.5 10 10v54c0 5.5-4.5 10-10 10H84c-5.5 0-10-4.5-10-10v-54c0-5.5 4.5-10 10-10Z" fill="#dffcf7"/>
+  <path d="M112 113v40l38-20-38-20Z" fill="#08111f"/>
+  <path d="M90 82h42" stroke="#dffcf7" stroke-width="10" stroke-linecap="round"/>
+  <path d="M90 184h76" stroke="#dffcf7" stroke-width="11" stroke-linecap="round"/>
 </svg>
