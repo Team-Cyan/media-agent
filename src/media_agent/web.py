@@ -73,11 +73,104 @@ def build_status(state_dir: Path) -> dict[str, Any]:
     }
 
 
-def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
+def render_dashboard(status: dict[str, Any]) -> str:
     counts = {"planned": 0, "linked": 0, "failed": 0, "pending_review": 0}
     counts.update(status["counts"])
     review_rows = "\n".join(_render_review_row(row) for row in status["review_items"])
     action_rows = "\n".join(_render_action_row(row) for row in status["recent_actions"])
+    body = f"""
+    <section class="page-head">
+      <div>
+        <h2>Runtime Status</h2>
+        <p>Current import state, review queue, and recent audit actions.</p>
+      </div>
+      <div class="toolbar inline">
+        <button class="primary" onclick="runImport(false)">Run dry scan</button>
+        <button onclick="runImport(true)">Run execute</button>
+        <button onclick="location.reload()">Refresh</button>
+      </div>
+    </section>
+    <section class="stats">
+      <div class="stat">Planned<strong>{counts["planned"]}</strong></div>
+      <div class="stat">Linked<strong>{counts["linked"]}</strong></div>
+      <div class="stat">Failed<strong>{counts["failed"]}</strong></div>
+      <div class="stat">Pending Review<strong>{counts["pending_review"]}</strong></div>
+    </section>
+    <div class="section-heading"><h2>Pending Review</h2></div>
+    {_table_or_empty(review_rows, "No pending review items.", "review")}
+    <div class="section-heading"><h2>Recent Actions</h2></div>
+    {_table_or_empty(action_rows, "No import actions yet.", "actions")}
+"""
+    return _render_page("status", body)
+
+
+def render_config_page(*, config_text: str = "") -> str:
+    body = f"""
+    <section class="page-head">
+      <div>
+        <h2>Configuration</h2>
+        <p>Runtime YAML and local TMDB credential files.</p>
+      </div>
+    </section>
+    <section class="config-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Runtime Config</h2>
+            <p>YAML profile, scheduler, naming, and library path settings.</p>
+          </div>
+          <span class="pill">config.yaml</span>
+        </div>
+        <textarea
+          id="configText"
+          class="editor"
+          spellcheck="false"
+        >{html.escape(config_text)}</textarea>
+        <div class="panel-actions">
+          <button onclick="validateConfig()">Validate</button>
+          <button class="primary" onclick="saveConfig()">Save config</button>
+          <span id="configStatus" class="status"></span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>TMDB API Access</h2>
+            <p>Use the names shown on the TMDB API settings page.</p>
+          </div>
+          <span class="pill">local secrets</span>
+        </div>
+        <div class="field">
+          <label for="tmdbBearer">API 读访问令牌 / Read Access Token</label>
+          <input
+            id="tmdbBearer"
+            type="password"
+            autocomplete="off"
+            placeholder="Paste the long JWT token starting with eyJ..."
+          >
+          <small>Recommended. Sent as Authorization: Bearer &lt;token&gt;.</small>
+        </div>
+        <div class="field">
+          <label for="tmdbApiKey">API 密钥 / API Key</label>
+          <input
+            id="tmdbApiKey"
+            type="password"
+            autocomplete="off"
+            placeholder="Paste the short TMDB v3 API key"
+          >
+          <small>Fallback only. Sent as the v3 api_key query parameter.</small>
+        </div>
+        <div class="panel-actions">
+          <button class="primary" onclick="saveSecrets()">Save secrets</button>
+          <span id="secretStatus" class="status"></span>
+        </div>
+      </div>
+    </section>
+"""
+    return _render_page("config", body)
+
+
+def _render_page(active_page: str, body: str) -> str:
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -90,11 +183,55 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }}
     body {{ margin: 0; background: #f6f7f9; color: #1f2933; }}
-    header {{ background: #ffffff; border-bottom: 1px solid #d9dee7; padding: 18px 24px; }}
+    header {{ background: #ffffff; border-bottom: 1px solid #d9dee7; }}
+    .header-inner {{
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 24px 0;
+    }}
     main {{ max-width: 1180px; margin: 0 auto; padding: 24px; }}
     h1 {{ margin: 0; font-size: 22px; }}
     h2 {{ font-size: 16px; margin: 0; }}
     .toolbar {{ display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }}
+    .toolbar.inline {{ margin-top: 0; justify-content: flex-end; }}
+    .page-head {{
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }}
+    .page-head h2 {{ font-size: 20px; }}
+    .page-head p {{
+      margin: 6px 0 0;
+      color: #667085;
+      font-size: 13px;
+    }}
+    nav {{
+      display: flex;
+      gap: 4px;
+      margin-top: 16px;
+      overflow-x: auto;
+    }}
+    .nav-item {{
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      border-radius: 7px 7px 0 0;
+      color: #475467;
+      font-size: 14px;
+      padding: 9px 12px;
+      text-decoration: none;
+      white-space: nowrap;
+    }}
+    .nav-item:hover {{ background: #f6f7f9; }}
+    .nav-item.active {{
+      background: #f6f7f9;
+      border-color: #d9dee7;
+      color: #111827;
+      font-weight: 600;
+    }}
     button {{
       border: 1px solid #9aa6b2;
       background: #ffffff;
@@ -230,85 +367,25 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
     }}
     @media (max-width: 860px) {{
       main {{ padding: 16px; }}
+      .header-inner {{ padding: 16px 16px 0; }}
+      .page-head {{ display: block; }}
+      .toolbar.inline {{ justify-content: flex-start; margin-top: 14px; }}
       .config-grid {{ grid-template-columns: 1fr; }}
     }}
   </style>
 </head>
 <body>
   <header>
-    <h1>media-agent</h1>
-    <div class="toolbar">
-      <button class="primary" onclick="runImport(false)">Run dry scan</button>
-      <button onclick="runImport(true)">Run execute</button>
-      <button onclick="location.reload()">Refresh</button>
+    <div class="header-inner">
+      <h1>media-agent</h1>
+      <nav aria-label="Primary">
+        <a class="nav-item {_active_class(active_page, "status")}" href="/status">Runtime Status</a>
+        <a class="nav-item {_active_class(active_page, "config")}" href="/config">Configuration</a>
+      </nav>
     </div>
   </header>
   <main>
-    <section class="stats">
-      <div class="stat">Planned<strong>{counts["planned"]}</strong></div>
-      <div class="stat">Linked<strong>{counts["linked"]}</strong></div>
-      <div class="stat">Failed<strong>{counts["failed"]}</strong></div>
-      <div class="stat">Pending Review<strong>{counts["pending_review"]}</strong></div>
-    </section>
-    <div class="section-heading"><h2>Pending Review</h2></div>
-    {_table_or_empty(review_rows, "No pending review items.", "review")}
-    <div class="section-heading"><h2>Recent Actions</h2></div>
-    {_table_or_empty(action_rows, "No import actions yet.", "actions")}
-    <div class="section-heading"><h2>Config & Secrets</h2></div>
-    <section class="config-grid">
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>Runtime Config</h2>
-            <p>YAML profile, scheduler, naming, and library path settings.</p>
-          </div>
-          <span class="pill">config.yaml</span>
-        </div>
-        <textarea
-          id="configText"
-          class="editor"
-          spellcheck="false"
-        >{html.escape(config_text)}</textarea>
-        <div class="panel-actions">
-          <button onclick="validateConfig()">Validate</button>
-          <button class="primary" onclick="saveConfig()">Save config</button>
-          <span id="configStatus" class="status"></span>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <h2>TMDB API Access</h2>
-            <p>Use the names shown on the TMDB API settings page.</p>
-          </div>
-          <span class="pill">local secrets</span>
-        </div>
-        <div class="field">
-          <label for="tmdbBearer">API 读访问令牌 / Read Access Token</label>
-          <input
-            id="tmdbBearer"
-            type="password"
-            autocomplete="off"
-            placeholder="Paste the long JWT token starting with eyJ..."
-          >
-          <small>Recommended. Sent as Authorization: Bearer &lt;token&gt;.</small>
-        </div>
-        <div class="field">
-          <label for="tmdbApiKey">API 密钥 / API Key</label>
-          <input
-            id="tmdbApiKey"
-            type="password"
-            autocomplete="off"
-            placeholder="Paste the short TMDB v3 API key"
-          >
-          <small>Fallback only. Sent as the v3 api_key query parameter.</small>
-        </div>
-        <div class="panel-actions">
-          <button class="primary" onclick="saveSecrets()">Save secrets</button>
-          <span id="secretStatus" class="status"></span>
-        </div>
-      </div>
-    </section>
+{body}
   </main>
   <script>
     async function runImport(execute) {{
@@ -388,6 +465,10 @@ def render_dashboard(status: dict[str, Any], *, config_text: str = "") -> str:
 </html>"""
 
 
+def _active_class(active_page: str, page: str) -> str:
+    return "active" if active_page == page else ""
+
+
 def run_web_server(
     *,
     config_path: Path,
@@ -406,13 +487,11 @@ def run_web_server(
 def _make_handler(*, config_path: Path, state_dir: Path):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
-            if self.path == "/" or self.path.startswith("/?"):
-                self._send_html(
-                    render_dashboard(
-                        build_status(state_dir),
-                        config_text=_read_config_text(config_path),
-                    )
-                )
+            if self.path == "/" or self.path == "/status" or self.path.startswith("/status?"):
+                self._send_html(render_dashboard(build_status(state_dir)))
+                return
+            if self.path == "/config" or self.path.startswith("/config?"):
+                self._send_html(render_config_page(config_text=_read_config_text(config_path)))
                 return
             if self.path == "/api/status":
                 self._send_json(build_status(state_dir))

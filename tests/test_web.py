@@ -7,7 +7,7 @@ import urllib.request
 from pathlib import Path
 
 from media_agent.cli import main
-from media_agent.web import build_status, render_dashboard, run_web_server
+from media_agent.web import build_status, render_config_page, render_dashboard, run_web_server
 
 
 def test_build_status_reads_state(tmp_path) -> None:
@@ -51,13 +51,25 @@ def test_render_dashboard_contains_operational_controls() -> None:
 
     assert "Run dry scan" in html
     assert "Run execute" in html
+    assert "Runtime Status" in html
+    assert 'href="/config"' in html
     assert "Pending Review" in html
-    assert "Config & Secrets" in html
+    assert "Recent Actions" in html
+    assert "TMDB API Access" not in html
+
+
+def test_render_config_page_contains_config_controls_without_status_tables() -> None:
+    html = render_config_page(config_text="profiles: []\n")
+
+    assert "Configuration" in html
+    assert 'href="/status"' in html
     assert "Validate" in html
     assert "TMDB API Access" in html
     assert "API 读访问令牌 / Read Access Token" in html
     assert "API 密钥 / API Key" in html
     assert "Fallback only" in html
+    assert "Run dry scan" not in html
+    assert "Recent Actions" not in html
 
 
 def test_web_server_serves_status_and_runs_scan(tmp_path) -> None:
@@ -80,6 +92,11 @@ def test_web_server_serves_status_and_runs_scan(tmp_path) -> None:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/status", timeout=5) as response:
+            body = response.read().decode()
+        assert "Runtime Status" in body
+        assert "TMDB API Access" not in body
+
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/status", timeout=5) as response:
             status = json.loads(response.read())
         assert status["counts"]["planned"] == 0
@@ -117,6 +134,13 @@ def test_web_server_reads_and_writes_config(tmp_path) -> None:
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/config", timeout=5) as response:
+            page = response.read().decode()
+        assert "Configuration" in page
+        assert "TMDB API Access" in page
+        assert "Runtime Status" in page
+        assert "Run dry scan" not in page
+
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/config", timeout=5) as response:
             body = response.read().decode()
         assert "profiles:" in body
