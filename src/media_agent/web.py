@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import sqlite3
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -14,13 +15,15 @@ from media_agent.config import ConfigError, load_config, parse_config, validate_
 from media_agent.import_runner import ImportState, run_import_once, summary_to_dict
 
 
-def build_status(state_dir: Path) -> dict[str, Any]:
+def build_status(state_dir: Path, *, config_path: Path | None = None) -> dict[str, Any]:
     db_path = state_dir / "state.db"
+    profile_health = build_profile_health(config_path) if config_path is not None else []
     if not db_path.exists():
         return {
             "counts": {"planned": 0, "linked": 0, "failed": 0, "pending_review": 0},
             "recent_actions": [],
             "review_items": [],
+            "profile_health": profile_health,
         }
 
     with sqlite3.connect(db_path) as db:
@@ -88,7 +91,27 @@ def build_status(state_dir: Path) -> dict[str, Any]:
         },
         "recent_actions": recent_actions,
         "review_items": review_items,
+        "profile_health": profile_health,
     }
+
+
+def build_profile_health(config_path: Path) -> list[dict[str, object]]:
+    config = parse_config(load_config(config_path))
+    rows: list[dict[str, object]] = []
+    for profile in config.profiles:
+        source_exists = profile.source.exists()
+        target_exists = profile.target.exists()
+        rows.append(
+            {
+                "name": profile.name,
+                "type": profile.type,
+                "enabled": profile.enabled,
+                "source_exists": source_exists,
+                "target_exists": target_exists,
+                "target_writable": target_exists and os.access(profile.target, os.W_OK),
+            }
+        )
+    return rows
 
 
 def render_dashboard(status: dict[str, Any]) -> str:
@@ -96,6 +119,7 @@ def render_dashboard(status: dict[str, Any]) -> str:
     counts.update(status["counts"])
     review_rows = "\n".join(_render_review_row(row) for row in status["review_items"])
     action_rows = "\n".join(_render_action_row(row) for row in status["recent_actions"])
+    health_rows = "\n".join(_render_health_row(row) for row in status.get("profile_health", []))
     body = f"""
     <section class="page-head">
       <div>
@@ -114,6 +138,8 @@ def render_dashboard(status: dict[str, Any]) -> str:
       <div class="stat">Failed<strong>{counts["failed"]}</strong></div>
       <div class="stat">Pending Review<strong>{counts["pending_review"]}</strong></div>
     </section>
+    <div class="section-heading"><h2>Profile Health</h2></div>
+    {_table_or_empty(health_rows, "No profiles configured.", "health")}
     <div class="section-heading"><h2>Pending Review</h2></div>
     {_table_or_empty(review_rows, "No pending review items.", "review")}
     <div class="section-heading"><h2>Recent Actions</h2></div>
@@ -533,13 +559,13 @@ def _make_handler(*, config_path: Path, state_dir: Path):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if self.path == "/" or self.path == "/status" or self.path.startswith("/status?"):
-                self._send_html(render_dashboard(build_status(state_dir)))
+                self._send_html(render_dashboard(build_status(state_dir, config_path=config_path)))
                 return
             if self.path == "/config" or self.path.startswith("/config?"):
                 self._send_html(render_config_page(config_text=_read_config_text(config_path)))
                 return
             if self.path == "/api/status":
-                self._send_json(build_status(state_dir))
+                self._send_json(build_status(state_dir, config_path=config_path))
                 return
             if self.path == "/api/config":
                 self._send_text(_read_config_text(config_path), content_type="application/x-yaml")
@@ -718,6 +744,11 @@ def _table_or_empty(rows: str, empty_text: str, kind: str) -> str:
             "<tr><th>Title</th><th>Type</th><th>Reason</th><th>Candidates</th>"
             "<th>Source</th></tr>"
         )
+    elif kind == "health":
+        header = (
+            "<tr><th>Profile</th><th>Type</th><th>Enabled</th><th>Source</th>"
+            "<th>Target</th><th>Writable</th></tr>"
+        )
     else:
         header = (
             "<tr><th>Status</th><th>Type</th><th>Metadata</th><th>Source</th>"
@@ -761,8 +792,25 @@ def _render_action_row(row: dict[str, Any]) -> str:
     )
 
 
+def _render_health_row(row: dict[str, Any]) -> str:
+    return (
+        "<tr>"
+        f"<td>{html.escape(str(row['name']))}</td>"
+        f"<td>{html.escape(str(row['type']))}</td>"
+        f"<td>{_yes_no(bool(row['enabled']))}</td>"
+        f"<td>{_yes_no(bool(row['source_exists']))}</td>"
+        f"<td>{_yes_no(bool(row['target_exists']))}</td>"
+        f"<td>{_yes_no(bool(row['target_writable']))}</td>"
+        "</tr>"
+    )
+
+
 def _candidate_label(candidate: dict[str, Any]) -> str:
     year = candidate.get("year")
     if year:
         return f"{candidate['title']} ({year})"
     return str(candidate["title"])
+
+
+def _yes_no(value: bool) -> str:
+    return "yes" if value else "no"

@@ -375,6 +375,42 @@ def test_web_execute_requires_confirmation_token(tmp_path) -> None:
         server.server_close()
 
 
+def test_web_status_includes_profile_health(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    source.mkdir(parents=True)
+    target.mkdir(parents=True)
+    state_dir = tmp_path / "state"
+    config = _write_config(tmp_path, source, target)
+
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/status", timeout=5) as response:
+            payload = json.loads(response.read())
+        assert payload["profile_health"] == [
+            {
+                "name": "movies",
+                "type": "movie",
+                "enabled": True,
+                "source_exists": True,
+                "target_exists": True,
+                "target_writable": True,
+            }
+        ]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def _write_config(
     tmp_path: Path,
     source: Path,
