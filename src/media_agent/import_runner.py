@@ -461,6 +461,38 @@ class ImportState:
                     ),
                 )
 
+    def select_review_candidate(self, *, review_item_id: int, metadata_id: str) -> None:
+        with sqlite3.connect(self.db_path) as db:
+            row = db.execute(
+                """
+                select ri.source_path, ri.media_type, rc.metadata_id, rc.title, rc.year
+                from review_items ri
+                join review_candidates rc on rc.review_item_id = ri.id
+                where ri.id = ? and rc.metadata_id = ?
+                """,
+                (review_item_id, metadata_id),
+            ).fetchone()
+            if row is None:
+                raise ValueError("review candidate not found")
+            db.execute(
+                """
+                insert into review_decisions (
+                    created_at, source_path, selected_metadata_id, title, year, media_type
+                ) values (?, ?, ?, ?, ?, ?)
+                on conflict(source_path) do update set
+                    created_at = excluded.created_at,
+                    selected_metadata_id = excluded.selected_metadata_id,
+                    title = excluded.title,
+                    year = excluded.year,
+                    media_type = excluded.media_type
+                """,
+                (time.time(), row[0], row[2], row[3], row[4], row[1]),
+            )
+            db.execute(
+                "update review_items set status = 'selected' where id = ?",
+                (review_item_id,),
+            )
+
     def _append_audit(
         self,
         action: ImportAction,

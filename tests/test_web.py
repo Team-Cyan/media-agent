@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
 import urllib.error
 import urllib.request
@@ -37,7 +38,8 @@ def test_build_status_reads_state(tmp_path) -> None:
 
     assert status["counts"]["planned"] == 1
     assert status["recent_actions"][0]["target_path"].endswith("Arrival (2016).mkv")
-    assert status["review_items"] == []
+    assert status["review_items"][0]["title"] == "Arrival"
+    assert status["review_items"][0]["status"] == "pending"
 
 
 def test_render_dashboard_contains_operational_controls() -> None:
@@ -263,6 +265,73 @@ def test_web_server_writes_tmdb_secrets_to_configured_refs(tmp_path) -> None:
         assert payload["ok"] is True
         assert api_key.read_text(encoding="utf-8") == "abc"
         assert bearer.read_text(encoding="utf-8") == "def"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_web_server_selects_review_candidate(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    movie = source / "Unknown.Movie.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    config = _write_config(tmp_path, source, target)
+    assert (
+        main(
+            [
+                "import-run-once",
+                "--config",
+                str(config),
+                "--state-dir",
+                str(state_dir),
+                "--json",
+            ]
+        )
+        == 0
+    )
+    with sqlite3.connect(state_dir / "state.db") as db:
+        review_id = db.execute("select id from review_items").fetchone()[0]
+        db.execute(
+            """
+            insert into review_candidates (
+                review_item_id, rank, metadata_id, title, year, confidence, raw_json
+            ) values (?, 1, 'tmdb:movie:603', 'The Matrix', 1999, 0.9, '{}')
+            """,
+            (review_id,),
+        )
+
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/review-items/{review_id}/select",
+            data=json.dumps({"metadata_id": "tmdb:movie:603"}).encode(),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            payload = json.loads(response.read())
+        assert payload["ok"] is True
+        with sqlite3.connect(state_dir / "state.db") as db:
+            item_status = db.execute(
+                "select status from review_items where id = ?",
+                (review_id,),
+            ).fetchone()[0]
+            decision = db.execute(
+                "select selected_metadata_id, title from review_decisions"
+            ).fetchone()
+        assert item_status == "selected"
+        assert decision == ("tmdb:movie:603", "The Matrix")
     finally:
         server.shutdown()
         server.server_close()

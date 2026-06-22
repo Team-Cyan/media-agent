@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from media_agent.config import ConfigError, load_config, parse_config, validate_config
-from media_agent.import_runner import run_import_once, summary_to_dict
+from media_agent.import_runner import ImportState, run_import_once, summary_to_dict
 
 
 def build_status(state_dir: Path) -> dict[str, Any]:
@@ -58,6 +58,24 @@ def build_status(state_dir: Path) -> dict[str, Any]:
                 """
             )
         ]
+        review_ids = [int(row["id"]) for row in review_items]
+        candidates_by_review_id: dict[int, list[dict[str, Any]]] = {
+            review_id: [] for review_id in review_ids
+        }
+        if review_ids:
+            placeholders = ",".join("?" for _ in review_ids)
+            for row in db.execute(
+                f"""
+                select review_item_id, metadata_id, title, year, confidence, rank
+                from review_candidates
+                where review_item_id in ({placeholders})
+                order by review_item_id, rank
+                """,
+                review_ids,
+            ):
+                candidates_by_review_id[int(row["review_item_id"])].append(dict(row))
+        for row in review_items:
+            row["candidates"] = candidates_by_review_id.get(int(row["id"]), [])
 
     return {
         "counts": {
@@ -460,6 +478,19 @@ def _render_page(active_page: str, body: str) -> str:
         setStatus("secretStatus", error.message, false);
       }}
     }}
+    async function selectCandidate(reviewId, metadataId) {{
+      try {{
+        const response = await fetch(`/api/review-items/${{reviewId}}/select`, {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{ metadata_id: metadataId }})
+        }});
+        await readJson(response);
+        location.reload();
+      }} catch (error) {{
+        alert(error.message);
+      }}
+    }}
   </script>
 </body>
 </html>"""
@@ -510,6 +541,9 @@ def _make_handler(*, config_path: Path, state_dir: Path):
                 return
             if self.path == "/api/secrets":
                 self._save_secrets()
+                return
+            if self.path.startswith("/api/review-items/") and self.path.endswith("/select"):
+                self._select_review_candidate()
                 return
             if not self.path.startswith("/api/import-run-once"):
                 self.send_error(HTTPStatus.NOT_FOUND)
@@ -585,6 +619,46 @@ def _make_handler(*, config_path: Path, state_dir: Path):
                 written.append("bearer_token")
             self._send_json({"ok": True, "written": written})
 
+        def _select_review_candidate(self) -> None:
+            parts = self.path.strip("/").split("/")
+            if len(parts) != 4:
+                self._send_json(
+                    {"ok": False, "error": "invalid review selection path"},
+                    status=HTTPStatus.NOT_FOUND,
+                )
+                return
+            try:
+                review_item_id = int(parts[2])
+            except ValueError:
+                self._send_json(
+                    {"ok": False, "error": "review item id must be an integer"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+            except json.JSONDecodeError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.BAD_REQUEST)
+                return
+            metadata_id = str(payload.get("metadata_id") or "")
+            if not metadata_id:
+                self._send_json(
+                    {"ok": False, "error": "metadata_id is required"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
+            try:
+                ImportState(state_dir).select_review_candidate(
+                    review_item_id=review_item_id,
+                    metadata_id=metadata_id,
+                )
+            except ValueError as exc:
+                self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.NOT_FOUND)
+                return
+            self._send_json({"ok": True})
+
     return Handler
 
 
@@ -620,7 +694,10 @@ def _table_or_empty(rows: str, empty_text: str, kind: str) -> str:
     if not rows:
         return f'<div class="empty">{html.escape(empty_text)}</div>'
     if kind == "review":
-        header = "<tr><th>Title</th><th>Type</th><th>Reason</th><th>Source</th></tr>"
+        header = (
+            "<tr><th>Title</th><th>Type</th><th>Reason</th><th>Candidates</th>"
+            "<th>Source</th></tr>"
+        )
     else:
         header = (
             "<tr><th>Status</th><th>Type</th><th>Metadata</th><th>Source</th>"
@@ -630,11 +707,23 @@ def _table_or_empty(rows: str, empty_text: str, kind: str) -> str:
 
 
 def _render_review_row(row: dict[str, Any]) -> str:
+    candidates = row.get("candidates") or []
+    candidate_buttons = " ".join(
+        (
+            f'<button onclick="selectCandidate({int(row["id"])}, '
+            f'{html.escape(json.dumps(str(candidate["metadata_id"])))}'
+            f')">{html.escape(_candidate_label(candidate))}</button>'
+        )
+        for candidate in candidates
+    )
+    if not candidate_buttons:
+        candidate_buttons = '<span class="empty-inline">No candidates</span>'
     return (
         "<tr>"
         f"<td>{html.escape(str(row['title']))}</td>"
         f"<td>{html.escape(str(row['media_type']))}</td>"
         f"<td>{html.escape(str(row['reason']))}</td>"
+        f"<td>{candidate_buttons}</td>"
         f"<td><code>{html.escape(str(row['source_path']))}</code></td>"
         "</tr>"
     )
@@ -650,3 +739,10 @@ def _render_action_row(row: dict[str, Any]) -> str:
         f"<td><code>{html.escape(str(row['target_path']))}</code></td>"
         "</tr>"
     )
+
+
+def _candidate_label(candidate: dict[str, Any]) -> str:
+    year = candidate.get("year")
+    if year:
+        return f"{candidate['title']} ({year})"
+    return str(candidate["title"])
