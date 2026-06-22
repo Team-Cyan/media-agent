@@ -12,8 +12,9 @@ exists, and `import-run-once` now provides a working local MVP:
 - write SQLite state and JSONL audit,
 - create hardlinks or symlinks only when `--execute` is explicit.
 
-The Web UI now exposes status, pending review, recent actions, dry scan, and
-execute triggers. Rich manual candidate selection is still not implemented.
+The Web UI now exposes status, profile health, pending review, TMDB candidate
+choices, recent actions, dry scan, and explicitly confirmed execute triggers.
+Re-planning imports from selected review decisions is still not implemented.
 
 ## P0 - Project Bootstrap
 
@@ -60,9 +61,9 @@ execute triggers. Rich manual candidate selection is still not implemented.
 ## P0 - Review Queue
 
 - [x] Store uncertain filename/TMDB matches as pending review items.
-- Expose candidate choices.
-- Allow manual selection.
-- Re-run import planning after user selection.
+- [x] Expose candidate choices.
+- [x] Allow manual selection.
+- [ ] Re-run import planning after user selection.
 
 ## P1 - Scheduler And Web UI
 

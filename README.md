@@ -12,7 +12,8 @@ The first capability is the media linker/importer:
 - per-profile source and target folders,
 - TMDB-first scraping,
 - semi-automatic matching,
-- Web UI review for uncertain matches,
+- Web UI status, configuration, dry-run scan, and explicit execute controls,
+- pending review queue with manual TMDB candidate selection,
 - hardlink-first import with optional symlink fallback,
 - dry-run-first scheduled scans,
 - durable audit and local state.
@@ -45,6 +46,9 @@ media-agent web --config config/config.yaml --host 0.0.0.0 --port 8775
 ```
 
 The default behavior must remain dry-run unless execution is explicitly enabled.
+The Web UI can write runtime config and local TMDB secret files. Bind it only to
+trusted interfaces, and put authentication in front of it before exposing it
+beyond a private operator network.
 
 Current working commands:
 

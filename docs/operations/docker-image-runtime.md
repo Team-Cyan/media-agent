@@ -26,6 +26,10 @@ media-agent web --config /app/config/config.yaml --host 0.0.0.0 --port 8775
 Dry-run is the default. `--execute` is required to create links unless the
 operator-local config explicitly enables scheduler execution.
 
+The Web UI can write runtime config and local TMDB secret files. Bind it only to
+trusted interfaces, and put authentication in front of it before exposing it
+beyond a private operator network.
+
 For long-running scheduler deployments, use a heartbeat file and healthcheck
 staleness guard:
 

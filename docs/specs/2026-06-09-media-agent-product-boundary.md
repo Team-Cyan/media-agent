@@ -74,6 +74,8 @@ Matching is semi-automatic.
 - Lower-confidence matches enter review.
 - Review should show several candidate TMDB matches in the Web UI.
 - User selections should persist so future scans do not ask the same question again.
+- Re-planning import actions from persisted review decisions is required before
+  the review workflow is considered complete.
 
 ### Naming
 

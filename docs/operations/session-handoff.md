@@ -30,8 +30,10 @@ The repo currently contains:
 - release branch convention: archive medium versions as `release/<major>.<minor>`
   while continuing work on `main`.
 
-`import-schedule` loops over the same import pass. `web` is still a placeholder
-that validates config and exits with a not-implemented status.
+`import-schedule` loops over the same import pass. `web` serves the operational
+status/config UI, including profile health, dry scan, pending review candidate
+selection, and explicitly confirmed execute triggers. Re-planning imports from
+selected review decisions remains the next key workflow.
 
 ## Decision Summary
 
@@ -80,10 +82,11 @@ Keep the first real import slice narrow:
 - [x] TMDB-backed movie and TV title enrichment.
 - [x] Review queue storage for ambiguous filename or TMDB matches.
 - [x] Anime fixture coverage.
-- [ ] Manual candidate selection in Web UI.
+- [x] Manual candidate selection in Web UI.
+- [ ] Re-plan imports from selected review decisions.
 
-Next slices should add TMDB-backed matching, review queue behavior, and anime
-fixture coverage without widening into downloader automation.
+Next slices should use persisted review decisions when planning imports, without
+widening into downloader automation.
 
 ## Known Risks
 

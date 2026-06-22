@@ -6,8 +6,12 @@ tmdb:
   language: en-US
 
 matching:
+  # Matches at or above this confidence can be planned without manual review.
   auto_plan_min_confidence: 0.85
+  # Matches below auto-plan confidence enter review. This lower bound is kept
+  # for future filtering of very weak candidates.
   review_min_confidence: 0.55
+  # Maximum TMDB candidates stored for each review item.
   max_review_choices: 5
 
 scheduler:
