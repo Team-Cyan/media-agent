@@ -104,7 +104,7 @@ def render_dashboard(status: dict[str, Any]) -> str:
       </div>
       <div class="toolbar inline">
         <button class="primary" onclick="runImport(false)">Run dry scan</button>
-        <button onclick="runImport(true)">Run execute</button>
+        <button onclick="runImport(true)">Execute planned links</button>
         <button onclick="location.reload()">Refresh</button>
       </div>
     </section>
@@ -407,9 +407,23 @@ def _render_page(active_page: str, body: str) -> str:
   </main>
   <script>
     async function runImport(execute) {{
-      const path = execute ? "/api/import-run-once?execute=true" : "/api/import-run-once";
-      await fetch(path, {{ method: "POST" }});
-      location.reload();
+      const confirmed = !execute || window.confirm(
+        "Execute planned imports now? Do a dry scan first if you need to review target paths."
+      );
+      if (!confirmed) return;
+      const path = execute
+        ? "/api/import-run-once?execute=true&confirm=planned"
+        : "/api/import-run-once";
+      const buttons = document.querySelectorAll("button");
+      buttons.forEach((button) => button.disabled = true);
+      try {{
+        const response = await fetch(path, {{ method: "POST" }});
+        await readJson(response);
+        location.reload();
+      }} catch (error) {{
+        alert(error.message);
+        buttons.forEach((button) => button.disabled = false);
+      }}
     }}
     function setStatus(id, message, ok) {{
       const node = document.getElementById(id);
@@ -549,6 +563,12 @@ def _make_handler(*, config_path: Path, state_dir: Path):
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
             execute = "execute=true" in self.path
+            if execute and "confirm=planned" not in self.path:
+                self._send_json(
+                    {"ok": False, "error": "execute requires confirm=planned"},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
+                return
             config = parse_config(load_config(config_path))
             summary = run_import_once(config, state_dir=state_dir, execute=execute)
             self._send_json(summary_to_dict(summary))

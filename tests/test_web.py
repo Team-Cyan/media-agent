@@ -52,7 +52,7 @@ def test_render_dashboard_contains_operational_controls() -> None:
     )
 
     assert "Run dry scan" in html
-    assert "Run execute" in html
+    assert "Execute planned links" in html
     assert "Runtime Status" in html
     assert 'href="/config"' in html
     assert "Pending Review" in html
@@ -332,6 +332,44 @@ def test_web_server_selects_review_candidate(tmp_path) -> None:
             ).fetchone()
         assert item_status == "selected"
         assert decision == ("tmdb:movie:603", "The Matrix")
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_web_execute_requires_confirmation_token(tmp_path) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    movie = source / "Arrival.2016.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    config = _write_config(tmp_path, source, target)
+    server = run_web_server(
+        config_path=config,
+        state_dir=state_dir,
+        host="127.0.0.1",
+        port=0,
+        once=True,
+    )
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{port}/api/import-run-once?execute=true",
+            data=b"",
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(request, timeout=10)
+        except urllib.error.HTTPError as exc:
+            payload = json.loads(exc.read())
+            assert exc.code == 400
+            assert payload["error"] == "execute requires confirm=planned"
+        else:
+            raise AssertionError("execute without confirmation was accepted")
+        assert not (target / "Arrival (2016)" / "Arrival (2016).mkv").exists()
     finally:
         server.shutdown()
         server.server_close()
