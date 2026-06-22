@@ -101,7 +101,7 @@ def run_import_once(
             action = plan_action(profile, source_path, guess)
             planned += 1
             state.record_plan(action, dry_run=not execute)
-            if guess.confidence < 0.55:
+            if guess.confidence < config.matching.auto_plan_min_confidence:
                 state.record_review_item(
                     source_path=source_path,
                     media_type=guess.media_type,

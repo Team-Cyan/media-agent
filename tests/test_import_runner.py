@@ -199,6 +199,44 @@ def test_import_run_once_records_review_item_for_uncertain_movie(tmp_path, capsy
     assert rows == [(str(movie), "movie", "low_confidence", "pending")]
 
 
+def test_import_run_once_uses_configured_review_threshold(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    movie = source / "Arrival.2016.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    config = _write_config(tmp_path, source, target)
+    text = config.read_text(encoding="utf-8")
+    config.write_text(
+        text.replace(
+            "scheduler:",
+            "matching:\n"
+            "  auto_plan_min_confidence: 0.95\n"
+            "  review_min_confidence: 0.55\n"
+            "  max_review_choices: 5\n"
+            "scheduler:",
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ]
+    )
+
+    assert exit_code == 0
+    with sqlite3.connect(state_dir / "state.db") as db:
+        rows = db.execute("select title, status from review_items").fetchall()
+    assert rows == [("Arrival", "pending")]
+
+
 def test_import_run_once_uses_tmdb_movie_match(tmp_path, capsys) -> None:
     source = tmp_path / "downloads" / "movies"
     target = tmp_path / "media" / "Movies"

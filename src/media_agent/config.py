@@ -53,11 +53,19 @@ class SchedulerConfig:
 
 
 @dataclass(frozen=True)
+class MatchingConfig:
+    auto_plan_min_confidence: float = 0.85
+    review_min_confidence: float = 0.55
+    max_review_choices: int = 5
+
+
+@dataclass(frozen=True)
 class AppConfig:
     mode: str
     tmdb_api_key_ref: str
     tmdb_bearer_token_ref: str | None
     tmdb_language: str
+    matching: MatchingConfig
     scheduler: SchedulerConfig
     profiles: tuple[ProfileConfig, ...]
 
@@ -86,6 +94,7 @@ def validate_config(config: dict[str, Any]) -> ConfigSummary:
     if not tmdb.get("api_key_ref"):
         raise ConfigError("tmdb.api_key_ref is required")
 
+    _parse_matching(config)
     scheduler = _mapping(config, "scheduler", required=False)
     execute = bool(scheduler.get("execute", False))
 
@@ -120,6 +129,7 @@ def parse_config(config: dict[str, Any]) -> AppConfig:
             str(tmdb["bearer_token_ref"]) if tmdb.get("bearer_token_ref") else None
         ),
         tmdb_language=str(tmdb.get("language", "en-US")),
+        matching=_parse_matching(config),
         scheduler=SchedulerConfig(
             interval_minutes=int(scheduler.get("interval_minutes", 30)),
             execute=bool(scheduler.get("execute", False)),
@@ -176,6 +186,27 @@ def _parse_profile(profile: dict[str, Any]) -> ProfileConfig:
                 )
             ),
         ),
+    )
+
+
+def _parse_matching(config: dict[str, Any]) -> MatchingConfig:
+    matching = _mapping(config, "matching", required=False)
+    auto_plan = float(matching.get("auto_plan_min_confidence", 0.85))
+    review_min = float(matching.get("review_min_confidence", 0.55))
+    max_choices = int(matching.get("max_review_choices", 5))
+
+    if not 0 <= review_min <= auto_plan <= 1:
+        raise ConfigError(
+            "matching.auto_plan_min_confidence must be between "
+            "matching.review_min_confidence and 1"
+        )
+    if max_choices < 1:
+        raise ConfigError("matching.max_review_choices must be at least 1")
+
+    return MatchingConfig(
+        auto_plan_min_confidence=auto_plan,
+        review_min_confidence=review_min,
+        max_review_choices=max_choices,
     )
 
 
