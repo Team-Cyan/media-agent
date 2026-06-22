@@ -94,20 +94,26 @@ def run_import_once(
             if guess is None:
                 skipped += 1
                 continue
+            review_candidates: list[dict[str, object]] = []
             if not tmdb_disabled:
-                guess, tmdb_failed = _enrich_guess_with_tmdb(guess, tmdb)
+                guess, tmdb_failed, review_candidates = _enrich_guess_with_tmdb(guess, tmdb)
                 if tmdb_failed:
                     tmdb_disabled = True
             action = plan_action(profile, source_path, guess)
             planned += 1
             state.record_plan(action, dry_run=not execute)
             if guess.confidence < config.matching.auto_plan_min_confidence:
-                state.record_review_item(
+                review_item_id = state.record_review_item(
                     source_path=source_path,
                     media_type=guess.media_type,
                     reason="low_confidence",
                     title=guess.title,
                 )
+                if review_candidates:
+                    state.record_review_candidates(
+                        review_item_id=review_item_id,
+                        candidates=review_candidates[: config.matching.max_review_choices],
+                    )
             if execute:
                 result = execute_action(action, profile)
                 state.record_execution(action, result)
@@ -159,19 +165,24 @@ def enrich_guess_with_tmdb(guess: MediaGuess, tmdb_client: object | None) -> Med
 def _enrich_guess_with_tmdb(
     guess: MediaGuess,
     tmdb_client: object,
-) -> tuple[MediaGuess, bool]:
+) -> tuple[MediaGuess, bool, list[dict[str, object]]]:
     if guess.media_type == "movie":
         try:
-            results = tmdb_client.search_movie(guess.title, year=guess.year)
+            results = list(tmdb_client.search_movie(guess.title, year=guess.year))
         except Exception:
-            return guess, True
+            return guess, True, []
         best = select_best_movie(
             query_title=guess.title,
             query_year=guess.year,
             candidates=results,
         )
+        candidates = _review_candidates(
+            media_type="movie",
+            items=results,
+            best=best,
+        )
         if best is None:
-            return guess, False
+            return guess, False, candidates
         return (
             MediaGuess(
                 media_type=guess.media_type,
@@ -181,15 +192,21 @@ def _enrich_guess_with_tmdb(
                 tmdb_id=result_id(best),
             ),
             False,
+            candidates,
         )
     if guess.media_type in {"tv", "anime"} and guess.series_title:
         try:
-            results = tmdb_client.search_tv(guess.series_title)
+            results = list(tmdb_client.search_tv(guess.series_title))
         except Exception:
-            return guess, True
+            return guess, True, []
         best = select_best_tv(query_title=guess.series_title, candidates=results)
+        candidates = _review_candidates(
+            media_type=guess.media_type,
+            items=results,
+            best=best,
+        )
         if best is None:
-            return guess, False
+            return guess, False, candidates
         series_title = result_title(best)
         return (
             MediaGuess(
@@ -204,8 +221,9 @@ def _enrich_guess_with_tmdb(
                 tmdb_id=result_id(best),
             ),
             False,
+            candidates,
         )
-    return guess, False
+    return guess, False, []
 
 
 def plan_action(profile: ProfileConfig, source_path: Path, guess: MediaGuess) -> ImportAction:
@@ -337,6 +355,35 @@ class ImportState:
                 )
                 """
             )
+            db.execute(
+                """
+                create table if not exists review_candidates (
+                    id integer primary key autoincrement,
+                    review_item_id integer not null,
+                    rank integer not null,
+                    metadata_id text not null,
+                    title text not null,
+                    year integer,
+                    confidence real not null,
+                    raw_json text not null,
+                    unique(review_item_id, metadata_id)
+                )
+                """
+            )
+            db.execute(
+                """
+                create table if not exists review_decisions (
+                    id integer primary key autoincrement,
+                    created_at real not null,
+                    source_path text not null,
+                    selected_metadata_id text not null,
+                    title text not null,
+                    year integer,
+                    media_type text not null,
+                    unique(source_path)
+                )
+                """
+            )
 
     def _record_action(self, action: ImportAction, *, status: str, dry_run: bool) -> None:
         with sqlite3.connect(self.db_path) as db:
@@ -368,7 +415,7 @@ class ImportState:
         media_type: str,
         reason: str,
         title: str,
-    ) -> None:
+    ) -> int:
         with sqlite3.connect(self.db_path) as db:
             db.execute(
                 """
@@ -382,6 +429,37 @@ class ImportState:
                 """,
                 (time.time(), str(source_path), media_type, reason, title, "pending"),
             )
+            row = db.execute(
+                "select id from review_items where source_path = ? and reason = ?",
+                (str(source_path), reason),
+            ).fetchone()
+            return int(row[0])
+
+    def record_review_candidates(
+        self,
+        *,
+        review_item_id: int,
+        candidates: list[dict[str, object]],
+    ) -> None:
+        with sqlite3.connect(self.db_path) as db:
+            db.execute("delete from review_candidates where review_item_id = ?", (review_item_id,))
+            for index, candidate in enumerate(candidates, start=1):
+                db.execute(
+                    """
+                    insert into review_candidates (
+                        review_item_id, rank, metadata_id, title, year, confidence, raw_json
+                    ) values (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        review_item_id,
+                        index,
+                        str(candidate["metadata_id"]),
+                        str(candidate["title"]),
+                        candidate.get("year"),
+                        float(candidate["confidence"]),
+                        json.dumps(candidate, sort_keys=True),
+                    ),
+                )
 
     def _append_audit(
         self,
@@ -425,6 +503,23 @@ def _episode_metadata_id(guess: MediaGuess) -> str:
     if guess.tmdb_id is not None:
         return f"tmdb:{guess.media_type}:{guess.tmdb_id}:s{guess.season}e{guess.episode}"
     return f"local:{guess.media_type}:{guess.series_title}:s{guess.season}e{guess.episode}"
+
+
+def _review_candidates(
+    *,
+    media_type: str,
+    items: list[object],
+    best: object | None,
+) -> list[dict[str, object]]:
+    return [
+        {
+            "metadata_id": f"tmdb:{media_type}:{result_id(item)}",
+            "title": result_title(item),
+            "year": result_year(item),
+            "confidence": 0.9 if item == best else 0.65,
+        }
+        for item in items
+    ]
 
 
 def _read_secret_ref(path_ref: str | None) -> str | None:

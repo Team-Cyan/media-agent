@@ -273,6 +273,60 @@ def test_import_run_once_uses_tmdb_movie_match(tmp_path, capsys) -> None:
     assert audit[0]["target_path"] == str(target / "The Matrix (1999)" / "The Matrix (1999).mkv")
 
 
+def test_import_run_once_records_tmdb_review_candidates(tmp_path, capsys) -> None:
+    source = tmp_path / "downloads" / "movies"
+    target = tmp_path / "media" / "Movies"
+    state_dir = tmp_path / "state"
+    secret = tmp_path / "tmdb.key"
+    movie = source / "Matrix.1999.mkv"
+    movie.parent.mkdir(parents=True)
+    movie.write_bytes(b"movie")
+    secret.write_text("unused", encoding="utf-8")
+    config = _write_config(tmp_path, source, target, tmdb_api_key_ref=secret)
+    text = config.read_text(encoding="utf-8")
+    config.write_text(
+        text.replace(
+            "scheduler:",
+            "matching:\n"
+            "  auto_plan_min_confidence: 0.95\n"
+            "  review_min_confidence: 0.55\n"
+            "  max_review_choices: 5\n"
+            "scheduler:",
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeTmdb:
+        def search_movie(self, title: str, *, year: int | None = None):
+            assert (title, year) == ("Matrix", 1999)
+            return [
+                ("The Matrix", 1999, 603),
+                ("Matrix", 1993, 999),
+            ]
+
+    exit_code = main(
+        [
+            "import-run-once",
+            "--config",
+            str(config),
+            "--state-dir",
+            str(state_dir),
+            "--json",
+        ],
+        tmdb_client=FakeTmdb(),
+    )
+
+    assert exit_code == 0
+    with sqlite3.connect(state_dir / "state.db") as db:
+        candidates = db.execute(
+            "select title, year, metadata_id, rank from review_candidates order by rank"
+        ).fetchall()
+    assert candidates == [
+        ("The Matrix", 1999, "tmdb:movie:603", 1),
+        ("Matrix", 1993, "tmdb:movie:999", 2),
+    ]
+
+
 def test_import_run_once_falls_back_when_tmdb_is_unreachable(tmp_path, capsys) -> None:
     source = tmp_path / "downloads" / "movies"
     target = tmp_path / "media" / "Movies"
