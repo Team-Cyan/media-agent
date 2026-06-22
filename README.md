@@ -34,6 +34,10 @@ Version 0.1.0 is a working local import MVP with config validation, source
 scanning, filename-based media guesses, dry-run planning, SQLite state, JSONL
 audit, and explicit hardlink/symlink execution.
 
+`media-agent` targets Python 3.14+ for local development and test runs. The
+Docker image provides the runtime interpreter; operators normally do not need
+Python on the host.
+
 ```bash
 media-agent import-run-once --config config/config.yaml
 media-agent import-schedule --config config/config.yaml --interval-minutes 30

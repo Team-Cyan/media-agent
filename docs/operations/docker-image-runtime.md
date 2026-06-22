@@ -3,6 +3,9 @@
 `media-agent` ships as a Docker image, but this repository does not require a
 local Docker Compose deployment.
 
+Local development and CI target Python 3.14+. Container operators should use
+the published image unless they are developing the Python package directly.
+
 The image entrypoint exposes the same CLI as the Python package:
 
 ```bash
