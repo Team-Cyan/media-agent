@@ -102,7 +102,8 @@ def run_import_once(
             action = plan_action(profile, source_path, guess)
             planned += 1
             state.record_plan(action, dry_run=not execute)
-            if guess.confidence < config.matching.auto_plan_min_confidence:
+            needs_review = guess.confidence < config.matching.auto_plan_min_confidence
+            if needs_review:
                 review_item_id = state.record_review_item(
                     source_path=source_path,
                     media_type=guess.media_type,
@@ -115,6 +116,9 @@ def run_import_once(
                         candidates=review_candidates[: config.matching.max_review_choices],
                     )
             if execute:
+                if needs_review:
+                    skipped += 1
+                    continue
                 result = execute_action(action, profile)
                 state.record_execution(action, result)
                 if result == "linked":
