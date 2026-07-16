@@ -79,7 +79,7 @@ Recommended defaults:
 - `MEDIA_AGENT_WEB_PORT=8775`
 - WebUI host port `8775` mapped to container port `8775/tcp`
 - DockerMan icon URL uses the direct transparent PNG asset at
-  `docs/assets/media-agent-icon-transparent.png`.
+  `docs/assets/icon.png`.
 
 ## Runtime Visibility
 

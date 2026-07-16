@@ -26,7 +26,7 @@ def test_unraid_template_has_required_runtime_wiring() -> None:
     assert configs["MEDIA_AGENT_STATE_DIR"].text == "/workspace/runtime/.media-agent"
     assert configs["MEDIA_AGENT_HEARTBEAT_FILE"].text.endswith("media-agent-heartbeat.json")
     assert configs["8775"].attrib["Mode"] == "tcp"
-    assert values["Icon"].endswith("docs/assets/media-agent-icon-transparent.png")
+    assert values["Icon"].endswith("docs/assets/icon.png")
 
 
 def test_dockerignore_excludes_local_state_and_docs() -> None:
@@ -36,3 +36,9 @@ def test_dockerignore_excludes_local_state_and_docs() -> None:
     assert ".media-agent" in dockerignore
     assert "docs" in dockerignore
     assert "tests" in dockerignore
+
+
+def test_icon_assets_have_one_editable_source_and_one_published_png() -> None:
+    assets = Path("docs/assets")
+
+    assert {path.name for path in assets.glob("*icon*")} == {"icon.svg", "icon.png"}
