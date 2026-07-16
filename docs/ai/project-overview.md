@@ -164,3 +164,5 @@ Use docs in layers:
 - `docs/plans/` for implementation sequencing.
 - `docs/operations/` for operator setup and handoff notes.
 - `docs/roadmap.md` for current priority and future work.
+- `docs/ai/icon-design.md` for the shared `seed-agent` / `media-agent` /
+  `material-agent` icon geometry, palette, export, and validation standard.
