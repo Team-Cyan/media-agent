@@ -3,33 +3,39 @@
 This roadmap is intentionally a single vertical list: completed work is ordered
 by completion period, and unfinished work is ordered by current priority.
 
-## Current Media Delivery Evidence (2026-11-13)
+## Current Media Delivery Evidence (2026-11-15)
 
-- Release 0.28.0 was merged to main, published and deployed. Its navigation and
-  media UI were visually checked. Local tests alone are not this deployment proof.
-- Night King has two reviewed local SRT files physically published and verified.
-  This does not establish automated archive extraction, general provider delivery,
-  full-film timing or client playback acceptance.
-- A fresh production readback records 537 sources: 518 imported, 19 still outside
-  ordinary import. The latest bounded completion-reviewed operation imported 26
-  files with verified hardlink receipts, including the selected Joker 2 2160p.
-  Original source files were retained.
-- The 19 remaining sources comprise 12 unresolved identities, six Inland Empire
-  featurettes and the retained, unselected Joker 2 1080p source. The current schema
-  cannot yet represent the latter two categories independently of ordinary imports.
-- Root causes are distinct: downloader completion evidence was not connected to
-  source readiness; metadata retrieval lost acronym/word/decimal spelling; extras
-  lacked parent attachment; alternate encodes lacked persisted selection. Several
-  title/year collisions are real ambiguity. The operator confirms that `movie/`
-  may contain both movies and TV; its name is not authoritative type evidence.
-- The 0.29.0 implementation adds extras, variant switching, explicit schema migration,
-  completion facts independent of identity, retrieval regressions and clearer progress
-  reasons. Local integration tests and independent review have completed; registry
-  publication, controlled migration and production acceptance remain pending.
-  See the extras-and-variants specification.
-- Finishing this finite file cohort does not complete the entire roadmap or media
-  delivery acceptance: provider search/download evidence, client visibility and
-  playback, subtitle compatibility and production stability remain separate checks.
+- Release 0.29.2 is on main and deployed through a controlled schema 4 to 5
+  migration. Both replacement roles passed live health checks. The DockerMan
+  health command now uses an explicit exec chain; fresh runtime observations
+  show no worker zombie children. This is observed recovery, not a guarantee
+  about every future process failure.
+- Production currently has 537 source files: 530 primary sources imported and
+  six Inland Empire featurettes published under their confirmed parent's
+  `Featurettes` directory, plus one registered retained alternate source. All
+  original media remains in place. Joker 2 keeps the selected 2160p primary;
+  the 1080p source is retained and available for an explicit future switch.
+- The original 45-file cohort now has 38 primary and six extra hardlinks with
+  physical receipt verification, plus one registered retained alternate: all 45
+  are accounted for. The alternate is not a second primary. Do not conflate
+  this finite cohort with global readiness or automatic approval of future files.
+- Initial causes were distinct: completion evidence was coupled to metadata
+  readiness; retrieval lost acronym, camel-case and decimal spelling; extras
+  lacked parent attachment; alternate encodes lacked persisted selection.
+  Some title/year/type collisions are genuine. The source directory may mix
+  movies and TV, so its name never supplies authoritative media type.
+- The deployed implementation provides independent completion facts, explicit
+  attachment and version review, guarded preview/publication, lost-response
+  reconciliation, source-generation fencing and clearer progress categories.
+  Twelve remaining work identities were explicitly reviewed against source
+  filenames, technical observations and catalog references, including movie/TV
+  collisions and inconsistent catalog release years.
+- Night King retains two reviewed, physically verified local SRT publications.
+  This does not establish automated archive extraction, general provider
+  delivery, full-film timing or client playback acceptance.
+- Finishing this finite import cohort does not complete the whole roadmap.
+  External-subtitle discovery, payload availability, publication, embedded
+  coverage and client visibility/playback remain distinct acceptance checks.
 
 ## Timeline And Priority List
 

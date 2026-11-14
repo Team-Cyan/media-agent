@@ -1,9 +1,11 @@
 # Explicit extras and source variants: implementation contract
 
-Status: featurette attachment, cross-source variant switching and independent completion
-facts are locally implemented, integrated and independently reviewed. Controlled migration,
-deployment and production acceptance remain outstanding. Existing repair is scoped to one source and must not
-be used to switch variants.
+Status: implemented, independently reviewed and deployed as 0.29.2 with an explicit
+schema 4 to 5 migration on 2026-11-15. Production verification covers independent
+completion facts, twelve primary imports, six featurette hardlinks and the retained
+1080p alternate registration. The operator's selected 2160p source, active video
+and publication receipt remain unchanged; no variant switch was executed. Existing
+repair remains scoped to one source and must not be used to switch variants.
 
 ## Identity and authority
 
@@ -83,6 +85,9 @@ matching or subtitle jobs for extras, retained unselected variants, stale previe
 selection CAS, source/root/config/epoch changes, unknown and modified assets, late
 publisher responses and every durable crash boundary for source-qualified distinct paths. Verify all original sources, shared posters and work extras survive. Local
 fixtures are not evidence of deployed migration, real filesystem acceptance or
-client playback. The requested Inland Empire featurettes and Joker 2 selection remain
-unfulfilled until the complete implementation, reviewed migration, and separately
-authorized production execution and client verification are complete.
+client playback. The requested Inland Empire featurettes have passed production
+hardlink verification, and Joker 2 retains the selected 2160p source with a registered
+1080p alternative. The live GUI shows 530 primary imports, six published extras,
+one retained alternate and zero pending organization across 537 source files.
+Full-library subtitle coverage and playback in downstream clients remain separate
+acceptance work.
