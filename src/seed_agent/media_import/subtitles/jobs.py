@@ -401,7 +401,7 @@ class SubtitleJobs:
         duration = json.loads(job["probe_json"])["duration"]
         source_video = Path(e.profile(job["profile"]).source_root) / job["path"]
         profile = e.profile(job["profile"])
-        maximum = profile.max_subtitles
+        maximum = min(5, profile.max_subtitles)
         preferred = list(dict.fromkeys(lang for group in profile.languages for lang in group))
         ordered = sorted(
             coverage,
@@ -551,7 +551,7 @@ class SubtitleJobs:
             all_digests.update(data["digests"])
             data["external_count"] = len(all_digests)
             data["external_state"] = "published" if all_digests else "missing"
-            if len(all_digests) >= p.max_subtitles:
+            if len(all_digests) >= min(5, p.max_subtitles):
                 data["choice_limit_reached"] = True
                 status = "satisfied" if satisfied else "limit_reached"
                 self.finish(job, status, data, e.config.subtitle_refresh_seconds)
@@ -592,6 +592,14 @@ class SubtitleJobs:
                     reason = "language_mismatch"
                 reasons[reason] += 1
                 if score is not None and language_matches(candidate.language, requirement):
+                    if (
+                        candidate.match_basis == "work_matched_pending_timing"
+                        and self.candidate_key(
+                            candidate.provider or self.provider.name, candidate.id
+                        )
+                        in data["downloaded"]
+                    ):
+                        candidate.match_basis = "work_timing_matched"
                     if candidate.id in data.get("operator_selected", []):
                         candidate.match_basis = "operator_confirmed"
                     ranked.append((score, candidate))
@@ -602,10 +610,10 @@ class SubtitleJobs:
                     *pair[0][:2],
                     -language_priority(pair[1].language, requirement),
                     *(pair[0][2:4] if len(pair[0]) == 6 else (0, 0)),
+                    *pair[0][-2:],
                     -self.provider.priority(pair[1].provider)
                     if hasattr(self.provider, "priority")
                     else 0,
-                    *pair[0][-2:],
                 ),
                 reverse=True,
             )
@@ -635,7 +643,9 @@ class SubtitleJobs:
                 if v.get("retry_until", 0) > e.clock()
             }
             for _score, candidate in ranked:
-                if e.config.subtitle_policy != "execute" or len(all_digests) >= p.max_subtitles:
+                if e.config.subtitle_policy != "execute" or len(all_digests) >= min(
+                    5, p.max_subtitles
+                ):
                     break
                 key = self.candidate_key(candidate.provider or self.provider.name, candidate.id)
                 if (
@@ -675,7 +685,15 @@ class SubtitleJobs:
                             continue
                     raise
                 try:
-                    payload, fmt = validate(raw_payload, duration=source["probe"]["duration"])
+                    pending_timing = candidate.match_basis == "work_matched_pending_timing"
+                    payload, fmt = validate(
+                        raw_payload,
+                        duration=source["probe"]["duration"],
+                        require_full_timeline=candidate.kind == "full",
+                        expected_language=candidate.language,
+                    )
+                    if pending_timing:
+                        candidate.match_basis = "work_timing_matched"
                 except ValueError:
                     data["candidate_failures"][key] = {
                         "status": "invalid_payload",
@@ -690,6 +708,9 @@ class SubtitleJobs:
                     # Move to the next file instead of spending another link here.
                     break
                 self.publish(job, candidate, payload, fmt)
+                for saved in data["candidates"]:
+                    if saved["id"] == candidate.id and saved.get("provider") == candidate.provider:
+                        saved["match_basis"] = candidate.match_basis
                 data["seen"].append(key)
                 data["downloaded"].append(key)
                 data["digests"].append(digest)
@@ -809,14 +830,12 @@ class SubtitleJobs:
             if hasattr(self.provider, "search_history"):
                 data["provider_search"] = self.provider.search_history
         if status == "satisfied":
-            if (
-                data.get("pending_compatible_count", 0)
-                and data.get("external_count", 0) < p.max_subtitles
+            if data.get("pending_compatible_count", 0) and data.get("external_count", 0) < min(
+                5, p.max_subtitles
             ):
                 delay = 60
-            elif (
-                data.get("pending_download_retry_at")
-                and data.get("external_count", 0) < p.max_subtitles
+            elif data.get("pending_download_retry_at") and data.get("external_count", 0) < min(
+                5, p.max_subtitles
             ):
                 delay = max(60, data["pending_download_retry_at"] - e.clock())
             elif any(h.get("refresh_required") for h in data.get("provider_search", {}).values()):

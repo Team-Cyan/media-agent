@@ -17,7 +17,16 @@ def import_three(media):
     media[0].config.provider_interval_seconds = 0
 
 
-PAYLOAD = b"1\n00:00:01,000 --> 00:00:03,000\nfixture subtitle\n"
+SHORT_PAYLOAD = b"1\n00:00:01,000 --> 00:00:03,000\nfixture subtitle\n"
+PAYLOAD = (
+    SHORT_PAYLOAD
+    + b"\n"
+    + "\n".join(
+        f"{i + 2}\n00:{(5 + i * 50) // 60:02}:{(5 + i * 50) % 60:02},000 --> "
+        f"00:{(10 + i * 50) // 60:02}:{(10 + i * 50) % 60:02},000\n字幕示例对白测试\n"
+        for i in range(19)
+    ).encode()
+)
 
 
 class FakeProvider:
@@ -391,7 +400,8 @@ def test_no_result_mismatch_and_multiple_compatible_choices(media):
     assert all(j["status"] == "satisfied" for j in SubtitleJobs(engine, Empty()).run(refresh=True))
 
 
-def test_operator_subtitle_choice_persists_and_publishes_only_after_confirmation(media):
+def test_forced_subtitle_without_release_match_still_requires_confirmation(media):
+    media[0].config.profiles[0].subtitle_kind = "forced"
     import_three(media)
     engine, _, target, _ = media
     engine.config.subtitle_policy = "execute"
@@ -400,6 +410,7 @@ def test_operator_subtitle_choice_persists_and_publishes_only_after_confirmation
         def search(self, *args):
             result = super().search(*args)
             result[0].release = "different release needs operator preview"
+            result[0].kind = "forced"
             return result
 
     jobs = SubtitleJobs(engine, Probable())
@@ -792,3 +803,235 @@ def test_opensubtitles_lost_link_response_stays_attempted_and_reserved(media, mo
     assert "secret" not in str(error.value.evidence)
     with pytest.raises(ProviderError, match="daily_quota"):
         DownloadBudget(engine.store, provider.name, clock=engine.clock).reserve()
+
+
+def full_timeline_payload(label="自动字幕示例，影片对白内容正确", *, english=False):
+    lines = []
+    for i in range(20):
+        start = 5 + i * 50
+        end = start + 5
+
+        def stamp(t):
+            return f"{t // 3600:02}:{t // 60 % 60:02}:{t % 60:02},000"
+
+        text = f"Example dialogue for the full movie {label}" if english else label
+        lines.append(f"{i + 1}\n{stamp(start)} --> {stamp(end)}\n{text}\n")
+    return "\n".join(lines).encode()
+
+
+@pytest.mark.parametrize("configured_limit", [5, 10])
+def test_work_identity_auto_downloads_best_five_without_individual_confirmation(
+    media, configured_limit
+):
+    from dataclasses import replace
+
+    import_three(media)
+    engine, _, target, _ = media
+    engine.config.subtitle_policy = "execute"
+    sid = engine.snapshot()["sources"][0]["id"]
+
+    class Ranked(FakeProvider):
+        attempted = []
+
+        def priority(self, provider):
+            return 0 if provider == "preferred" else 1
+
+        def search(self, *args):
+            base = super().search(*args)[0]
+            return [
+                replace(
+                    base,
+                    id=str(score),
+                    release="same film another encode",
+                    provider="preferred" if score == 1 else "other",
+                    rating=score,
+                    downloads=100 - score,
+                )
+                for score in range(1, 8)
+            ] + [replace(base, id="wrong", tmdb_id=999, rating=999)]
+
+        def download(self, candidate):
+            self.attempted.append(candidate.id)
+            return full_timeline_payload("自动字幕示例，影片对白内容正确" + candidate.id)
+
+    engine.config.profiles[0].max_subtitles = configured_limit
+    provider = Ranked()
+    for _ in range(6):
+        SubtitleJobs(engine, provider).run(source_id=sid, limit=1, refresh=True)
+    assert provider.attempted == ["7", "6", "5", "4", "3"]
+    assert len(list(target.rglob("*.srt"))) == 5
+    events = [e for e in engine.snapshot()["events"] if e["event"] == "subtitle_published"]
+    assert all(
+        json.loads(e["payload_json"])["candidate"]["match_basis"] == "work_timing_matched"
+        for e in events
+    )
+
+
+@pytest.mark.parametrize("bad", ["short", "late_start", "sparse", "language", "overlong"])
+@pytest.mark.parametrize("basis", ["work", "release", "hash"])
+def test_auto_candidate_must_pass_timeline_and_text_checks(media, bad, basis):
+    import_three(media)
+    engine, _, target, _ = media
+    engine.config.subtitle_policy = "execute"
+
+    class Probable(FakeProvider):
+        def search(self, *args):
+            result = super().search(*args)
+            if basis == "work":
+                result[0].release = "same work alternate encode"
+            result[0].hash_match = basis == "hash"
+            return result
+
+        def download(self, candidate):
+            data = full_timeline_payload()
+            if bad == "short":
+                return SHORT_PAYLOAD
+            if bad == "late_start":
+                return (
+                    data.replace(b"00:00:", b"00:10:")
+                    .replace(b"00:01:", b"00:11:")
+                    .replace(b"00:02:", b"00:12:")
+                )
+            if bad == "sparse":
+                return "1\n00:00:05,000 --> 00:16:00,000\n这是一行中文字幕文本内容\n".encode()
+            if bad == "language":
+                return full_timeline_payload("English only", english=True)
+            return data.replace(b"00:16:00", b"01:16:00")
+
+    provider = Probable()
+    SubtitleJobs(engine, provider).run(limit=1)
+    assert not list(target.rglob("*.srt"))
+
+
+@pytest.mark.parametrize("duration", [0, -1, float("nan"), float("inf")])
+def test_subtitle_validation_rejects_unknown_media_duration(duration):
+    with pytest.raises(ValueError, match="duration is unknown"):
+        validate(PAYLOAD, duration=duration)
+
+
+def test_full_timeline_cannot_use_body_timestamps_as_duration_evidence():
+    payload = (
+        "1\n00:00:01,000 --> 00:00:03,000\n"
+        "这是一条中文字幕，正文提到的时间不是字幕边界 00:16:00,000\n\n"
+    )
+    with pytest.raises(ValueError, match="does not cover"):
+        validate(
+            (payload * 10).encode(),
+            duration=1000,
+            require_full_timeline=True,
+            expected_language="zh-Hans",
+        )
+
+
+def test_ass_language_checks_dialogue_instead_of_metadata_or_comments():
+    header = (
+        "[Script Info]\nTitle: "
+        + "English metadata " * 100
+        + "\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, "
+        "MarginR, MarginV, Effect, Text\n"
+    )
+    lines = []
+    for i in range(10):
+        start = 5 + i * 100
+        end = start + 60
+
+        def stamp(t):
+            return f"{t // 3600}:{t // 60 % 60:02}:{t % 60:02}.00"
+
+        lines.append(
+            f"Dialogue: 0,{stamp(start)},{stamp(end)},Default,,0,0,0,,这里只有中文对白内容\n"
+        )
+    payload = (
+        header
+        + "".join(lines)
+        + "Comment: 0,0:00:01.00,0:16:00.00,Default,,0,0,0,,English comment\n"
+    ).encode()
+    with pytest.raises(ValueError, match="English language"):
+        validate(payload, duration=1000, require_full_timeline=True, expected_language="en")
+    assert (
+        validate(payload, duration=1000, require_full_timeline=True, expected_language="zh-Hans")[1]
+        == "ass"
+    )
+
+
+def test_auto_rejection_continues_to_next_ranked_candidate_without_confirmation(media):
+    from dataclasses import replace
+
+    import_three(media)
+    engine, _, target, _ = media
+    engine.config.subtitle_policy = "execute"
+    sid = engine.snapshot()["sources"][0]["id"]
+
+    class Alternatives(FakeProvider):
+        attempted = []
+
+        def search(self, *args):
+            base = super().search(*args)[0]
+            return [
+                replace(base, id="bad", release="other encode", rating=10),
+                replace(base, id="good", release="other encode", rating=9),
+            ]
+
+        def download(self, candidate):
+            self.attempted.append(candidate.id)
+            return SHORT_PAYLOAD if candidate.id == "bad" else full_timeline_payload()
+
+    provider = Alternatives()
+    for _ in range(2):
+        SubtitleJobs(engine, provider).run(source_id=sid, limit=1, refresh=True)
+    assert provider.attempted == ["bad", "good"]
+    assert len(list(target.rglob("*.srt"))) == 1
+
+
+def test_short_media_still_requires_a_full_timeline():
+    with pytest.raises(ValueError, match="does not cover"):
+        validate(
+            "1\n00:00:01,000 --> 00:00:03,000\n这是一条正常的中文对白\n".encode(),
+            duration=100,
+            require_full_timeline=True,
+            expected_language="zh-Hans",
+        )
+
+
+def test_ass_events_can_be_grouped_out_of_time_order():
+    header = (
+        "[Script Info]\n[Events]\nFormat: Layer, Start, End, Style, "
+        "Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+    lines = [
+        f"Dialogue: 0,0:{i:02}:00.00,0:{i:02}:03.00,Default,,0,0,0,,这是中文对白内容文本\n"
+        for i in reversed(range(17))
+    ]
+    assert (
+        validate(
+            (header + "".join(lines)).encode(),
+            duration=1000,
+            require_full_timeline=True,
+            expected_language="zh-Hans",
+        )[1]
+        == "ass"
+    )
+
+
+@pytest.mark.parametrize(
+    "release",
+    [
+        "Film.2020.Director's.Cut.1080p",
+        "Film.2020.Directors.Cut.1080p",
+        "Film.2020.Director’s-Cut.1080p",
+        "Film.2020.Extended.1080p",
+    ],
+)
+def test_explicit_different_edition_cannot_enter_automatic_timing_path(release):
+    from types import SimpleNamespace
+
+    from seed_agent.media_import.subtitles.validation import compatibility
+
+    candidate = Candidate(id="edition", language="zh-Hans", tmdb_id=1, release=release)
+    score, reason = compatibility(
+        candidate,
+        {"tmdb_id": 1, "media_type": "movie", "edition": None},
+        {"original_release": "Film.2020.1080p.mkv", "probe": {"duration": 7200, "fps": 24}},
+        SimpleNamespace(subtitle_kind="full"),
+    )
+    assert score is None and reason == "edition_conflict"

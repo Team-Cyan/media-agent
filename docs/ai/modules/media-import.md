@@ -154,8 +154,12 @@ script-only profiles stay strict. Unknown language cannot satisfy Chinese. Gener
 Chinese is displayed as Chinese with unspecified script and uses `.zh` filenames.
 Full/forced/SDH remain distinct; generic Chinese is not evidence of either script. Existing embedded/sidecar coverage does not stop bounded
 periodic alternative discovery. Matching requires exact work and episode identity;
-explicit edition/FPS conflicts reject. Automatic publication requires hash or exact
-original-release evidence; other candidates remain review-required.
+explicit edition/FPS conflicts reject. Automatic full-subtitle selection admits an
+exact work/episode match without requiring identical release filenames: it privately
+downloads candidates, checks real cue timing and declared-language text evidence,
+then publishes through the same source/plan/claim/receipt fences. No per-candidate
+confirmation is needed for a passing automatic candidate. These changes ship in 1.0.1; deployment still requires the running worker to use
+the updated image.
 
 Jobs retain coverage, candidate evidence, provider IDs/digests, attempts, next time,
 source generation, target, plan revision and claim token. Refresh cannot steal a live
@@ -495,3 +499,37 @@ subtitle claims, and retire only exact owned version assets after managed backup
 Original sources, shared posters and extras remain. Ambiguous interrupted filesystem
 names become conflicts, not ownership. Config, epoch, source/root, plan and selection
 fences are rechecked; actual provider and playback acceptance remain separate.
+
+## Automatic Top-Five Subtitle Contract
+
+The operator authorizes up to five distinct automatic subtitle publications per
+source, shared across language requirements/providers; a smaller configured limit
+still applies. A legacy setting above five does not increase automatic authority.
+Existing outputs above a newly lowered limit are preserved. Embedded coverage does
+not consume this external cap or prevent alternative discovery. Reuse of local
+sidecars and downloaded payload digests cannot count duplicate bytes twice.
+
+Identity/episode, requested language/kind, explicit edition and FPS conflicts are
+checked before a download. Edition parsing recognizes separator variants such as
+`Director's.Cut` and `Directors.Cut`. Within compatible evidence and language
+preferences, trusted/FPS evidence, optional ratings and downloads rank descending;
+provider order is a final tiebreaker rather than overriding popularity fields.
+Provider score scales differ and missing fields stay unknown; there is no invented
+cross-site quality score. Paid links, quotas, pacing and retries remain bounded.
+
+Every automatically fetched full subtitle must have real SRT/VTT cue boundaries
+or ASS Events/Dialogue evidence. Opening/end-credit allowance is five percent of
+media runtime, with a normal 120-second floor and 300-second ceiling, capped at
+20 percent for short clips. Long media needs at least ten populated cues. Body
+mentions of timestamps, ASS comments/styles and headers cannot prove coverage or
+language. Chinese/English declarations receive script-level text corroboration;
+this does not prove translation quality or simplified/traditional conversion.
+ASS event file order may follow layers instead of chronological order.
+
+A downloaded candidate is published only after these checks. Invalid/duplicate
+payloads do not fill the five-choice cap; subsequent bounded turns try remaining
+ranked candidates automatically, at most one payload attempt per source/cycle.
+Fewer than five safe/available unique candidates means fewer publications. Timing
+coverage is a compatibility heuristic, not proof of exact dialogue synchronization
+or an automatic retiming feature. Forced/SDH subtitles retain their explicit kind
+contract and conservative version-confirmation path when strong evidence is absent.

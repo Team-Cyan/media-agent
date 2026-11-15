@@ -4,6 +4,19 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.0.1 - 2026-11-15
+
+### Fixed
+
+- Automatically fetch exact-work full-subtitle candidates without individual
+  version approval, validate actual cue coverage and declared-language text, and
+  publish through existing fences. Reject explicit edition/FPS/episode conflicts.
+- Enforce at most five unique automatic external choices, ranking available
+  ratings/downloads before provider-order ties. Invalid/duplicate candidates do
+  not fill the cap; later quota-aware worker turns continue automatically.
+- Parse real SRT/VTT and ASS dialogue evidence instead of accepting timestamps or
+  language text from comments/metadata. Preserve valid ASS layer ordering.
+
 ## 1.0.0 - 2026-11-15
 
 ### First Stable Milestone

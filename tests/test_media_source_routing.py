@@ -127,7 +127,7 @@ def mixed_engine(tmp_path):
         MediaStore(tmp_path / "mixed.db"),
         config,
         metadata=Metadata(),
-        media_probe=lambda path: {"duration": 100, "fps": 24, "streams": []},
+        media_probe=lambda path: {"duration": 1000, "fps": 24, "streams": []},
     )
     return engine, source, targets, mappings
 

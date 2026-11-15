@@ -192,7 +192,7 @@ def test_compatible_alternatives_continue_to_shared_cap_without_daily_wait(media
     assert SubtitleJobs(engine, ProviderPool([provider])).run(source_id=sid, limit=1) == []
 
 
-def test_rejection_reasons_distinguish_identity_version_and_language(media):
+def test_identity_and_language_conflicts_keep_valid_work_timing_alternative(media):
     engine = embedded(media)
 
     class Mixed(FakeProvider):
@@ -208,10 +208,11 @@ def test_rejection_reasons_distinguish_identity_version_and_language(media):
     _, data = state(engine)
     assert data["candidate_reason_counts"] == {
         "work_id_conflict": 1,
-        "version_unproven": 1,
+        "work_matched_pending_timing": 1,
         "language_mismatch": 1,
     }
-    assert data["search_outcome"] == "version_review" and data["downloaded"] == []
+    assert data["search_outcome"] == "candidates_available"
+    assert data["downloaded"] == ["fake:version"]
 
 
 def test_candidate_cache_survives_provider_reconstruction_and_refreshes_only_if_required(media):

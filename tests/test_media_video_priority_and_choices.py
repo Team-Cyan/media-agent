@@ -33,7 +33,10 @@ def test_five_unique_choices_share_one_cap_across_languages_and_keep_existing(me
 
         def download(self, candidate):
             self.downloads += 1
-            return PAYLOAD.replace(b"fixture subtitle", candidate.id.encode())
+            payload = PAYLOAD.replace(b"fixture subtitle", candidate.id.encode())
+            if candidate.language == "en":
+                payload = payload.replace("字幕示例对白测试".encode(), b"Example English dialogue")
+            return payload
 
     provider = Alternatives()
     jobs = SubtitleJobs(engine, provider)

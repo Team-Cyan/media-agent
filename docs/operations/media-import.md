@@ -179,9 +179,12 @@ A series correction previews the exact file set and preserves individual season/
 mapping; a changed file set invalidates apply. Saved decisions are consumed next scan.
 Switch only accepted policies to execute. New playable links are verified before old
 owned artifacts retire; failed repairs preserve prior output. Modified sidecars require
-review and are never overwritten. Work-safe subtitle candidates requiring version
-preview have an explicit confirmation button; identity/version mismatches cannot be
-confirmed into automatic publication. Missing targets require explicit repair.
+review and are never overwritten. Full subtitle candidates with matching work/episode
+and language can be downloaded and checked automatically even when release filenames
+differ; real cue coverage and text corroboration must pass before publication.
+Explicit edition/FPS/identity conflicts remain rejected. Forced/SDH or missing
+runtime/version evidence retains its conservative review path. Missing targets
+require explicit repair.
 
 Plex naming defaults to original metadata title/year, `Season 01` and `S01E01`; movies
 have independent title/year folders. Explicit editions use Plex edition syntax, whose
@@ -307,3 +310,16 @@ imported file, use its “为此文件搜索额外字幕” button, or the fence
 provider cooldowns and paid-link reservations remain authoritative. Cached healthy
 sources are not re-requested on automatic retries for another provider. Legacy
 job-state backfill is finite/bounded; old missing timestamps stay unknown.
+
+## Automatic Subtitle Choices (1.0.1)
+
+With `subtitle_policy: execute`, search, ranking, bounded downloading, payload
+validation and publication are automatic. Each video has at most five distinct
+external choices across providers/languages (or its lower configured limit).
+Candidate ratings/download counts are optional; configured provider priority breaks
+ties after available quality/popularity evidence. Failed candidates and duplicate
+bytes do not consume a successful choice. One payload per video per cycle preserves
+fairness and quota limits; later turns fill remaining slots without another approval.
+This requires a running worker and configured providers; changing source code does
+not change an existing host. See the module contract for exact timing heuristics,
+language corroboration, preserved review cases and lack of synchronization proof.

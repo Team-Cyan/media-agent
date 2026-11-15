@@ -4,7 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 from test_media_import import media as media
-from test_media_subtitles import PAYLOAD, import_three
+from test_media_subtitles import SHORT_PAYLOAD as PAYLOAD
+from test_media_subtitles import import_three
 
 from seed_agent.media_import.subtitles.local_import import LocalSubtitleImport
 

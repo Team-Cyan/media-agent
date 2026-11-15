@@ -28,6 +28,13 @@ alternate without changing the selected source. This is bounded evidence, not
 approval of future imports or proof of complete subtitle/client acceptance.
 Private corpus identities, counts and receipts belong in ignored runtime evidence.
 
+## 1.0.1 Subtitle Correction
+
+Automatic top-five full-subtitle selection is prepared for release and controlled deployment: exact work/language candidates no longer require identical
+release filenames; real cue timing and text checks gate automatic publication.
+Five is a hard automatic cap, with quotas, deduplication and existing identity
+fences retained. The immutable 1.0.0 release remains unchanged.
+
 ## Candidate 1.1: Acceptance And Operations
 
 - Broader fake-provider/downloader scheduler-cycle and Web preview integration
