@@ -2,7 +2,9 @@
 
 ## Current Release Work (2026-11-15)
 
-The 1.0 closure is owned by the fresh execution chat and isolated release worktree.
+The fresh execution chat published v1.0.0 at `7c815ca` after exact-revision CI.
+The archival branch is `release/1.0`; the original dirty work remains preserved.
+A documentation-only main follow-up records publication and historical CI receipts.
 Use [closure plan](../plans/2026-11-15-v1-release-closure.md),
 [release contract](../specs/2026-11-15-v1-release-contract.md) and
 [review report](../reviews/2026-11-15-v1-release-review.md) for the current outcome.

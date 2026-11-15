@@ -1,6 +1,7 @@
 # Seed-agent 1.0.0 release contract
 
-Status: approved objective, implementation/review pending in a fresh execution chat.
+Status: implemented and released as v1.0.0; verification scope and remaining
+evidence gaps are recorded in `docs/reviews/2026-11-15-v1-release-review.md`.
 Plan: `docs/plans/2026-11-15-v1-release-closure.md`.
 
 ## Product promise

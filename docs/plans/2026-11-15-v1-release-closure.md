@@ -1,6 +1,8 @@
 # Seed-agent 1.0.0 release closure plan
 
-Status: ready for a fresh execution chat. Date: 2026-11-15.
+Status: executed; v1.0.0 published and exact-revision checks passed. Date: 2026-11-15.
+Outcomes and bounded gaps: `docs/reviews/2026-11-15-v1-release-review.md` and
+`docs/reviews/2026-11-15-ci-failure-investigation.md`.
 Owning spec: `docs/specs/2026-11-15-v1-release-contract.md`.
 
 ## Objective and authorization

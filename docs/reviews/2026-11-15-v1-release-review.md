@@ -104,7 +104,31 @@ reviewed deployment; this release does not switch sources or mutate the library.
 
 ## Publication And Historical CI Receipts
 
-Publication and historical failure triage are completed after candidate validation
-according to the closure plan. See exact-SHA/tag runs and the release record; the
-post-publication CI report records first failing steps and fixes rather than
-inferring causes from later successful runs.
+The release source is `7c815caf5121e7dffd0b163037f869b234996f9c`.
+[CI](https://github.com/Team-Cyan/seed-agent/actions/runs/43667564751),
+[main image publication](https://github.com/Team-Cyan/seed-agent/actions/runs/43667833963),
+[tag publication](https://github.com/Team-Cyan/seed-agent/actions/runs/43667928478) and
+[GitHub Release](https://github.com/Team-Cyan/seed-agent/releases/tag/v1.0.0)
+all succeeded. The immutable annotated tag and archival `release/1.0` branch
+resolve to that source. Both linux/amd64 and linux/arm64 configs report the exact
+revision and version 1.0.0. Registry `1.0.0`, `v1.0.0` and `1.0` share index
+`sha256:ab58eb3170dd7462cabbd6ca00976dd46bdcbac1b45afc0c60425fb7fba87df7`.
+
+[Historical CI investigation](2026-11-15-ci-failure-investigation.md) inventories
+all 15 retained failures, confirms five causes/fixes from logs and reports ten
+older evidence gaps explicitly. An expanded final scan of 71 accessible run-log
+directories found no Gitleaks candidates. No failure-mail settings or test/security
+checks were disabled. The subsequent report commit is documentation-only;
+release tag and source remain immutable. Production was not upgraded.
+
+## Published Image Readback
+
+Both immutable platform manifests were pulled and tested after publication.
+Descriptor-hardlink checks under UID/GID 1000:100 and example healthcheck passed
+for arm64 and amd64 (the latter executed through local platform emulation, with
+native amd64 also covered by release CI). Saved-layer inspection covered 18 layers
+per platform: 42,767 arm64 entries / 23,075 text files and 42,679 amd64 entries /
+22,978 text files. The two home-path signatures per image were third-party
+Perl/package documentation examples; no application runtime configuration/state
+path or high-confidence account token/private-key signature was found. These
+bounded signatures do not prove arbitrary binary contents safe.
