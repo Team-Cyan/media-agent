@@ -4,6 +4,41 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.0.0 - 2026-11-15
+
+### First Stable Milestone
+
+- Document the shipped discovery/acquisition, category-bound seed strategy, Want
+  List and operator Web console alongside guarded media organization, explicit
+  extras/source variants and optional subtitle delivery.
+- Preserve source files, durable state/audit evidence, RSS fallback, downloader
+  budgets and preview/execute boundaries. Version 1.0 adds no media-schema reset:
+  schema-5 installations must not replay the schema-4 migration.
+
+### Fixed
+
+- Preserve native SQLite locks during permission enforcement across concurrent
+  StateStore connections; fence initial DB creation against SQLite openers.
+- Keep Prometheus metrics state access read-only without schema initialization.
+- Match non-Latin RSS titles using conservative Unicode tokens while retaining
+  exact year/season/episode constraints.
+
+### Documentation And Distribution
+
+- Replace stale phase handoff/roadmap descriptions with current support evidence,
+  portable upgrade/backup/rollback guidance and candidate 1.1/1.2/2.0 work.
+- Remove personal account fixture labels and private corpus details from the
+  current public documentation; retain raw audit evidence locally.
+
+### Limits
+
+- Subtitle archives/automatic retiming, complete library/provider coverage and
+  downstream full-film/client playback acceptance remain incomplete. Transmission
+  is contract-tested; qBittorrent remains the reference deployment adapter.
+- The Web console assumes trusted operators; it is not a multi-user public service.
+  Publication does not upgrade an existing NAS. Read the upgrade guide and pin
+  the same verified image digest for both roles before a separately reviewed rollout.
+
 ## 0.29.2 - 2026-11-14
 
 ### Fixed

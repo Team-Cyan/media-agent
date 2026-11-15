@@ -1,178 +1,37 @@
 # Session Handoff
 
-This document captures the durable handoff state from the initial `seed-agent` planning session. It is intentionally concise and does not include private keys, tokens, cookies, or PT site credentials.
+## Current Release Work (2026-11-15)
 
-## Repository State
+The 1.0 closure is owned by the fresh execution chat and isolated release worktree.
+Use [closure plan](../plans/2026-11-15-v1-release-closure.md),
+[release contract](../specs/2026-11-15-v1-release-contract.md) and
+[review report](../reviews/2026-11-15-v1-release-review.md) for the current outcome.
+The initial phase-1/phase-2 branch instructions formerly here are historical and
+must not be used to select current code or replay live actions.
 
-- Repository: this checkout
-- Implementation worktree: `$HOME/.config/superpowers/worktrees/seed-agent/phase-1-pt-upload-loop`
-- Implementation branch: `feat/phase-1-pt-upload-loop`
-- GitHub remote: `git@github.com:Team-Cyan/seed-agent.git`
-- Default branch: `main`
-- Latest known synchronized commit during setup: `a013fa7 chore: align local and remote histories`
+## Product And Deployment Boundaries
 
-## Durable Knowledge Already Recorded
+The shipped functions and verification levels live in the README support matrix;
+the versioned roadmap records remaining acceptance and proposed work. The last
+recorded production release is 0.29.2; publishing 1.0 does not upgrade that host.
+Its finite media cohort was reconciled with originals retained, explicit extra
+attachments and a retained alternate. Do not switch the selected source or replay
+scans/migration/recovery writers from old instructions. Corpus details and receipts
+are private local evidence. Subtitle provider results, available payloads, published
+files, embedded coverage and downstream playback are distinct facts.
 
-- `AGENTS.md`: root agent entrypoint and read-order table of contents.
-- `docs/ai/project-overview.md`: fast shared AI refresh for product shape, module map, and durable runtime surfaces.
-- `docs/ai/harness-workflow.md`: preferred short-session workflow for roadmap-item and module-focused tasks.
-- `docs/ai/harness-engineering.md`: rationale for the repo's harness-oriented documentation structure.
-- `docs/ai/reference-repos.md`: reference repository index for troubleshooting and pattern transfer.
-- `docs/ai/modules/*.md`: module ownership notes, verification entrypoints, and task expectations.
-- `docs/ai/templates/*.md`: reusable session/task/checklist templates for future focused sessions.
-- `README.md`: project positioning, config-first/no-custom-UI-for-v1 stance, API-ready internal boundary, Phase 1, Phase 2, roadmap, early config shape, and AI operating notes.
-- `docs/roadmap.md`: current completed functionality plus next/later work in a fast-refresh format.
-- `docs/research/inspiration-pool.md`: inspiration pool from PT and NAS automation projects, including Phase 1, Phase 2, and future ideas.
-- `docs/specs/2026-04-20-seed-agent-design.md`: full product and architecture spec covering discovery, scoring, qBittorrent execution, lifecycle state, cleanup, audit records, intent sources, roadmap, config design, modules, structured actions, tests, and open decisions.
-- `docs/specs/2026-04-24-mteam-api-driven-discovery.md`: follow-up spec for making M-Team discovery API-driven with `api_key_ref` while retaining RSS as a fallback and reusable adapter path.
-- `docs/plans/2026-04-20-phase-1-pt-upload-loop.md`: executable Phase 1 implementation plan for the PT upload strategy loop, including package bootstrap, config/models, audit, RSS discovery, scoring, SQLite state, qBittorrent executor, safe dry-run actions, cleanup policy, CLI, docs, and verification.
-- `docs/plans/2026-04-22-phase-2-resource-intent-loop.md`: historical Phase 2 implementation plan for resource intents, search, ranking, confirmation, and enqueue reuse.
-- `docs/operations/phase-1-usage.md`: operator-facing Phase 1 usage guide for config setup, dry-run review, execution, and audit inspection.
-- `docs/operations/phase-2-usage.md`: operator-facing Phase 2 usage guide for local inbox setup, intent commands, rejection, enqueue, run-once, audit, and integration source boundaries.
+## Preservation
 
-## Core Decisions
+The original checkout and other worktrees contain unrelated work. The release owner
+recorded each dirty path and disposition in ignored local release evidence. Old
+harness/documentation proposals remain preserved for separate review; previously
+integrated identity/hardlink changes must not be reapplied over newer code.
+No open PR existed at initial inventory; prior PRs were merged.
 
-- Project name: `seed-agent`.
-- Build as a standalone repository, not inside `homelab-agent`.
-- Treat the first interface as documentation, configuration, CLI/dry-run output, and audit records rather than a custom UI.
-- Keep internal operations API-ready from the start so Telegram, WeChat bridge, Douban, local HTTP API, or optional UI surfaces can be added later without rewriting the policy engine.
-- Phase 1 focuses on PT upload strategy: fetch free/hot candidates, score them, enqueue strong candidates, and clean up cold managed torrents.
-- Phase 2 focuses on resource intent: accept Telegram, WeChat bridge, and Douban wanted-list intents, search resources, rank candidates, and require operator review when ambiguity is high.
-- qBittorrent is the first downloader implementation, but downloader operations should go through an abstraction to keep Transmission or other clients possible later.
-- Cleanup should delete only managed torrents, protect torrents with meaningful recent upload, stop once the calculated capacity target is met, and keep explainable audit records.
-- Phase 1 implementation will use SQLite for local lifecycle state at `.seed-agent/state.db` and append-only JSONL audit records at `.seed-agent/audit.jsonl`.
-- Mutating downloader commands should default to dry-run. The operator must pass `--execute` before qBittorrent add, pause, or delete calls happen.
-- Local qBittorrent credentials should live in `local/secrets/qbittorrent.yaml`, which must stay gitignored.
+## Safe Continuation
 
-## Current Implementation Handoff
-
-- Current plan: `docs/plans/2026-04-20-phase-1-pt-upload-loop.md`.
-- Current implementation branch: `feat/phase-2-resource-intent-loop`.
-- Current implementation worktree: `$HOME/.config/superpowers/worktrees/seed-agent/phase-2-resource-intent-loop`.
-- Latest Phase 1 safety baseline before Phase 2 planning: `970b49d fix: preserve audit state during batch failures`.
-- Current Phase 2 plan: `docs/plans/2026-04-22-phase-2-resource-intent-loop.md`.
-- Phase 1 is implemented as a CLI-first Python package under `src/seed_agent/`.
-- The implemented Phase 1 command surface is `discover`, `score`, `enqueue`, `review`, `prune`, `daily-report`, and `run-once`.
-- The implemented Phase 2 intent command surface is `intent-add`, `intent-inbox`, `intent-search`, `intent-rank`, `intent-review`, `intent-reject`, `intent-enqueue`, and `intent-run-once`.
-- Mutating downloader operations still default to dry-run. Use `--execute` only after reviewing printed decisions and audit output.
-- First safe verification command: `uv run seed-agent run-once --config config/example.yaml`.
-- First execute command after review: `uv run seed-agent run-once --config config/example.yaml --execute`.
-- Full local verification commands: `uv run pytest -q`, `uv run ruff check .`, and `uv run seed-agent --help`.
-- Runtime state remains local to the active workspace at `.seed-agent/state.db`; audit records remain at `.seed-agent/audit.jsonl`.
-- qBittorrent credentials remain external to git in `local/secrets/qbittorrent.yaml`.
-- Known non-blocking warning: pytest currently emits `pytest_asyncio` loop-scope deprecation warnings under the local Python toolchain.
-- Keep Phase 2 intent routing, Telegram, WeChat bridge, Douban wanted-list sync, and optional UI outside the Phase 1 implementation path.
-
-## Phase 1 Implementation Summary
-
-The branch includes:
-
-- Strict Pydantic configuration and domain models.
-- RSS discovery for NexusPHP-style feeds.
-- Candidate scoring for free/hot upload strategy decisions.
-- Redacted JSONL audit logging.
-- SQLite lifecycle state with monotonic candidate state preservation.
-- qBittorrent Web API support for add, inspect, pause/stop, and delete.
-- Conservative cleanup policy that protects unmanaged, H&R, manual, and media-library torrents.
-- CLI dry-run and execute paths for discovery, scoring, enqueue, review, pruning, daily reporting, and the combined `run-once` loop.
-
-Important safety behavior preserved in the latest implementation:
-
-- `run-once --execute` records accepted enqueue decisions as `ENQUEUED` even when qBittorrent returns success without an info hash.
-- Later dry-runs do not downgrade candidates that already reached `ENQUEUED`, `PAUSED`, or `DELETED`.
-- `prune --execute` writes known torrent hashes back to the local state database as `PAUSED` or `DELETED`.
-- qBittorrent torrent rows infer cleanup protection metadata conservatively from tags and save paths.
-- Dry-run prune does not build a live downloader, call qBittorrent, or update lifecycle state.
-
-## Phase 1 Review Notes
-
-Review performed before Phase 2 planning:
-
-- `uv run pytest -q` passed with 104 tests.
-- `uv run ruff check .` passed.
-- `uv run seed-agent --help` loaded all Phase 1 commands.
-- `uv run seed-agent run-once --config config/example.yaml` completed as a dry-run smoke.
-- One Phase 1 state durability issue was fixed: repeated same-state writes now preserve existing score and torrent hash when the incoming update does not provide replacement values.
-
-Recommended next branch:
-
-- `feat/phase-2-resource-intent-loop`
-- Suggested worktree: `$HOME/.config/superpowers/worktrees/seed-agent/phase-2-resource-intent-loop`
-
-## Phase 2 Implementation Handoff
-
-Phase 2 has started on:
-
-- Branch: `feat/phase-2-resource-intent-loop`
-- Worktree: `$HOME/.config/superpowers/worktrees/seed-agent/phase-2-resource-intent-loop`
-
-Completed Phase 2 slices:
-
-- Task 1: Phase 2 intent/release/ranking models and strict config sections.
-- Task 2: Additive SQLite state tables and store methods for intents and ranked releases.
-- Task 3: Deterministic resource-intent parser for CLI/file/source events.
-- Task 4: Local intent ingestion actions and CLI commands, including `intent-add` and `intent-inbox`.
-- Task 5: Search provider protocol and RSS-backed intent search provider.
-- Task 6: Explainable intent ranking policy with reasons, risks, ambiguity detection, and confirmation gating.
-- Task 7: Intent search/rank/review actions and CLI commands, with ranked release candidate persistence and redacted output.
-- Task 8: Local confirmation and rejection commands with selected release persistence and audit records.
-- Task 9: Intent enqueue command that reuses the existing qB enqueue path and only mutates qBittorrent with explicit `--execute`.
-- Task 10: Source adapter skeletons for file inbox, Telegram payloads, WeChat bridge payloads, and local Douban wanted-list exports.
-- Task 11: Combined `intent-run-once` command for inbox ingest, search, rank, and dry-run/execute enqueue decisions.
-- Task 12: README and Phase 2 operator documentation.
-
-Current Phase 2 commits:
-
-- `6118231 feat: add phase two intent models and config`
-- `1f3ecbd feat: add phase two intent state store`
-- `350f1c7 feat: add deterministic intent parser`
-- `617b556 feat: add local intent ingestion cli`
-- `de1523c feat: add rss-backed intent search provider`
-- `48bb8c5 feat: add explainable intent ranking`
-- `cd93eea feat: add intent search review commands`
-- `62cc979 feat: add intent confirmation commands`
-- `9e3b186 feat: add intent enqueue command`
-- `bb1e02b feat: add intent source adapter skeletons`
-- `115e824 feat: add intent run once command`
-
-Latest verification:
-
-- `uv run pytest -q` passed with 160 tests.
-- `uv run ruff check .` passed.
-- `uv run seed-agent --help` shows `intent-add`, `intent-inbox`, `intent-search`, `intent-rank`, `intent-review`, `intent-reject`, `intent-enqueue`, and `intent-run-once`.
-- `uv run seed-agent intent-add "Inception 2010 1080p" --config config/example.yaml` writes a local normalized intent without downloader mutation.
-- `uv run seed-agent intent-run-once --config config/example.yaml` is an empty dry-run when the configured inbox is absent.
-- Docs gate: `rg "intent-run-once|confirmation_required|local/inbox|phase-2" README.md docs/operations`.
-- Focused CLI verification: `uv run pytest tests/test_intent_cli.py tests/test_intent_search_cli.py -q`.
-- Focused rejection verification: `uv run pytest tests/test_intent_reject.py tests/test_intent_cli.py -q`.
-- Focused enqueue verification: `uv run pytest tests/test_intent_enqueue.py tests/test_intent_cli.py tests/test_cli.py -q`.
-- Focused source verification: `uv run pytest tests/test_intent_sources.py tests/test_intent_actions.py tests/test_intent_cli.py -q`.
-- Focused run-once verification: `uv run pytest tests/test_intent_run_once.py tests/test_run_once.py tests/test_cli.py tests/test_intent_cli.py -q`.
-
-Recommended next task:
-
-- Review Phase 2 end-to-end, then decide whether to merge, polish docs further, or start a Phase 3 branch for long-running integration loops.
-- M-Team follow-up: implement API-driven discovery for `mteam` so FREE filtering and activity-based sorting do not depend on RSS ordering alone. Keep the existing RSS path intact.
-
-## Inspiration Sources
-
-Initial source projects discussed as inspiration:
-
-- `https://github.com/appotry/PTtool`
-- `https://github.com/jxxghp/MoviePilot`
-- `https://github.com/wangyan/nas-tools`
-- `https://github.com/vertex-app/vertex`
-- `https://github.com/sunerpy/pt-tools`
-- `https://github.com/appotry/IYUUAutoReseed`
-- `https://github.com/appotry/PT-Plugin-Plus`
-- Additional inspiration named during brainstorming: `flexget-nexusphp`, `qb-rss-manager`, `Auto_Bangumi`, `ani-rss`, and `bgmi`.
-
-The strongest Phase 1 inspirations were `pt-tools` and `flexget-nexusphp`; the strongest Phase 2 inspirations were `PT-Plugin-Plus`, `Auto_Bangumi`, `ani-rss`, and `bgmi`; later roadmap inspiration includes `qb-rss-manager`, `IYUUAutoReseed`, MoviePilot, vertex, and nas-tools.
-
-## What Is Not Preserved Here
-
-- The full raw chat transcript is not copied into the repository.
-- Full raw command outputs are not copied, except for the operational summary above.
-- Full upstream README contents or source-code excerpts are not vendored into this repository.
-
-This is intentional. The repo preserves the decisions, architecture, inspiration map, and operational handoff needed to resume work without depending on the original conversation.
+Read the current Git refs and exact-head checks before any new commit/tag action.
+Keep `.seed-agent/state.db`, its access locks and audit evidence durable. Use the
+[upgrade guide](upgrade-and-recovery.md) for backups and versioned replacement.
+Production writes require the owning homelab typed controller, reviewed preview,
+backup and rollback; release checks use isolated fixtures and containers.

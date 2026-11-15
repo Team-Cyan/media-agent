@@ -53,3 +53,7 @@ Turn external site-specific list sources into `TorrentCandidate` objects.
 - keep `TorrentCandidate` as the stable boundary between discovery and scoring.
 - keep source integrations such as Douban, chat bridges, and future rating sites
   upstream of the generic `ResourceIntent` boundary.
+
+RSS intent filtering tokenizes Unicode letters/numbers, retaining exact token,
+year and season/episode boundaries for non-Latin titles as well as Latin titles.
+This is feed filtering, not a guarantee of cross-language aliases or fuzzy matching.

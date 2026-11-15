@@ -22,8 +22,8 @@ subtitle delivery. No new branding, cloud migration or broad feature expansion.
 - Preserve SQLite/audit evidence and source files. Completion, media identity,
   parent attachment and selected source remain independent explicit facts.
 - A mixed source directory is not authoritative movie/TV type evidence.
-- Six confirmed featurettes stay attached; Joker 2 stays on selected 2160p,
-  retaining 1080p. Do not switch sources during review or smoke tests.
+- Confirmed featurettes stay attached and the selected primary stays selected,
+  retaining its registered alternate. Do not switch sources during review or smoke tests.
 - Never replay uncertain or historical scans, migrations, claims or submissions.
   Observe receipts/live state and preserve the single-writer boundary.
 - Provider results, downloaded payload, published external subtitles, embedded

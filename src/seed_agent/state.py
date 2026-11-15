@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+import stat
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -3231,8 +3232,27 @@ def _open_private_file(path: Path) -> int:
 
 
 def _ensure_private_file(path: Path) -> None:
-    fd = _open_private_file(path)
-    os.close(fd)
+    # Never open and close an existing DB inode: POSIX locks belong to the
+    # process, so closing even an unrelated descriptor releases SQLite locks.
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        # First creation must close its descriptor before any SQLite opener
+        # acquires the shared access fence, including another thread here.
+        lock_fd = _open_private_file(_sqlite_access_lock_path(path))
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            flags = os.O_CREAT | os.O_EXCL | os.O_RDWR
+            flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+            try:
+                fd = os.open(path, flags, 0o600)
+            except FileExistsError:
+                pass
+            else:
+                os.close(fd)
+        finally:
+            os.close(lock_fd)
+    _ensure_existing_private_file(path)
 
 
 def _ensure_sqlite_sidecars_private(path: Path) -> None:
@@ -3241,14 +3261,10 @@ def _ensure_sqlite_sidecars_private(path: Path) -> None:
 
 
 def _ensure_existing_private_file(path: Path) -> None:
-    flags = os.O_RDWR
-    flags |= getattr(os, "O_CLOEXEC", 0)
-    flags |= getattr(os, "O_NOFOLLOW", 0)
     try:
-        fd = os.open(path, flags)
+        if not stat.S_ISREG(path.lstat().st_mode):
+            raise ValueError("SQLite file must be a regular file")
+        os.chmod(path, 0o600, follow_symlinks=False)
     except FileNotFoundError:
+        # SQLite may remove a sidecar as its last connection closes.
         return
-    try:
-        os.fchmod(fd, 0o600)
-    finally:
-        os.close(fd)

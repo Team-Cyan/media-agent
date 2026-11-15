@@ -1,6 +1,9 @@
 # Docker Compose User Guide
 
-This guide is the normal installation path for `seed-agent`.
+This guide is the normal installation path for `seed-agent` 1.0.
+See [Upgrade And Recovery](upgrade-and-recovery.md) before replacing an existing install.
+The example enables scheduled execution: review execution/prune/media policy and
+set execute false for initial isolated evaluation before starting containers.
 
 It assumes:
 

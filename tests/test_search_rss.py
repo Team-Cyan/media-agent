@@ -243,3 +243,20 @@ async def test_rss_search_provider_supports_mteam_sparse_candidates() -> None:
     assert releases[0].seeders == 0
     assert releases[0].leechers == 0
     assert releases[0].metadata["categories"] == ["Movie/Blu-Ray"]
+
+
+@pytest.mark.parametrize("title", ["测试电影", "テスト映画", "Пример фильма"])
+@pytest.mark.parametrize("drift", [None, "title", "year", "season", "episode"])
+def test_rss_unicode_title_matching_keeps_identity_bounds(title, drift):
+    from seed_agent.models import TorrentCandidate
+    from seed_agent.search.rss import _matches_intent
+    candidate = TorrentCandidate(
+        title=f"{title if drift != 'title' else 'Other'} 2020 S02E03 1080p",
+        site="demo", source_url="https://tracker.example/detail/1",
+        download_url="https://tracker.example/download/1", size_bytes=100,
+        seeders=2, leechers=1,
+    )
+    intent = _intent(title=title, year=2021 if drift == "year" else 2020,
+                     season=20 if drift == "season" else 2,
+                     episode=30 if drift == "episode" else 3, resolution="1080p")
+    assert _matches_intent(candidate, intent) is (drift is None)

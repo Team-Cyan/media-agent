@@ -6,10 +6,10 @@
 
 `seed-agent` is a Docker-first self-hosted automation app for NAS and homelab deployments,
 spanning resource acquisition, PT seed strategy and media-library organization.
-Acquisition and seed are the shipped foundation; media integration has passed local
-independent review, with deployed library/client acceptance tracked separately. See the
-[current product delivery plan](docs/plans/2026-10-24-media-product-delivery.md)
-for scope and remaining work. Product and package naming changes are deferred.
+The 1.0 product includes discovery/acquisition, category-bound seed operations,
+Want List and the operator Web UI, plus guarded media organization, reviewed extras,
+source variants and subtitle delivery. Verification levels and remaining limits are
+listed below; production rollout and client playback remain separate acceptance.
 
 It is designed to run as a long-lived container, keep its state on mounted
 storage, and manage PT discovery plus downloader actions through versioned
@@ -19,7 +19,7 @@ downloader, and Transmission is available as a second contract-tested adapter.
 Current image:
 
 - `ghcr.io/team-cyan/seed-agent:latest`
-- versioned releases use tags such as `ghcr.io/team-cyan/seed-agent:0.2.0`
+- versioned releases use `ghcr.io/team-cyan/seed-agent:1.0.0` (pin the digest for reproducibility)
 
 The primary operator experience is:
 
@@ -29,12 +29,12 @@ The primary operator experience is:
 - inspect logs, heartbeat, and audit output,
 - adjust strategy without rebuilding the image.
 
-This project is not a dashboard, a media server, or a general Python utility
-that happens to ship a container. Docker deployment is the main product shape.
+The Web UI is the interactive operator console; scheduled and batch operations
+also use the CLI. Docker deployment is the primary distribution.
 
 ## What It Does
 
-Today `seed-agent` focuses on two loops:
+The shipped workflows are:
 
 1. PT upload strategy loop
    - discover candidate torrents,
@@ -49,6 +49,13 @@ Today `seed-agent` focuses on two loops:
    - search releases,
    - rank choices and surface low-match candidates for review,
    - enqueue through the same downloader path.
+
+3. Guarded media-library organization
+   - inventory and completion evidence independent from metadata identity,
+   - preview and review before hardlink publication, preserving originals,
+   - explicit extras attachment and retained alternate-source selection,
+   - bounded optional subtitle providers and reviewed local SRT import,
+   - independent worker supervision, backup and recovery controls.
 
 The default deployment shape for self-hosted use is a Docker container running
 `schedule-run`.
@@ -66,20 +73,34 @@ The default deployment shape for self-hosted use is a Docker container running
 | Torznab search | Supported | First non-M-Team search provider for the `SearchProvider` contract. |
 | Resource intent loop | Supported | Local intent add, inbox/Douban/IMDb Want List ingestion, search, ranking, rejection, explicit candidate enqueue, and default dry-run CLI enqueue are implemented. |
 | Want List | Supported | Web UI page shows canonical Douban/IMDb wants with source/type filters, mobile cards, added time, merged source evidence, release/search status, preview-first refresh/search, and candidate review with explicit qB enqueue actions. |
-| Web Settings UI | WIP | Local configuration UI exists for grouped safe settings edits with schema validation, diff previews, per-section YAML editing, visual downloader category/budget routing, sticky save actions, mobile navigation, read-only status, runtime provenance, and Want List. |
+| Web Settings UI | Supported operator console | Local configuration UI exists for grouped safe settings edits with schema validation, diff previews, per-section YAML editing, visual downloader category/budget routing, sticky save actions, mobile navigation, read-only status, runtime provenance, and Want List. |
 | Read-only operations API | Partial | State summary, heartbeat health, scheduler/tracker backoff evidence, budget pools, and Want List are exposed; richer audit/cleanup dashboards remain planned. |
+
+## 1.0 Verification And Limits
+
+| Capability | Evidence level | Limit |
+| --- | --- | --- |
+| Discovery, scoring, budgets, cleanup, Want List | Automated fixtures/contracts; qB is the reference deployment adapter | Provider access and source export formats vary; Transmission has contract tests rather than equivalent production acceptance. |
+| Web console and API | Auth/config/concurrency tests and container health checks | Trusted operator tool; optional bearer token, no multi-user roles or public-service hardening. |
+| Media import, extras and source variants | Receipt/identity/race/recovery regression tests; bounded deployed cohort previously verified | Each source remains subject to configured identity/completion/target gates. Cross-filesystem hardlinks are unsupported. |
+| Subtitle discovery and publication | Provider fixtures, bounded payload validation, reviewed SRT publication | Best effort; no universal library coverage, automatic RAR handling or retiming, or full-film/client playback guarantee. |
+| Deployment | Compose validation, Linux image/identity/hardlink/health checks | Release publication does not upgrade an existing NAS. |
+
+Start with the [Compose guide](docs/operations/docker-compose-user-guide.md),
+[configuration guide](docs/operations/configuration-guide.md),
+[Web operator guide](docs/operations/web-ui-operator-guide.md) and
+[media guide](docs/operations/media-import.md).
+Read [upgrade and recovery](docs/operations/upgrade-and-recovery.md) before replacing
+an existing container or database. Default CLI mutation previews still read/write
+local evidence and may contact configured providers; use the example configuration
+and an isolated runtime for evaluation.
 
 ## Roadmap Snapshot
 
-The immediate credibility pass is in place: license clarity, pull-request CI,
-Docker smoke testing, README visibility, clear source-adapter status, and the
-first Web UI Want List. The next product work stays grounded in qB live state,
-conservative enqueue/prune decisions, and better reporting before wider
-dashboard or multi-downloader expansion.
-
-Medium-term work should keep hardening provider/downloader contracts, then turn
-tracker/account signals, downloader telemetry, historical outcomes, and
-operator choices into explainable scoring feedback.
+[Roadmap](docs/roadmap.md) separates shipped 1.0 capabilities from candidate
+1.1/1.2 improvements and potential 2.0 architecture changes. These are planning
+groups, without promised dates. Broader provider/archive support, client acceptance
+and richer operations reports remain future work.
 
 ## Source Adapter Status
 
@@ -304,7 +325,7 @@ The template runs the scheduler and settings Web UI in one container, publishing
 host port `8765` for DockerMan's WebUI button.
 
 On `main`, GHCR receives `latest`, `main`, and `sha-<short-sha>` tags. On
-release tags such as `v0.2.0`, GHCR also receives `v0.2.0`, `0.2.0`, and `0.2`.
+release tags such as `v1.0.0`, GHCR also receives `v1.0.0`, `1.0.0`, and `1.0`.
 
 The image is intentionally generic:
 

@@ -5574,7 +5574,7 @@ want_sources:
       id: douban-me
       label: Me
       export_ref: local/inbox/douban.json
-      user_name: LancerC
+      user_name: example-user
 """,
         encoding="utf-8",
     )
@@ -5613,7 +5613,7 @@ want_sources:
     - provider: douban
       id: douban-me
       label: Me
-      user_name: LancerC
+      user_name: example-user
     - provider: imdb
       id: imdb-me
       label: Me
@@ -5799,7 +5799,7 @@ want_sources:
     - provider: douban
       id: douban-me
       label: Me
-      user_name: LancerC
+      user_name: example-user
 """,
         encoding="utf-8",
     )

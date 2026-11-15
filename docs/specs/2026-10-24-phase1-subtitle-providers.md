@@ -114,7 +114,7 @@ bypass is supported; page/access failures must not be reported as empty corpus.
 
 Live local follow-up tested all four configured integration points against mature
 reference code. OpenSubtitles, ASSRT and SubDL each supplied a valid Chinese control
-payload. Their tested Night King Chinese searches returned none. A known Zimuku
+payload. Their tested the diagnostic title Chinese searches returned none. A known Zimuku
 download page yielded a readable two-SRT RAR5 via an ordinary redirect; its current
 search/detail challenge and normal RAR publication support remain unresolved.
 No subtitle was published to the library by these local diagnostic checks.

@@ -26,13 +26,11 @@ be deferred until after publication; detailed historical CI triage can be last.
   image build, hardlink/descriptor checks and container smoke healthcheck.
 - v0.29.2 tag Docker Publish and GitHub Release succeeded. These successes do
   not explain older failure emails; do not dismiss those reports.
-- Current finite media cohort: 45 accounted for (38 primary imports, six extras,
-  one retained alternate). Full inventory: 537 sources, 530 primary imports,
-  six published extras, one retained alternate, pending organization zero.
-- Joker 2 keeps the selected 2160p source; 1080p is retained and selectable.
-  Inland Empire's six extras are published. Originals remain in place.
-- Night King has two physically verified local SRT publications. This does not
-  establish full-library subtitle delivery, timing or downstream playback.
+- The finite media cohort has been reconciled with originals retained, reviewed
+  extras published and an alternate retained without changing the selected primary.
+  Private counts, identities and receipts remain in ignored operational evidence.
+- Reviewed local SRT publications were physically verified. This does not establish
+  full-library subtitle delivery, full-film timing or downstream playback.
 - Original checkout is on an older branch with unrelated modified/untracked
   code, CI and docs. Other worktrees also exist. Never reset/stash/delete them
   or blindly stage all changes. Read live Git state before choosing a baseline.

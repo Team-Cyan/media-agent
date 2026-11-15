@@ -22,7 +22,9 @@ def test_readme_exposes_support_matrix_and_source_status() -> None:
     assert "## Current Support Matrix" in readme
     assert "## Roadmap Snapshot" in readme
     assert "## Source Adapter Status" in readme
-    assert "| Web Settings UI | WIP |" in readme
+    assert "| Web Settings UI | Supported operator console |" in readme
+    assert "## 1.0 Verification And Limits" in readme
+    assert "full-film/client playback guarantee" in readme
     assert "| Transmission downloader | Supported |" in readme
     assert "| Torznab search | Supported |" in readme
     assert "| file inbox | Wired |" in readme

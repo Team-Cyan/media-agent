@@ -170,3 +170,12 @@ separate production ingress; they retain their existing algorithms. Direct
 missing-fixture verify also rejects a mismatched configured caller at entry.
 `tests/test_maintenance_identity.py` and the explicit Linux maintenance harness
 cover zero effects and valid/configured or env-absent backup/restore round trips.
+
+## Native SQLite Lock Preservation
+
+Permission enforcement must never open and close an existing database or sidecar
+inode: a close can release this process's POSIX locks held by another SQLite
+connection. Use regular-file checks and no-follow chmod; fence first creation
+exclusively against SQLite openers. `tests/test_state.py` probes external-process
+writer exclusion under DELETE and WAL before and after concurrent store access.
+This fixes a demonstrated lock hazard; it does not establish a historic incident's cause.

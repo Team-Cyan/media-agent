@@ -11,7 +11,7 @@ Keep these files on the same version before tagging a release:
 - `pyproject.toml`
 - `src/seed_agent/__init__.py`
 
-The current release line is `0.29.2`.
+The current release line is `1.0.0`.
 
 ## Version Bump Policy
 
@@ -101,3 +101,14 @@ git push origin v0.1.3
 Do not bake operator config, secrets, tracker credentials, `.seed-agent/`,
 `local/`, or `state/` into the image. Runtime behavior must continue to come
 from environment variables and mounted files.
+
+## Stable Milestone And Verification
+
+For 1.0, follow the closure contract: full tests/Ruff/public hygiene/dependency
+audit, Compose validation and candidate Linux image revision/version/hardlink/health
+checks precede publication. Push reviewed main, verify CI for that exact SHA, then
+publish its immutable tag and archival `release/1.0` branch. Verify both platforms,
+OCI revision/version and registry digest. Publication and production deployment
+are separate operations. Never move a published tag; ship a patch if behavior
+changes after publication. Retain failed CI attempts and fix causes, not safeguards.
+See [Upgrade And Recovery](upgrade-and-recovery.md) and the versioned review report.

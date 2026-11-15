@@ -134,3 +134,26 @@ def test_prometheus_totals_are_cumulative_and_expired_backoff_is_inactive(
     assert 'seed_agent_scheduler_runs_total{status="success"} 1001.000000' in output
     assert 'seed_agent_tracker_api_events_total{event="ok"} 10001.000000' in output
     assert "seed_agent_tracker_backoff_active 0.000000" in output
+
+
+def test_metrics_use_query_only_state_without_schema_initialization(tmp_path, monkeypatch):
+    state_path = tmp_path / "state.db"
+    StateStore(state_path)
+    original_connect = sqlite3.connect
+    traces = []
+    def connect(*args, **kwargs):
+        assert kwargs.get("uri") is True
+        assert "mode=ro" in str(args[0])
+        conn = original_connect(*args, **kwargs)
+        conn.set_trace_callback(traces.append)
+        return conn
+    def initialize(*args):
+        raise AssertionError("metrics must not initialize state")
+    monkeypatch.setattr(StateStore, "_initialize", initialize)
+    monkeypatch.setattr(sqlite3, "connect", connect)
+    assert "seed_agent_tracker_backoff_active" in render_prometheus_metrics(
+        state_path, tmp_path / "absent-heartbeat.json"
+    )
+    assert any("query_only=ON" in sql for sql in traces)
+    assert all(not sql.lstrip().upper().startswith(("CREATE", "ALTER", "INSERT", "UPDATE"))
+               for sql in traces)

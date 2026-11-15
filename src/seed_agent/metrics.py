@@ -11,7 +11,7 @@ from seed_agent.state import StateStore
 def render_prometheus_metrics(state_path: Path, heartbeat_path: Path) -> str:
     samples: list[str] = []
     if state_path.exists():
-        store = StateStore(state_path)
+        store = StateStore(state_path, initialize=False, read_only=True)
         runs = store.list_scheduler_runs(limit=1)
         status_counts: dict[str, int] = {}
         for raw_status, count in store.scheduler_run_status_counts().items():

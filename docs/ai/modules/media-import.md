@@ -350,8 +350,8 @@ Public HTTP failures, challenges, unknown layouts and HTML payloads remain visib
 failures. A path containing `/api/` is not evidence of a supported public API.
 
 Bounded development-host acceptance on 2026-11-06 downloaded and validated one
-Chinese Matrix control payload through each of OpenSubtitles, ASSRT and SubDL.
-Night King Chinese searches returned no candidates in those tested paths. The
+Chinese control-title payload through each of OpenSubtitles, ASSRT and SubDL.
+Chinese searches for the diagnostic title returned no candidates in those tested paths. The
 known Zimuku download page yielded a real RAR5 containing two readable SRT files;
 this diagnostic download does not bypass the adapter's blocked search/detail path.
 RAR remains unsupported by the normal publication validator. Local format and
@@ -367,7 +367,7 @@ See [Reviewed Local Subtitle Delivery](../../operations/reviewed-local-subtitles
 `subtitle_progress` provides read-only whole-library totals independent of source
 pagination, separating partial/all configured coverage, discovery, gates and active
 managed external receipts. Existing bounded fair scheduling is unchanged.
-For Night King only, a fenced read-only comparison of embedded subtitle packet
+For the diagnostic title only, a fenced read-only comparison of embedded subtitle packet
 hashes in three two-minute windows found 19 unique matching cues per script.
 External start times scaled by 24/25 matched those sampled video cues within one
 millisecond. Separate local review SRTs preserve the originals; they are not
@@ -396,7 +396,7 @@ alternatives consume the same fenced candidate cache in bounded 60-second downlo
 turns, one actual payload attempt per source per cycle, until the shared configured
 external cap. They do not shorten the provider's search refresh. OpenSubtitles file
 IDs remain download locators; ASSRT fetches fresh official details under its quota. Full-release ASSRT identity binding
-accepts two-character Han titles such as `夜王`, while still requiring identical
+accepts two-character Han titles in reviewed fixtures, while still requiring identical
 normalized release, year/episode numbering and technical release evidence.
 Two-character Latin aliases retain the minimum-length restriction.
 SubDL reconstructs only API-proven canonical unsigned locators (a boolean plus its

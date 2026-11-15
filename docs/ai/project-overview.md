@@ -9,20 +9,19 @@ It is:
 
 - a Docker image and Compose-oriented runtime,
 - a config-first strategy runner,
-- a CLI-first operator tool,
+- a CLI and Web operator tool,
 - an auditable automation layer over PT discovery and downloader actions,
-- a future platform for intent-driven acquisition workflows.
+- an intent-driven acquisition and guarded media-organization product.
 
 It is not:
 
-- a dashboard-first product,
 - a full MoviePilot clone,
 - a general media server,
 - a browser-login automation project.
 
 ## Product Shape
 
-The current architecture has two shipped loops:
+The current architecture ships acquisition/seed loops and an independent media role:
 
 1. PT upload strategy loop
    - discover candidates,
@@ -41,6 +40,15 @@ The current architecture has two shipped loops:
    - reject unwanted choices,
    - enqueue an explicit candidate for ambiguous choices,
    - enqueue the chosen result through the same downloader path.
+
+3. Media organization loop
+   - independent completion and metadata identity evidence,
+   - reviewed hardlinks, explicit extras and retained source variants,
+   - optional provider subtitles and reviewed local SRT publication,
+   - durable worker commands, health, identity fencing and recovery.
+
+See the README support matrix for verification levels and acceptance gaps. The Web
+console is a supported operator surface, with a trusted deployment boundary.
 
 ## Core Runtime Surfaces
 

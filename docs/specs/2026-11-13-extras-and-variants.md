@@ -85,9 +85,6 @@ matching or subtitle jobs for extras, retained unselected variants, stale previe
 selection CAS, source/root/config/epoch changes, unknown and modified assets, late
 publisher responses and every durable crash boundary for source-qualified distinct paths. Verify all original sources, shared posters and work extras survive. Local
 fixtures are not evidence of deployed migration, real filesystem acceptance or
-client playback. The requested Inland Empire featurettes have passed production
-hardlink verification, and Joker 2 retains the selected 2160p source with a registered
-1080p alternative. The live GUI shows 530 primary imports, six published extras,
-one retained alternate and zero pending organization across 537 source files.
-Full-library subtitle coverage and playback in downstream clients remain separate
-acceptance work.
+client playback. A bounded deployment verified reviewed featurette hardlinks and a
+retained alternate while preserving the selected primary. Corpus identities,
+counts and physical receipts remain private operational evidence.

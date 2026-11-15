@@ -10,7 +10,7 @@ FetchCandidates = Callable[
     [str, str, str | None, str | None, str],
     Awaitable[list[TorrentCandidate]],
 ]
-TOKEN_RE = re.compile(r"[a-z0-9]+", re.IGNORECASE)
+TOKEN_RE = re.compile(r"[^\W_]+", re.UNICODE)
 
 
 class RssSearchProvider:

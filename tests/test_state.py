@@ -2,6 +2,8 @@ import json
 import os
 import sqlite3
 import stat
+import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Event, Thread
@@ -1219,3 +1221,49 @@ def test_intent_enqueue_claim_blocks_parallel_owner_and_commits_atomically(
         "status": "already_enqueued",
         "selected_release_id": "release-a",
     }
+
+
+@pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])
+def test_permission_checks_preserve_native_sqlite_locks(tmp_path: Path, journal_mode: str):
+    path = tmp_path / "state.db"
+    store = StateStore(path)
+    probe = """
+import sqlite3, sys
+conn = sqlite3.connect(sys.argv[1], timeout=0)
+try:
+    conn.execute("BEGIN IMMEDIATE")
+except sqlite3.OperationalError as exc:
+    assert exc.sqlite_errorcode == sqlite3.SQLITE_BUSY, exc
+    sys.exit(2)
+else:
+    conn.rollback()
+finally:
+    conn.close()
+"""
+
+    def external_writer():
+        return subprocess.run([sys.executable, "-c", probe, str(path)], check=False).returncode
+
+    with store._connect() as conn:
+        conn.execute(f"PRAGMA journal_mode={journal_mode}")
+        conn.execute("BEGIN IMMEDIATE")
+        assert external_writer() == 2
+        # Writable Web requests construct independent stores in the same process.
+        other = StateStore(path, initialize=False)
+        with other._connect() as reader:
+            reader.execute("SELECT count(*) FROM candidates").fetchone()
+        assert external_writer() == 2
+        conn.rollback()
+    assert external_writer() == 0
+
+
+def test_state_permission_checks_reject_symlink(tmp_path: Path):
+    target = tmp_path / "private"
+    target.write_text("retained")
+    target.chmod(0o644)
+    path = tmp_path / "state.db"
+    path.symlink_to(target)
+    with pytest.raises(ValueError, match="regular file"):
+        StateStore(path)
+    assert target.read_text() == "retained"
+    assert stat.S_IMODE(target.stat().st_mode) == 0o644
