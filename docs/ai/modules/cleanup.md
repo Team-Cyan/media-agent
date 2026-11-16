@@ -7,8 +7,8 @@ balanced safety policy.
 
 ## Primary Files
 
-- `src/seed_agent/policies/cleanup.py`
-- `src/seed_agent/actions/qb.py`
+- `src/media_agent/policies/cleanup.py`
+- `src/media_agent/actions/qb.py`
 - `tests/test_cleanup.py`
 - `tests/test_prune_action.py`
 

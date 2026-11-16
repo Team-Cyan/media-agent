@@ -7,7 +7,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from seed_agent.media_import import sqlite_io
+from media_agent.media_import import sqlite_io
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--library', required=True)

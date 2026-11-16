@@ -6,8 +6,8 @@ import httpx
 import pytest
 import respx
 
-from seed_agent.models import Discount
-from seed_agent.sites.rss import fetch_rss_candidates, parse_rss_candidates
+from media_agent.models import Discount
+from media_agent.sites.rss import fetch_rss_candidates, parse_rss_candidates
 
 FIXTURE = Path(__file__).parent / "fixtures" / "nexusphp-rss.xml"
 
@@ -192,7 +192,7 @@ async def test_fetch_rss_candidates_uses_httpx_async_client() -> None:
 @pytest.mark.asyncio
 @respx.mock
 async def test_fetch_mteam_rss_propagates_enrichment_rate_limit(monkeypatch) -> None:
-    from seed_agent.sites import mteam as mteam_site
+    from media_agent.sites import mteam as mteam_site
 
     xml = FIXTURE.read_text(encoding="utf-8")
     respx.get("https://tracker.example/rss.php").mock(

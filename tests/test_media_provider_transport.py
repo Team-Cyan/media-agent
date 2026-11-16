@@ -2,8 +2,8 @@ import httpx
 import pytest
 import respx
 
-from seed_agent.media_import.subtitles.http import Transport
-from seed_agent.media_import.subtitles.provider import ProviderError
+from media_agent.media_import.subtitles.http import Transport
+from media_agent.media_import.subtitles.provider import ProviderError
 
 
 @respx.mock
@@ -120,7 +120,7 @@ def test_real_http_retry_evidence_and_transport_failure_are_distinct():
 
 
 def test_safe_evidence_rejects_messages_paths_nonfinite_and_unknown_fields():
-    from seed_agent.media_import.subtitles.evidence import response_evidence, safe_evidence
+    from media_agent.media_import.subtitles.evidence import response_evidence, safe_evidence
 
     assert (
         safe_evidence(

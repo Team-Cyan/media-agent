@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from seed_agent.models import ManagedTorrent
-from seed_agent.policies.eviction import rank_eviction_candidates
-from seed_agent.policies.quality import (
+from media_agent.models import ManagedTorrent
+from media_agent.policies.eviction import rank_eviction_candidates
+from media_agent.policies.quality import (
     torrent_eviction_evidence,
     torrent_retention_quality_score,
 )
@@ -16,7 +16,7 @@ def _torrent(**overrides: object) -> ManagedTorrent:
         "hash": "abcd1234",
         "name": "Demo Torrent",
         "category": "seed",
-        "tags": {"seed-agent", "seed"},
+        "tags": {"media-agent", "seed"},
         "state": "uploading",
         "size_bytes": 10 * 1024**3,
         "uploaded_bytes": 10 * 1024**3,

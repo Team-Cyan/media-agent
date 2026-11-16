@@ -16,7 +16,7 @@ want_decision:
 
 `local/inbox/*` is gitignored because it can contain private watch preferences or chat-export text.
 
-The local `seed-agent web` UI can also edit the low-risk Phase 2 intent
+The local `media-agent web` UI can also edit the low-risk Phase 2 intent
 thresholds, default resolution, preferred languages, inbox path, search
 preferences, and Want List source settings. It writes a YAML section only after
 the full project config passes schema validation and shows a before/after diff
@@ -102,11 +102,11 @@ Example:
 Use these commands for a step-by-step operator flow:
 
 ```bash
-uv run seed-agent intent-add "download Inception 2010 1080p" --config config/example.yaml
-uv run seed-agent intent-inbox --config config/example.yaml
-uv run seed-agent intent-search <intent-id> --config config/example.yaml
-uv run seed-agent intent-rank <intent-id> --config config/example.yaml
-uv run seed-agent intent-review --config config/example.yaml
+uv run media-agent intent-add "download Inception 2010 1080p" --config config/example.yaml
+uv run media-agent intent-inbox --config config/example.yaml
+uv run media-agent intent-search <intent-id> --config config/example.yaml
+uv run media-agent intent-rank <intent-id> --config config/example.yaml
+uv run media-agent intent-review --config config/example.yaml
 ```
 
 `intent-review` shows intents that are normalized, searched, or waiting for
@@ -117,7 +117,7 @@ operator selection, with top candidates and `confirmation_required` status.
 To stop working on an intent:
 
 ```bash
-uv run seed-agent intent-reject <intent-id> --config config/example.yaml
+uv run media-agent intent-reject <intent-id> --config config/example.yaml
 ```
 
 Rejection only mutates local SQLite state and writes audit records. It does not
@@ -128,15 +128,15 @@ call qBittorrent.
 Dry-run enqueue first:
 
 ```bash
-uv run seed-agent intent-enqueue <intent-id> --config config/example.yaml
+uv run media-agent intent-enqueue <intent-id> --config config/example.yaml
 ```
 
 Execute only after the selected release and output decision look correct. Use
 `--release-id` to enqueue an ambiguous or lower-ranked candidate explicitly:
 
 ```bash
-uv run seed-agent intent-enqueue <intent-id> --config config/example.yaml --execute
-uv run seed-agent intent-enqueue <intent-id> --release-id <release-id> --config config/example.yaml --execute
+uv run media-agent intent-enqueue <intent-id> --config config/example.yaml --execute
+uv run media-agent intent-enqueue <intent-id> --release-id <release-id> --config config/example.yaml --execute
 ```
 
 `intent-enqueue` uses a high-confidence ranked release by default. When
@@ -149,8 +149,8 @@ and stored as the final selected release only after a successful execute.
 enabled source adapters during that invocation:
 
 ```bash
-uv run seed-agent intent-run-once --config config/example.yaml
-uv run seed-agent intent-run-once --config config/example.yaml --execute
+uv run media-agent intent-run-once --config config/example.yaml
+uv run media-agent intent-run-once --config config/example.yaml --execute
 ```
 
 The command is dry-run by default. If the inbox is absent and no source adapter

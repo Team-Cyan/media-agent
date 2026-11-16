@@ -5,7 +5,7 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from seed_agent.config import (
+from media_agent.config import (
     MTeamApiDiscoveryConfig,
     SchedulerConfig,
     SeedAgentConfig,
@@ -66,7 +66,7 @@ def _valid_config_data(secret_ref: str) -> dict[str, object]:
                     "budget_pool": "downloads",
                     "delete_enabled": True,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "seed"],
+                    "tags": ["media-agent", "seed"],
                 },
                 {
                     "name": "movie",
@@ -74,7 +74,7 @@ def _valid_config_data(secret_ref: str) -> dict[str, object]:
                     "budget_pool": "media",
                     "delete_enabled": False,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "movie"],
+                    "tags": ["media-agent", "movie"],
                 },
             ],
             "budget_pools": [
@@ -144,13 +144,13 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
     - name: movie
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "movie"]
+      tags: ["media-agent", "movie"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -217,13 +217,13 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
     - name: movie
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "movie"]
+      tags: ["media-agent", "movie"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -256,7 +256,7 @@ def test_downloader_media_category_map_routes_want_types_to_configured_categorie
             "budget_pool": "media",
             "delete_enabled": False,
             "over_budget_behavior": "add_paused",
-            "tags": ["seed-agent", "anime"],
+            "tags": ["media-agent", "anime"],
         }
     )
     data["download_client"]["category_policies"].append(
@@ -266,7 +266,7 @@ def test_downloader_media_category_map_routes_want_types_to_configured_categorie
             "budget_pool": "media",
             "delete_enabled": False,
             "over_budget_behavior": "add_paused",
-            "tags": ["seed-agent", "tv"],
+            "tags": ["media-agent", "tv"],
         }
     )
     data["download_client"]["media_category_map"] = {
@@ -842,7 +842,7 @@ def test_scheduler_rejects_too_fast_capacity_guard() -> None:
 def test_write_config_mapping_atomically_replaces_valid_config(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import config as config_module
+    from media_agent import config as config_module
 
     path = tmp_path / "config.yaml"
     path.write_text("mode: balanced\n", encoding="utf-8")

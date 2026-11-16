@@ -4,12 +4,12 @@ import stat
 import pytest
 from typer.testing import CliRunner
 
-from seed_agent import cli
-from seed_agent.media_import.role_health import _read_state
-from seed_agent.media_import.store import MediaStore
-from seed_agent.runtime_identity import RuntimeIdentityError, verify_runtime_identity
-from seed_agent.state import StateStore
-from seed_agent.web.app import _read_state_connection
+from media_agent import cli
+from media_agent.media_import.role_health import _read_state
+from media_agent.media_import.store import MediaStore
+from media_agent.runtime_identity import RuntimeIdentityError, verify_runtime_identity
+from media_agent.state import StateStore
+from media_agent.web.app import _read_state_connection
 
 
 def mismatch(monkeypatch):

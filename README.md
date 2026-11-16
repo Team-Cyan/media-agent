@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/assets/seed-agent-logo.png" alt="seed-agent" width="520">
+  <img src="docs/assets/media-agent-logo.png" alt="media-agent" width="520">
 </p>
 
-# seed-agent
+# media-agent
 
-`seed-agent` is a Docker-first self-hosted automation app for NAS and homelab deployments,
+`media-agent` is a Docker-first self-hosted automation app for NAS and homelab deployments,
 spanning resource acquisition, PT seed strategy and media-library organization.
 The 1.0 product includes discovery/acquisition, category-bound seed operations,
 Want List and the operator Web UI, plus guarded media organization, reviewed extras,
@@ -18,8 +18,8 @@ downloader, and Transmission is available as a second contract-tested adapter.
 
 Current image:
 
-- `ghcr.io/team-cyan/seed-agent:latest`
-- versioned releases use `ghcr.io/team-cyan/seed-agent:1.0.0` (pin the digest for reproducibility)
+- `ghcr.io/team-cyan/media-agent:latest`
+- versioned releases use `ghcr.io/team-cyan/media-agent:1.1.0` (pin the digest for reproducibility)
 
 The primary operator experience is:
 
@@ -138,15 +138,15 @@ cp config/example.yaml config/config.yaml
 4. Start the container:
 
 ```bash
-cp deploy/seed-agent.env.example deploy/seed-agent.env
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml up -d
+cp deploy/media-agent.env.example deploy/media-agent.env
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml up -d
 ```
 
 5. Verify:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml logs -f seed-agent
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml ps
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml logs -f media-agent
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml ps
 open http://127.0.0.1:8765
 ```
 
@@ -198,11 +198,11 @@ See:
 - [Docker Compose User Guide](docs/operations/docker-compose-user-guide.md)
 - [Docker Scheduling](docs/operations/docker-scheduling.md)
 - [Compose Example](deploy/docker-compose.example.yml)
-- [Unraid Template](deploy/unraid/seed-agent.xml)
+- [Unraid Template](deploy/unraid/media-agent.xml)
 - [Unraid DockerMan Install](docs/operations/unraid-dockerman.md)
 
 If you want to switch from GHCR to Docker Hub later, set `SEED_AGENT_IMAGE` in
-`deploy/seed-agent.env` instead of editing the Compose file.
+`deploy/media-agent.env` instead of editing the Compose file.
 
 ## Configuration And Secrets
 
@@ -281,7 +281,7 @@ These guards help avoid:
 
 ## qB Category Model
 
-`seed-agent` treats category policy as a safety boundary:
+`media-agent` treats category policy as a safety boundary:
 
 - mutable categories such as `seed` may be paused or deleted by policy,
 - when a qB category is configured as mutable, every existing and future torrent
@@ -320,8 +320,8 @@ The project is structured to work with:
 
 For Unraid users who want native DockerMan actions such as edit, update checks,
 and template-driven rebuilds, the repository now includes a first-party Unraid
-template and a GitHub Actions workflow that publishes `ghcr.io/team-cyan/seed-agent`.
-The template runs the scheduler and settings Web UI in one container, publishing
+template and a GitHub Actions workflow that publishes `ghcr.io/team-cyan/media-agent`.
+The template supervises the scheduler, settings Web UI and configured media worker in one container, publishing
 host port `8765` for DockerMan's WebUI button.
 
 On `main`, GHCR receives `latest`, `main`, and `sha-<short-sha>` tags. On
@@ -354,15 +354,15 @@ Mutating commands are dry-run first unless `--execute` is set.
 Examples:
 
 ```bash
-uv run seed-agent run-once --config config/config.yaml
-uv run seed-agent run-once --config config/config.yaml --execute
-uv run seed-agent schedule-run --config config/config.yaml --execute --interval-minutes 30
-uv run seed-agent healthcheck --config config/config.yaml
-uv run seed-agent web --config config/config.yaml --host 127.0.0.1 --port 8765
-uv run seed-agent quality-replay-report --config config/config.yaml
-uv run seed-agent state-backup --config config/config.yaml
-uv run seed-agent state-restore --config config/config.yaml --backup backup.db
-uv run seed-agent audit-archive --config config/config.yaml
+uv run media-agent run-once --config config/config.yaml
+uv run media-agent run-once --config config/config.yaml --execute
+uv run media-agent schedule-run --config config/config.yaml --execute --interval-minutes 30
+uv run media-agent healthcheck --config config/config.yaml
+uv run media-agent web --config config/config.yaml --host 127.0.0.1 --port 8765
+uv run media-agent quality-replay-report --config config/config.yaml
+uv run media-agent state-backup --config config/config.yaml
+uv run media-agent state-restore --config config/config.yaml --backup backup.db
+uv run media-agent audit-archive --config config/config.yaml
 ```
 
 ## Runtime Files

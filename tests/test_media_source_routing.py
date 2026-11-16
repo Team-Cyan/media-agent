@@ -5,9 +5,9 @@ from test_media_artwork import PAYLOAD as IMAGE_PAYLOAD
 from test_media_artwork import image_probe as image_probe
 from test_media_import import media as media
 
-from seed_agent.media_import.config import MediaImportConfig
-from seed_agent.media_import.routing import Destinations, Source, validate_sources
-from seed_agent.media_import.sources import inventory
+from media_agent.media_import.config import MediaImportConfig
+from media_agent.media_import.routing import Destinations, Source, validate_sources
+from media_agent.media_import.sources import inventory
 
 
 def fixture(tmp_path):
@@ -76,9 +76,9 @@ def test_legacy_profiles_not_silently_mixed_with_new_sources(tmp_path):
 
 
 def mixed_engine(tmp_path):
-    from seed_agent.media_import.engine import Engine
-    from seed_agent.media_import.metadata import Mapping
-    from seed_agent.media_import.store import MediaStore
+    from media_agent.media_import.engine import Engine
+    from media_agent.media_import.metadata import Mapping
+    from media_agent.media_import.store import MediaStore
 
     source, targets = fixture(tmp_path)
     source.readiness = "completed_folder"
@@ -155,7 +155,7 @@ def test_one_source_routes_four_metadata_types_and_never_reingests_outputs(tmp_p
 def test_legacy_source_history_keeps_old_outputs_until_explicit_route_repair(media, tmp_path):
     from test_media_import import import_three
 
-    from seed_agent.media_import.engine import Engine
+    from media_agent.media_import.engine import Engine
 
     import_three(media)
     old, source, _, _ = media
@@ -236,8 +236,8 @@ def test_mixed_tmdb_identity_type_and_animation_use_confirmed_metadata(tmp_path,
     import httpx
     import respx
 
-    from seed_agent.media_import.metadata import Tmdb
-    from seed_agent.media_import.routing import source_adapter
+    from media_agent.media_import.metadata import Tmdb
+    from media_agent.media_import.routing import source_adapter
 
     source, _ = fixture(tmp_path)
     path = Path(source.root) / (
@@ -283,8 +283,8 @@ def test_same_title_movie_and_tv_metadata_stays_review_required(tmp_path):
     import httpx
     import respx
 
-    from seed_agent.media_import.metadata import Tmdb
-    from seed_agent.media_import.routing import source_adapter
+    from media_agent.media_import.metadata import Tmdb
+    from media_agent.media_import.routing import source_adapter
 
     source, _ = fixture(tmp_path)
     with respx.mock:
@@ -308,8 +308,8 @@ def test_same_title_movie_and_tv_metadata_stays_review_required(tmp_path):
 def test_mixed_routes_enrichment_and_historical_cleanup_after_destination_change(tmp_path):
     from test_media_subtitles import FakeProvider
 
-    from seed_agent.media_import.artwork import PosterJobs
-    from seed_agent.media_import.subtitles.jobs import SubtitleJobs
+    from media_agent.media_import.artwork import PosterJobs
+    from media_agent.media_import.subtitles.jobs import SubtitleJobs
 
     engine, source, targets, mappings = mixed_engine(tmp_path)
     for name in mappings:
@@ -380,7 +380,7 @@ def test_late_publication_cannot_recover_after_manual_route_review(tmp_path, mon
 
 
 def test_disjoint_sources_share_show_poster_without_shared_deletion_authority(tmp_path):
-    from seed_agent.media_import.artwork import PosterJobs
+    from media_agent.media_import.artwork import PosterJobs
 
     engine, source, targets, mappings = mixed_engine(tmp_path)
     (Path(source.root) / "live-series.mkv").write_bytes(b"episode one")
@@ -435,7 +435,7 @@ def test_disjoint_sources_share_show_poster_without_shared_deletion_authority(tm
 def test_late_metadata_does_not_overwrite_persisted_manual_classification(tmp_path):
     import json
 
-    from seed_agent.media_import.metadata import Mapping
+    from media_agent.media_import.metadata import Mapping
 
     engine, source, _, _ = mixed_engine(tmp_path)
     video = Path(source.root) / "live-movie.mkv"
@@ -516,7 +516,7 @@ def test_imported_target_fault_is_visible_isolated_and_recovers(tmp_path, fault)
 def test_subtitle_target_outage_spends_no_payload_and_due_recovers_without_refresh(tmp_path):
     from test_media_subtitles import FakeProvider
 
-    from seed_agent.media_import.subtitles.jobs import SubtitleJobs
+    from media_agent.media_import.subtitles.jobs import SubtitleJobs
 
     engine, source, targets, mappings = mixed_engine(tmp_path)
     for name in mappings:
@@ -544,8 +544,8 @@ def test_worker_cycles_continue_healthy_route_while_imported_target_is_unsafe(
 ):
     import yaml
 
-    from seed_agent.config_views import load_view
-    from seed_agent.media_import import worker
+    from media_agent.config_views import load_view
+    from media_agent.media_import import worker
 
     engine, source, targets, mappings = mixed_engine(tmp_path)
     for name in mappings:
@@ -589,7 +589,7 @@ def test_mixed_cli_migration_rejected_with_backup_restore_path(tmp_path):
     import yaml
     from typer.testing import CliRunner
 
-    from seed_agent import cli
+    from media_agent import cli
 
     engine, _, _, _ = mixed_engine(tmp_path)
     engine.config.state_path = str(engine.store.path)
@@ -668,8 +668,8 @@ def test_confirmed_tv_specials_keep_season_zero_despite_ova_movie_tokens(tmp_pat
     import httpx
     import respx
 
-    from seed_agent.media_import.metadata import Tmdb
-    from seed_agent.media_import.routing import source_adapter
+    from media_agent.media_import.metadata import Tmdb
+    from media_agent.media_import.routing import source_adapter
 
     source, _ = fixture(tmp_path)
     path = Path(source.root) / "Exact.Show.2024.S00E01.OVA.Movie.mkv"
@@ -727,9 +727,9 @@ def test_config_legacy_outputs_excluded_before_walk_without_basename_collision(t
 
 
 def test_config_exclusions_survive_empty_restored_state_and_later_output_creation(tmp_path):
-    from seed_agent.media_import.engine import Engine
-    from seed_agent.media_import.maintenance import backup_media_database, restore_media_database
-    from seed_agent.media_import.store import MediaStore
+    from media_agent.media_import.engine import Engine
+    from media_agent.media_import.maintenance import backup_media_database, restore_media_database
+    from media_agent.media_import.store import MediaStore
 
     engine, source, _, _ = mixed_engine(tmp_path)
     backup = tmp_path / "before-exclusions.db"

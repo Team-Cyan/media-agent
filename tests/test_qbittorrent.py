@@ -7,8 +7,8 @@ import httpx
 import pytest
 import respx
 
-from seed_agent.downloaders.qbittorrent import QbittorrentClient, QbittorrentError
-from seed_agent.models import ManagedTorrent
+from media_agent.downloaders.qbittorrent import QbittorrentClient, QbittorrentError
+from media_agent.models import ManagedTorrent
 
 
 @pytest.mark.asyncio
@@ -25,7 +25,7 @@ async def test_add_url_logs_in_and_posts_category_tags_url() -> None:
     result = await client.add_url(
         "https://tracker.example/download.php?id=42",
         category="pt-auto",
-        tags=["seed-agent", "pt-auto"],
+        tags=["media-agent", "pt-auto"],
     )
 
     assert result is None
@@ -35,7 +35,7 @@ async def test_add_url_logs_in_and_posts_category_tags_url() -> None:
     assert payload == {
         "urls": ["https://tracker.example/download.php?id=42"],
         "category": ["pt-auto"],
-        "tags": ["seed-agent,pt-auto"],
+        "tags": ["media-agent,pt-auto"],
         "stopped": ["false"],
     }
 
@@ -55,7 +55,7 @@ async def test_add_url_can_request_paused_state() -> None:
     await client.add_url(
         "https://tracker.example/download.php?id=42",
         category="seed",
-        tags=["seed-agent", "seed"],
+        tags=["media-agent", "seed"],
         paused=True,
     )
 
@@ -77,7 +77,7 @@ async def test_add_url_accepts_ok_without_trailing_period() -> None:
     result = await client.add_url(
         "https://tracker.example/download.php?id=42",
         category="pt-auto",
-        tags=["seed-agent", "pt-auto"],
+        tags=["media-agent", "pt-auto"],
     )
 
     assert result is None
@@ -105,7 +105,7 @@ async def test_add_url_accepts_pending_json_response() -> None:
     result = await client.add_url(
         "https://tracker.example/download.php?id=42",
         category="pt-auto",
-        tags=["seed-agent", "pt-auto"],
+        tags=["media-agent", "pt-auto"],
     )
 
     assert result is None
@@ -126,7 +126,7 @@ async def test_add_url_fails_on_failure_body() -> None:
         await client.add_url(
             "https://tracker.example/download.php?id=42&passkey=secret",
             category="pt-auto",
-            tags=["seed-agent"],
+            tags=["media-agent"],
         )
 
     message = str(exc_info.value)
@@ -157,7 +157,7 @@ async def test_add_url_redacts_sensitive_response_body() -> None:
         await client.add_url(
             "https://tracker.example/download.php?id=42&passkey=secret",
             category="pt-auto",
-            tags=["seed-agent"],
+            tags=["media-agent"],
         )
 
     message = str(exc_info.value)
@@ -182,7 +182,7 @@ async def test_list_torrents_converts_rows_into_managed_torrents() -> None:
                     "hash": "abcd1234",
                     "name": "Example Torrent",
                     "category": "pt-auto",
-                    "tags": "seed-agent, pt-auto",
+                    "tags": "media-agent, pt-auto",
                     "state": "uploading",
                     "size": 123456,
                     "uploaded": 654321,
@@ -201,14 +201,14 @@ async def test_list_torrents_converts_rows_into_managed_torrents() -> None:
     )
     client = QbittorrentClient("https://qb.example", "alice", "secret")
 
-    torrents = await client.list_torrents(category="pt-auto", tags={"seed-agent"})
+    torrents = await client.list_torrents(category="pt-auto", tags={"media-agent"})
 
     assert torrents == [
         ManagedTorrent(
             hash="abcd1234",
             name="Example Torrent",
             category="pt-auto",
-            tags={"seed-agent", "pt-auto"},
+            tags={"media-agent", "pt-auto"},
             state="uploading",
             size_bytes=123456,
             uploaded_bytes=654321,
@@ -279,7 +279,7 @@ async def test_list_torrents_treats_negative_completion_time_as_unknown() -> Non
                     "hash": "abcd1234",
                     "name": "Incomplete Torrent",
                     "category": "seed",
-                    "tags": "seed-agent, seed",
+                    "tags": "media-agent, seed",
                     "state": "downloading",
                     "size": 123456,
                     "uploaded": 0,
@@ -293,7 +293,7 @@ async def test_list_torrents_treats_negative_completion_time_as_unknown() -> Non
     )
     client = QbittorrentClient("https://qb.example", "alice", "secret")
 
-    torrents = await client.list_torrents(category="seed", tags={"seed-agent"})
+    torrents = await client.list_torrents(category="seed", tags={"media-agent"})
 
     assert torrents[0].completed_at is None
 
@@ -312,7 +312,7 @@ async def test_list_torrents_infers_protection_metadata_from_qb_rows() -> None:
                     "hash": "abcd1234",
                     "name": "Example Torrent",
                     "category": "pt-auto",
-                    "tags": "seed-agent, hr, pt-auto",
+                    "tags": "media-agent, hr, pt-auto",
                     "state": "uploading",
                     "size": 123456,
                     "uploaded": 654321,
@@ -328,14 +328,14 @@ async def test_list_torrents_infers_protection_metadata_from_qb_rows() -> None:
     )
     client = QbittorrentClient("https://qb.example", "alice", "secret")
 
-    torrents = await client.list_torrents(category="pt-auto", tags={"seed-agent"})
+    torrents = await client.list_torrents(category="pt-auto", tags={"media-agent"})
 
     assert torrents == [
         ManagedTorrent(
             hash="abcd1234",
             name="Example Torrent",
             category="pt-auto",
-            tags={"seed-agent", "hr", "pt-auto"},
+            tags={"media-agent", "hr", "pt-auto"},
             state="uploading",
             size_bytes=123456,
             uploaded_bytes=654321,

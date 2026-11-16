@@ -6,11 +6,11 @@ Score discovered torrents or ranked releases using explicit policy weights and e
 
 ## Primary Files
 
-- `src/seed_agent/policies/scoring.py`
-- `src/seed_agent/policies/quality.py`
-- `src/seed_agent/policies/intent_ranking.py`
-- `src/seed_agent/actions/pt.py`
-- `src/seed_agent/actions/intent.py`
+- `src/media_agent/policies/scoring.py`
+- `src/media_agent/policies/quality.py`
+- `src/media_agent/policies/intent_ranking.py`
+- `src/media_agent/actions/pt.py`
+- `src/media_agent/actions/intent.py`
 
 ## Current Responsibilities
 
@@ -77,7 +77,7 @@ Score discovered torrents or ranked releases using explicit policy weights and e
   ranking and explicit/scheduled intent enqueue may select a paid release for a
   requested work; they still pass through the selected category's capacity and
   downloader gates.
-- Use `seed-agent strategy-report --config <config>` before changing strategy
+- Use `media-agent strategy-report --config <config>` before changing strategy
   knobs. It groups current candidates and linked qB runtime outcomes by demand,
   ratio, size, and score, and shows the state-derived site-history feedback
   inputs before they affect scoring.

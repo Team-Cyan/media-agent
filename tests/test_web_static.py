@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-STATIC_ROOT = Path("src/seed_agent/web/static")
+STATIC_ROOT = Path("src/media_agent/web/static")
 
 
 def test_static_assets_exist() -> None:
@@ -43,16 +43,14 @@ def test_compose_keeps_read_only_root_but_mounts_web_config_paths_writable() -> 
     import yaml
 
     compose = yaml.safe_load(Path("deploy/docker-compose.example.yml").read_text(encoding="utf-8"))
-    seed = compose["services"]["seed-agent"]
-    media = compose["services"]["media-worker"]
+    seed = compose["services"]["media-agent"]
+    assert set(compose["services"]) == {"media-agent"}
     assert seed["read_only"] is True
-    assert media["read_only"] is True
     assert "../config:/app/config" in seed["volumes"]
     assert "../local:/app/local" in seed["volumes"]
     assert "../config:/app/config:ro" not in seed["volumes"]
     assert "../local:/app/local:ro" not in seed["volumes"]
-    assert "../config:/app/config:ro" in media["volumes"]
-    assert all(not volume.startswith("../local:/app/local") for volume in media["volumes"])
+    assert seed["environment"]["SEED_AGENT_MODE"] == "app"
 
 
 def test_index_contains_tracker_first_ui_anchors() -> None:

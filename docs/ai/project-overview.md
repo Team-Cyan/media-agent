@@ -1,8 +1,8 @@
 # Project Overview
 
-## What `seed-agent` Is
+## What `media-agent` Is
 
-`seed-agent` is a Docker-first PT automation app for personal NAS and homelab
+`media-agent` is a Docker-first PT automation app for personal NAS and homelab
 deployments.
 
 It is:
@@ -21,7 +21,8 @@ It is not:
 
 ## Product Shape
 
-The current architecture ships acquisition/seed loops and an independent media role:
+The single-container supervisor runs acquisition/seed, Web and configured media roles
+as independent child processes. Existing CLI role modes remain compatible:
 
 1. PT upload strategy loop
    - discover candidates,
@@ -52,14 +53,14 @@ console is a supported operator surface, with a trusted deployment boundary.
 
 ## Core Runtime Surfaces
 
-- CLI: `src/seed_agent/cli.py`
+- CLI: `src/media_agent/cli.py`
 - Docker image: `Dockerfile`
 - Container entrypoint: `docker/entrypoint.sh`
 - Publish workflow: `.github/workflows/docker-publish.yml`
-- Config: `src/seed_agent/config.py`
-- Models: `src/seed_agent/models.py`
-- State store: `src/seed_agent/state.py`
-- Audit: `src/seed_agent/audit.py`
+- Config: `src/media_agent/config.py`
+- Models: `src/media_agent/models.py`
+- State store: `src/media_agent/state.py`
+- Audit: `src/media_agent/audit.py`
 - Architecture snapshot: `docs/architecture.md`
 
 ## Release Discipline
@@ -71,7 +72,7 @@ console is a supported operator surface, with a trusted deployment boundary.
 - Documentation-only changes may keep the version unchanged unless they are part
   of an operator handoff or deployment release.
 - When bumping, keep `VERSION`, `Dockerfile`, `pyproject.toml`,
-  `src/seed_agent/__init__.py`, and `CHANGELOG.md` aligned.
+  `src/media_agent/__init__.py`, and `CHANGELOG.md` aligned.
 - After pushing a release intended for Unraid, verify the GHCR tag or manifest
   before touching the live host. Pulling `latest` too early can leave the host
   on the previous digest while the GitHub Action is still publishing.
@@ -102,7 +103,7 @@ Important nuance:
   `download_client.type: transmission`.
 - Mutations should stay dry-run first.
 - Downloader state remains the operational source of truth.
-- `seed-agent` local state explains policy and intent lifecycle.
+- `media-agent` local state explains policy and intent lifecycle.
 - Category policies separate mutable seed pools from add-only media pools.
 - Logical budget pools and downloader-reported free disk headroom affect enqueue
   rejection and cleanup visibility.
@@ -132,7 +133,7 @@ Use docs in layers:
 - `docs/plans/` for implementation sequencing
 - `docs/operations/` for operator procedures
 - `docs/roadmap.md` for current state and next work
-- `docs/ai/icon-design.md` for the shared `seed-agent` / `media-agent` /
+- `docs/ai/icon-design.md` for the shared `media-agent` / legacy `media-agent` /
   `material-agent` icon geometry, palette, export, and validation standard
 
 ## Session Guidance

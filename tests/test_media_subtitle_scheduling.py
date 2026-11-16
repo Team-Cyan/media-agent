@@ -5,8 +5,8 @@ from contextlib import contextmanager
 from test_media_import import media as media
 from test_media_subtitles import PAYLOAD, FakeProvider, import_three
 
-from seed_agent.media_import.metadata import Mapping
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.metadata import Mapping
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
 
 
 def test_idle_coverage_bound_and_94_new_jobs_progress_after_restart(media, monkeypatch):

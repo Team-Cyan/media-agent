@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from seed_agent.cli import app
-from seed_agent.media_import.probe import ProbeError, _ffprobe, describe, parse_probe, probe
+from media_agent.cli import app
+from media_agent.media_import.probe import ProbeError, _ffprobe, describe, parse_probe, probe
 
 
 def result(duration="9367.189"):
@@ -105,7 +105,7 @@ def test_probe_failure_is_fixed_unknown_json_not_raw_ffprobe_stderr(tmp_path, mo
 
 
 def test_probe_rejects_replaced_source_and_nonregular_files(tmp_path, monkeypatch):
-    from seed_agent.media_import import probe as module
+    from media_agent.media_import import probe as module
 
     path = tmp_path / "video.mp4"
     path.write_bytes(b"old")

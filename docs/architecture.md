@@ -3,25 +3,18 @@
 This document is the durable architecture snapshot for the current project shape.
 It focuses on shipped or wired behavior, not future aspirations.
 
-## Current Local Integration And Refinement Boundary
+## Runtime Shape
 
-The acquisition and PT loops below remain the existing foundation. The reviewed
-local media integration adds directory inventory, metadata/review, hardlink import,
-subtitles and owned-output reconciliation under `media_import/`. Independent media
-SQLite, worker scheduling and bounded Web/CLI commands have passed local checkpoint
-review, as has mixed-source routing with historical target authority. Final role,
-provider and poster integration passed independent local review. The deployed seed version must not
-be assumed to include these local changes. Local regression is not production acceptance.
+The `app` entrypoint runs a PID1 supervisor with independent scheduler, optional
+Web and configured media-worker processes. Each child retains its existing role
+contract, config authority, state database and leases. Child failure exits the
+container; shutdown signals reach owned process groups. Health combines enabled
+roles and the local Web endpoint. Explicit legacy role modes remain supported.
 
-The architecture refinement decision is documented in
-[Execution And State Boundaries](specs/2026-10-23-execution-and-state-boundaries.md),
-with sequencing in the
-[Refinement Plan](plans/2026-10-23-architecture-refinement.md).
-Delivery target: one image/UI, independent media runtime/state/resources, and a shared
-safe downloader action boundary for acquisition/seed. Current scope and acceptance are
-consolidated in [Product Delivery Plan](plans/2026-10-24-media-product-delivery.md).
-Production rollout is authorized after final integration/review; it has not occurred.
-Existing media behavior/receipts and seed protections must be preserved.
+The shared container has access to both downloader and media credentials; process
+separation is not a security boundary. One common media mount supports hardlinks,
+with application-enforced source preservation. No state path or schema migration
+is implied by the rename. See the [rename contract](specs/2026-11-16-single-container-rename.md).
 
 ## High-Level Architecture
 
@@ -31,7 +24,7 @@ flowchart TB
   operator --> local_secrets["local/secrets/*"]
   operator --> inbox["local/inbox/*"]
 
-  config --> runtime["Seed Agent Runtime"]
+  config --> runtime["Media Agent Runtime"]
   local_secrets --> runtime
   inbox --> intent_sources["Intent Sources"]
 
@@ -87,7 +80,7 @@ flowchart TB
 
 | Area | Current support |
 | --- | --- |
-| Deployment | Docker image, Docker Compose, Unraid DockerMan template, Kubernetes CronJob example, scheduler heartbeat, runtime status, healthcheck, optional Web UI sidecar process in the scheduler container. |
+| Deployment | Docker image, Docker Compose, Unraid DockerMan template, Kubernetes CronJob example, scheduler heartbeat, runtime status, healthcheck, supervised Web/scheduler/media processes in one container. |
 | Downloader | qBittorrent reference adapter plus Transmission RPC adapter. Category policies define mutable seed pools and add-only media pools. |
 | PT discovery | NexusPHP-style RSS, M-Team RSS fallback, M-Team API discovery with native filters and deferred download-token resolution. |
 | Seed strategy | Free/2x-free filtering, leecher/seeder scoring, size scoring, runtime enqueue gates, budget-pool and free-disk rejection, review, prune, stale-state reconciliation. |
@@ -101,24 +94,24 @@ flowchart TB
 
 ## Key Modules
 
-- `src/seed_agent/cli.py`: CLI command surface and runtime assembly.
-- `src/seed_agent/config.py`: Pydantic config schema and safe defaults.
-- `src/seed_agent/actions/pt.py`: PT discovery, scoring, and M-Team API option assembly.
-- `src/seed_agent/actions/intent.py`: intent ingestion, search, ranking, rejection, and enqueue.
-- `src/seed_agent/downloaders/base.py`: shared downloader protocol and status capability.
-- `src/seed_agent/downloaders/qbittorrent.py`: qBittorrent Web API adapter.
-- `src/seed_agent/downloaders/transmission.py`: Transmission RPC adapter.
-- `src/seed_agent/sites/mteam.py`: M-Team API/RSS integration and token resolution.
-- `src/seed_agent/search/mteam.py`: M-Team intent search provider.
-- `src/seed_agent/search/torznab.py`: Torznab search provider.
-- `src/seed_agent/sources/douban.py`: Douban wanted ingestion.
-- `src/seed_agent/sources/imdb.py`: IMDb watchlist/list ingestion.
-- `src/seed_agent/sources/letterboxd.py`: Letterboxd CSV ingestion.
-- `src/seed_agent/sources/telegram.py`: Telegram polling ingestion.
-- `src/seed_agent/web/app.py`: local Web UI API.
-- `src/seed_agent/web/static/*`: local Web UI.
-- `src/seed_agent/state.py`: current shared SQLite state model.
-- `src/seed_agent/media_import/`: local media workflow, publication/cleanup receipts
+- `src/media_agent/cli.py`: CLI command surface and runtime assembly.
+- `src/media_agent/config.py`: Pydantic config schema and safe defaults.
+- `src/media_agent/actions/pt.py`: PT discovery, scoring, and M-Team API option assembly.
+- `src/media_agent/actions/intent.py`: intent ingestion, search, ranking, rejection, and enqueue.
+- `src/media_agent/downloaders/base.py`: shared downloader protocol and status capability.
+- `src/media_agent/downloaders/qbittorrent.py`: qBittorrent Web API adapter.
+- `src/media_agent/downloaders/transmission.py`: Transmission RPC adapter.
+- `src/media_agent/sites/mteam.py`: M-Team API/RSS integration and token resolution.
+- `src/media_agent/search/mteam.py`: M-Team intent search provider.
+- `src/media_agent/search/torznab.py`: Torznab search provider.
+- `src/media_agent/sources/douban.py`: Douban wanted ingestion.
+- `src/media_agent/sources/imdb.py`: IMDb watchlist/list ingestion.
+- `src/media_agent/sources/letterboxd.py`: Letterboxd CSV ingestion.
+- `src/media_agent/sources/telegram.py`: Telegram polling ingestion.
+- `src/media_agent/web/app.py`: local Web UI API.
+- `src/media_agent/web/static/*`: local Web UI.
+- `src/media_agent/state.py`: current shared SQLite state model.
+- `src/media_agent/media_import/`: local media workflow, publication/cleanup receipts
   and subtitle jobs with independent execution/storage.
 
 ## Design Rules

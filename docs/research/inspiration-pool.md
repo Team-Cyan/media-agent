@@ -1,6 +1,6 @@
 # Inspiration Pool
 
-This document captures the project inspirations for `seed-agent`. It is a research map, not a dependency list. The goal is to learn patterns and product boundaries, then implement a small, coherent local tool.
+This document captures the project inspirations for `media-agent`. It is a research map, not a dependency list. The goal is to learn patterns and product boundaries, then implement a small, coherent local tool.
 
 ## Phase 1 Inspirations
 
@@ -15,7 +15,7 @@ Useful ideas:
 - Filter rules for precise download decisions.
 - Free-period end handling: pause or delete unfinished downloads when the discount ends.
 - Automatic torrent cleanup by seeding time, ratio, inactivity, H&R protection, and disk reserve.
-- Web UI is useful as product evidence, but `seed-agent` should not copy the UI in Phase 1.
+- Web UI is useful as product evidence, but `media-agent` should not copy the UI in Phase 1.
 
 What to learn:
 
@@ -120,7 +120,7 @@ Useful ideas:
 What to learn:
 
 - Deployment notes should explain network constraints for downloaders.
-- `seed-agent` should not hide qB connectivity assumptions.
+- `media-agent` should not hide qB connectivity assumptions.
 
 ## Future Inspirations
 

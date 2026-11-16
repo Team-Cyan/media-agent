@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 
 import pytest
 
-from seed_agent.downloaders.base import Downloader
-from seed_agent.downloaders.qbittorrent import QbittorrentClient
-from seed_agent.downloaders.transmission import TransmissionClient
-from seed_agent.models import ManagedTorrent
+from media_agent.downloaders.base import Downloader
+from media_agent.downloaders.qbittorrent import QbittorrentClient
+from media_agent.downloaders.transmission import TransmissionClient
+from media_agent.models import ManagedTorrent
 
 
 class InMemoryDownloader:
@@ -72,12 +72,12 @@ async def test_downloader_contract_add_list_pause_and_delete_semantics() -> None
     torrent_hash = await downloader.add_url(
         "https://tracker.example/download.php?id=1",
         category="seed",
-        tags=["seed-agent", "seed"],
+        tags=["media-agent", "seed"],
         paused=False,
     )
 
     assert torrent_hash == "hash-1"
-    torrents = await downloader.list_torrents(category="seed", tags={"seed-agent"})
+    torrents = await downloader.list_torrents(category="seed", tags={"media-agent"})
     assert [torrent.hash for torrent in torrents] == ["hash-1"]
     assert torrents[0].state == "downloading"
 

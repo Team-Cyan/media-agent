@@ -4,8 +4,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seed_agent.models import Discount, IntentState, ReleaseCandidate
-from seed_agent.state import StateStore
+from media_agent.models import Discount, IntentState, ReleaseCandidate
+from media_agent.state import StateStore
 
 
 def _write_config(tmp_path: Path, *, discovery_extra: str = "") -> Path:
@@ -48,7 +48,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -121,7 +121,7 @@ def test_intent_run_once_ingests_searches_ranks_and_dry_run_enqueues(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -165,7 +165,7 @@ def test_intent_run_once_ingests_searches_ranks_and_dry_run_enqueues(
 
 
 def test_intent_run_once_with_missing_inbox_is_noop(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -187,9 +187,9 @@ def test_intent_run_once_ingests_configured_douban_source(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import IntentSource
-    from seed_agent.sources.base import SourceIntentEvent
+    from media_agent import cli
+    from media_agent.models import IntentSource
+    from media_agent.sources.base import SourceIntentEvent
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -233,10 +233,10 @@ def test_intent_run_once_ingests_configured_douban_source(
 
 
 def test_configured_douban_user_source_uses_interest_rss(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
-    from seed_agent.config import load_config
-    from seed_agent.models import IntentSource
-    from seed_agent.sources.base import SourceIntentEvent
+    from media_agent import cli
+    from media_agent.config import load_config
+    from media_agent.models import IntentSource
+    from media_agent.sources.base import SourceIntentEvent
 
     config_path = _write_config(tmp_path)
     content = config_path.read_text(encoding="utf-8").replace(
@@ -267,8 +267,8 @@ def test_intent_run_once_ingests_configured_letterboxd_source(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import IntentSource
+    from media_agent import cli
+    from media_agent.models import IntentSource
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -318,8 +318,8 @@ def test_intent_run_once_dry_run_reports_runtime_activity_when_qb_visible(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -337,7 +337,7 @@ def test_intent_run_once_dry_run_reports_runtime_activity_when_qb_visible(
                     hash="seed-active",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="downloading",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=1 * 1024**3,
@@ -371,8 +371,8 @@ def test_intent_run_once_dry_run_reports_pause_reasons_when_runtime_gate_exceede
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -390,7 +390,7 @@ def test_intent_run_once_dry_run_reports_pause_reasons_when_runtime_gate_exceede
                     hash="seed-active",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="downloading",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=1 * 1024**3,

@@ -4,7 +4,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 
-from seed_agent.media_import.metadata import (
+from media_agent.media_import.metadata import (
     Tmdb,
     ancillary_identity,
     identity_hints,

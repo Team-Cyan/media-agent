@@ -22,7 +22,7 @@ These projects are references, not implementation templates. Use them to borrow 
   - tracker-specific feed handling,
   - rule-oriented PT workflows.
 - Do not copy:
-  - large plugin abstractions that would overcomplicate `seed-agent`.
+  - large plugin abstractions that would overcomplicate `media-agent`.
 
 ### `PT-Plugin-Plus`
 
@@ -113,7 +113,7 @@ These projects are references, not implementation templates. Use them to borrow 
   - client-agnostic action wiring,
   - explainable rule matching for automated acquisition.
 - Do not copy:
-  - full announce-driven product scope before `seed-agent` provider contracts
+  - full announce-driven product scope before `media-agent` provider contracts
     remain stable under current scheduler/Web flows.
 
 ### `Prowlarr`
@@ -167,7 +167,7 @@ See `docs/plans/2026-10-22-media-import-integration.md` for adoption scope.
   Consult `src/NzbDrone.Core.Test/OrganizerTests/FileNameBuilderTests/` for
   multi-episode, absolute-number, invalid-character, and same-title cases.
 - Adapt to this user's `Season NN` layout. Do not adopt `HardLinkOrCopy` fallback:
-  seed-agent must report EXDEV instead of silently consuming another full copy.
+  media-agent must report EXDEV instead of silently consuming another full copy.
 
 ### `Bazarr` (new)
 
@@ -221,7 +221,7 @@ particular user's enabled providers or working external credentials.
 | Subliminal | `src/subliminal/providers/`: OpenSubtitles.com, legacy OpenSubtitles.org adapter, Podnapisi, Addic7ed, Gestdown, TVsubtitles and others. Legacy adapter presence is not a recommendation or proof of service availability. |
 | MoviePilot | Current inspected `app/modules/subtitle/__init__.py` extracts subtitle links from configured site detail pages; search chains use configured site subtitle capabilities. Plugins may add sources; do not infer all plugins are built in or enabled. |
 | Sonarr | `Extras/Subtitles/` handles existing sidecar import/organization; it is a naming/import reference, not the automatic online subtitle provider implementation selected here. |
-| seed-agent local implementation (updated 2026-11-06) | OpenSubtitles.com via Subliminal, original ASSRT/SubDL API adapters, and opt-in experimental Zimuku HTTP adapter. Local real-payload checks passed for the three APIs; Zimuku search remains challenged and its diagnostic RAR download is not normal publication acceptance. |
+| media-agent local implementation (updated 2026-11-06) | OpenSubtitles.com via Subliminal, original ASSRT/SubDL API adapters, and opt-in experimental Zimuku HTTP adapter. Local real-payload checks passed for the three APIs; Zimuku search remains challenged and its diagnostic RAR download is not normal publication acceptance. |
 
 The selected integration is the modern `.com` REST API, not legacy `.org` XML-RPC.
 Metadata provider TMDB and subtitle providers have independent credentials/lifecycles.

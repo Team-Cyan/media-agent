@@ -6,13 +6,18 @@ Expose the operator-facing command surface and safe summaries.
 
 ## Primary Files
 
-- `src/seed_agent/cli.py`
+- `src/media_agent/cli.py`
 - `tests/test_cli.py`
 - `tests/test_cli_bootstrap.py`
 
 ## Current Responsibilities
 
 - command registration,
+- default `app` supervisor for scheduler, optional Web and configured media worker;
+  child exit fails the container, shutdown reaches owned groups, and
+  `app-healthcheck` combines enabled role and Web evidence. Existing explicit
+  commands, seed-agent prefix, SEED_AGENT variables and token headers remain
+  compatible; media-only roles cannot gain scheduler authority through app,
 - config loading,
 - dry-run defaults,
 - safe JSON summaries,
@@ -210,12 +215,12 @@ Expose the operator-facing command surface and safe summaries.
 
 - `uv run pytest -q tests/test_cli.py tests/test_cli_bootstrap.py tests/test_run_once.py`
 - `uv run pytest -q tests/test_downloader_contracts.py tests/test_search_contracts.py`
-- `uv run seed-agent --help`
-- `uv run seed-agent schedule-run --help`
-- `uv run seed-agent healthcheck --help`
-- `uv run seed-agent web --help`
-- `uv run seed-agent intent-run-once --config <config>`
-- `uv run seed-agent tracker-source-backfill --config <config> --category seed --limit 1 --max-api-requests 2`
+- `uv run media-agent --help`
+- `uv run media-agent schedule-run --help`
+- `uv run media-agent healthcheck --help`
+- `uv run media-agent web --help`
+- `uv run media-agent intent-run-once --config <config>`
+- `uv run media-agent tracker-source-backfill --config <config> --category seed --limit 1 --max-api-requests 2`
 
 
 ## Read-only media duration and targeted subtitle discovery

@@ -9,7 +9,7 @@ from test_web_settings import _running_server, _write_minimal_config
 
 def test_static_handler_delivers_current_r4_r5_asset_without_stale_cache(tmp_path):
     config = _write_minimal_config(tmp_path)
-    source = Path(__file__).resolve().parents[1] / "src/seed_agent/web/static/app.js"
+    source = Path(__file__).resolve().parents[1] / "src/media_agent/web/static/app.js"
     with _running_server(config) as host:
         connection = HTTPConnection(host)
         connection.request("GET", "/static/app.js")

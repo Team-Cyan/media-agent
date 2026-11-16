@@ -1,11 +1,11 @@
 from test_media_import import media as media
 
-from seed_agent.media_import.subtitles.assrt import Assrt
-from seed_agent.media_import.subtitles.subdl import Subdl
+from media_agent.media_import.subtitles.assrt import Assrt
+from media_agent.media_import.subtitles.subdl import Subdl
 
 
 def test_assrt_two_character_han_title_requires_identical_technical_release():
-    from seed_agent.media_import.subtitles.assrt import source_release_bound
+    from media_agent.media_import.subtitles.assrt import source_release_bound
 
     release = "夜王.156分未删减.导演剪辑版.2026.1080p.ViuTV.WEB-DL.H.264.AAC2.0-HamiltonShare.mkv"
     mapping = dict(
@@ -142,7 +142,7 @@ def test_assrt_actual_minute_quota_and_full_release_binding():
 
 
 def test_assrt_live_empty_collection_shape():
-    from seed_agent.media_import.subtitles.assrt import subtitles
+    from media_agent.media_import.subtitles.assrt import subtitles
 
     assert subtitles({"sub": {"subs": {}}}) == []
 
@@ -166,7 +166,7 @@ def test_subdl_english_only_search_does_not_request_chinese():
 def test_subdl_search_quota_zero_does_not_contact_search(monkeypatch):
     import pytest
 
-    from seed_agent.media_import.subtitles.provider import ProviderError
+    from media_agent.media_import.subtitles.provider import ProviderError
 
     provider = Subdl({"api_key": "fixture"})
     provider.checked = float("inf")
@@ -184,7 +184,7 @@ def test_subdl_search_quota_zero_does_not_contact_search(monkeypatch):
 def test_cached_provider_locator_restoration_never_persists_signed_urls():
     import pytest
 
-    from seed_agent.media_import.subtitles.provider import Candidate, ProviderError
+    from media_agent.media_import.subtitles.provider import Candidate, ProviderError
 
     provider = Subdl({"api_key": "fixture"})
     candidate = Candidate(id="123.zip", language="zh", cache_downloadable=True)
@@ -209,8 +209,8 @@ def test_subdl_pre_payload_budget_failure_never_becomes_a_download_observation(m
 
     import pytest
 
-    from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-    from seed_agent.media_import.subtitles.provider import Candidate, ProviderError
+    from media_agent.media_import.subtitles.jobs import SubtitleJobs
+    from media_agent.media_import.subtitles.provider import Candidate, ProviderError
 
     provider = Subdl({"api_key": "fixture"})
     jobs = SubtitleJobs(media[0], provider)

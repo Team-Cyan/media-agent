@@ -4,10 +4,10 @@ import pytest
 import yaml
 from test_media_runtime import media_config
 
-from seed_agent.config_views import load_view
-from seed_agent.media_import.role_health import MediaWorkerLifecycle, media_role_status
-from seed_agent.media_import.runtime import media_state_path
-from seed_agent.media_import.store import MediaStore
+from media_agent.config_views import load_view
+from media_agent.media_import.role_health import MediaWorkerLifecycle, media_role_status
+from media_agent.media_import.runtime import media_state_path
+from media_agent.media_import.store import MediaStore
 
 
 @pytest.fixture

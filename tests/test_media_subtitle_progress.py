@@ -3,8 +3,8 @@ import json
 from test_media_import import media as media
 from test_media_subtitles import FakeProvider, import_three
 
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-from seed_agent.media_import.subtitles.progress import subtitle_progress
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.subtitles.progress import subtitle_progress
 
 
 def test_all_sources_independent_of_snapshot_page_and_embedded_coverage(media):

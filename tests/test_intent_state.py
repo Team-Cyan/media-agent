@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.models import (
+from media_agent.models import (
     Discount,
     IntentKind,
     IntentSource,
@@ -14,7 +14,7 @@ from seed_agent.models import (
     ReleaseCandidate,
     ResourceIntent,
 )
-from seed_agent.state import StateStore
+from media_agent.state import StateStore
 
 
 def _intent(**overrides: object) -> ResourceIntent:
@@ -484,7 +484,7 @@ def test_state_store_merge_uses_selected_release_from_terminal_state_winner(
 
 
 def test_state_store_clears_stale_paused_runtime_when_torrent_is_active(tmp_path: Path) -> None:
-    from seed_agent.models import ManagedTorrent
+    from media_agent.models import ManagedTorrent
 
     store = StateStore(tmp_path / "state.sqlite3")
     store.mark_torrent_paused("abcd1234", datetime(2026, 4, 1, tzinfo=UTC))
@@ -492,7 +492,7 @@ def test_state_store_clears_stale_paused_runtime_when_torrent_is_active(tmp_path
         hash="abcd1234",
         name="Demo Torrent",
         category="pt-auto",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="uploading",
         size_bytes=10 * 1024**3,
         uploaded_bytes=1,

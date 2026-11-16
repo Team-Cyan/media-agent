@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This guide explains the current `seed-agent` runtime configuration. Use
+This guide explains the current `media-agent` runtime configuration. Use
 `config/example.yaml` as the complete starting file and
 `docs/operations/config-and-state-fields.md` as the exhaustive field inventory.
 
@@ -207,10 +207,10 @@ SQLite column.
 Use this sequence after editing configuration:
 
 ```bash
-seed-agent config-status --config config/config.yaml
-seed-agent strategy-report --config config/config.yaml
-seed-agent headroom-report --config config/config.yaml
-seed-agent run-once --config config/config.yaml
+media-agent config-status --config config/config.yaml
+media-agent strategy-report --config config/config.yaml
+media-agent headroom-report --config config/config.yaml
+media-agent run-once --config config/config.yaml
 ```
 
 Only add `--execute` after reviewing accepted candidates, refreshed ratio and

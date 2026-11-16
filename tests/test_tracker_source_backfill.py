@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from seed_agent.cli import (
+from media_agent.cli import (
     _backfill_title_key,
     _configured_site_for_inferred_tracker,
     _infer_tracker_site,
@@ -11,8 +11,8 @@ from seed_agent.cli import (
     _tracker_source_backfill_summary,
     _tracker_source_backfill_unresolved_risk_hashes,
 )
-from seed_agent.config import SiteConfig
-from seed_agent.models import Discount, ManagedTorrent, TorrentCandidate
+from media_agent.config import SiteConfig
+from media_agent.models import Discount, ManagedTorrent, TorrentCandidate
 
 
 def _torrent(

@@ -4,9 +4,9 @@ from contextlib import contextmanager
 import pytest
 from test_media_runtime import media_config
 
-from seed_agent.media_import import commands
-from seed_agent.media_import.runtime import build_engine
-from seed_agent.media_import.worker import process_one
+from media_agent.media_import import commands
+from media_agent.media_import.runtime import build_engine
+from media_agent.media_import.worker import process_one
 
 
 @pytest.fixture

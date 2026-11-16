@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: seed-agent
+  name: media-agent
 spec:
   schedule: "*/30 * * * *"
   concurrencyPolicy: Forbid
@@ -13,8 +13,8 @@ spec:
         spec:
           restartPolicy: Never
           containers:
-            - name: seed-agent
-              image: ghcr.io/team-cyan/seed-agent:latest
+            - name: media-agent
+              image: ghcr.io/team-cyan/media-agent:latest
               imagePullPolicy: IfNotPresent
               args:
                 - run-once
@@ -31,4 +31,4 @@ spec:
           volumes:
             - name: config
               secret:
-                secretName: seed-agent-config
+                secretName: media-agent-config

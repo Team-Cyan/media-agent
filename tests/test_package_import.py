@@ -1,11 +1,11 @@
 import tomllib
 from pathlib import Path
 
-from seed_agent import __version__
+from media_agent import __version__
 
 
 def test_package_imports() -> None:
-    assert __version__ == "1.0.1"
+    assert __version__ == "1.1.0"
 
 
 def test_release_version_sources_match() -> None:

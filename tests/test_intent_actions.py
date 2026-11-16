@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.actions.intent import (
+from media_agent.actions.intent import (
     add_intent,
     enqueue_intent,
     ingest_events,
@@ -14,8 +14,8 @@ from seed_agent.actions.intent import (
     search_intent,
     search_intents_batch,
 )
-from seed_agent.config import CategoryPolicyConfig, IntentConfig, SearchConfig
-from seed_agent.models import (
+from media_agent.config import CategoryPolicyConfig, IntentConfig, SearchConfig
+from media_agent.models import (
     Discount,
     IntentKind,
     IntentSource,
@@ -24,8 +24,8 @@ from seed_agent.models import (
     ReleaseCandidate,
     ResourceIntent,
 )
-from seed_agent.sources.base import SourceIntentEvent
-from seed_agent.state import StateStore
+from media_agent.sources.base import SourceIntentEvent
+from media_agent.state import StateStore
 
 REQUESTED_AT = datetime(2026, 4, 22, tzinfo=UTC)
 
@@ -81,7 +81,7 @@ def _policy() -> CategoryPolicyConfig:
         budget_pool="downloads",
         delete_enabled=True,
         over_budget_behavior="add_paused",
-        tags=["seed-agent"],
+        tags=["media-agent"],
     )
 
 

@@ -122,19 +122,19 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: reject
-      tags: [seed-agent, seed]
+      tags: [media-agent, seed]
     - name: movie
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: reject
-      tags: [seed-agent, movie]
+      tags: [media-agent, movie]
     - name: tv
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: reject
-      tags: [seed-agent, tv]
+      tags: [media-agent, tv]
   budget_pools:
     # Example-only values. Set real pool limits in local runtime YAML/Web UI.
     - name: downloads

@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from seed_agent.config import SeedAgentConfig, load_config
+from media_agent.config import SeedAgentConfig, load_config
 
 
 def _valid_config_data(secret_ref: str) -> dict[str, object]:
@@ -47,7 +47,7 @@ def _valid_config_data(secret_ref: str) -> dict[str, object]:
                     "budget_pool": "downloads",
                     "delete_enabled": True,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "seed"],
+                    "tags": ["media-agent", "seed"],
                 }
             ],
             "budget_pools": [
@@ -227,7 +227,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10

@@ -2,7 +2,7 @@
 
 ## Ownership And Entry Points
 
-`src/seed_agent/media_import/` owns directory-authoritative library synchronization.
+`src/media_agent/media_import/` owns directory-authoritative library synchronization.
 It shares Web, CLI and the image with acquisition. MediaStore owns a separate SQLite
 database; seed initialization never installs media tables or takes media locks. Media
 connections never open and close extra database or SHM descriptors, which would

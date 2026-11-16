@@ -1,6 +1,6 @@
 # Docker Image Publishing
 
-This document explains how `seed-agent` images should be built and published for
+This document explains how `media-agent` images should be built and published for
 Docker-first deployments.
 
 ## Publishing Model
@@ -26,7 +26,7 @@ The repository is compatible with:
 ## Build Locally
 
 ```bash
-docker build -t seed-agent:local .
+docker build -t media-agent:local .
 ```
 
 The Dockerfile starts from the shared Python 3.14 + uv base image:
@@ -43,15 +43,15 @@ shared base for local infrastructure.
 Docker Hub example:
 
 ```bash
-docker tag seed-agent:local your-dockerhub-user/seed-agent:latest
-docker tag seed-agent:local your-dockerhub-user/seed-agent:0.1.3
+docker tag media-agent:local your-dockerhub-user/media-agent:latest
+docker tag media-agent:local your-dockerhub-user/media-agent:0.1.3
 ```
 
 GHCR example:
 
 ```bash
-docker tag seed-agent:local ghcr.io/team-cyan/seed-agent:latest
-docker tag seed-agent:local ghcr.io/team-cyan/seed-agent:0.1.3
+docker tag media-agent:local ghcr.io/team-cyan/media-agent:latest
+docker tag media-agent:local ghcr.io/team-cyan/media-agent:0.1.3
 ```
 
 ## Push
@@ -59,15 +59,15 @@ docker tag seed-agent:local ghcr.io/team-cyan/seed-agent:0.1.3
 Docker Hub:
 
 ```bash
-docker push your-dockerhub-user/seed-agent:latest
-docker push your-dockerhub-user/seed-agent:0.1.3
+docker push your-dockerhub-user/media-agent:latest
+docker push your-dockerhub-user/media-agent:0.1.3
 ```
 
 GHCR:
 
 ```bash
-docker push ghcr.io/team-cyan/seed-agent:latest
-docker push ghcr.io/team-cyan/seed-agent:0.1.3
+docker push ghcr.io/team-cyan/media-agent:latest
+docker push ghcr.io/team-cyan/media-agent:0.1.3
 ```
 
 ## GitHub-Native Publishing
@@ -77,15 +77,15 @@ This repository now includes `.github/workflows/docker-publish.yml`.
 After the repository CI workflow succeeds for the current `main` commit, the
 Docker workflow publishes a multi-arch image to:
 
-- `ghcr.io/team-cyan/seed-agent:latest`
-- `ghcr.io/team-cyan/seed-agent:main`
-- `ghcr.io/team-cyan/seed-agent:sha-<commit>`
+- `ghcr.io/team-cyan/media-agent:latest`
+- `ghcr.io/team-cyan/media-agent:main`
+- `ghcr.io/team-cyan/media-agent:sha-<commit>`
 
 On version tags such as `v0.1.3`, the same workflow also publishes:
 
-- `ghcr.io/team-cyan/seed-agent:v0.1.3`
-- `ghcr.io/team-cyan/seed-agent:0.1.3`
-- `ghcr.io/team-cyan/seed-agent:0.1`
+- `ghcr.io/team-cyan/media-agent:v0.1.3`
+- `ghcr.io/team-cyan/media-agent:0.1.3`
+- `ghcr.io/team-cyan/media-agent:0.1`
 
 The tag workflow checks that the git tag matches the repository `VERSION` file
 before publishing.
@@ -102,7 +102,7 @@ and only the tag release workflow requests `contents: write`. CI cancels an
 older in-progress run when a newer commit arrives on the same branch, and every
 job has an explicit timeout.
 
-This is the path that lets Unraid treat `seed-agent` like a normal third-party
+This is the path that lets Unraid treat `media-agent` like a normal third-party
 container with remote update checks.
 
 ## Compose Template Strategy
@@ -113,12 +113,12 @@ Recommended pattern:
 
 - default to a published image for normal users,
 - optionally include `build: ..` for local source deployments,
-- allow image override through `deploy/seed-agent.env` or direct Compose edits.
+- allow image override through `deploy/media-agent.env` or direct Compose edits.
 
 The repository already includes:
 
 - `deploy/docker-compose.example.yml`
-- `deploy/seed-agent.env.example`
+- `deploy/media-agent.env.example`
 
 ## What Must Stay Mounted
 
@@ -137,11 +137,11 @@ Before publishing:
 
 1. `uv run pytest -q`
 2. `uv run ruff check .`
-3. `docker build -t seed-agent:local .`
-4. `docker compose --env-file deploy/seed-agent.env.example -f deploy/docker-compose.example.yml config`
+3. `docker build -t media-agent:local .`
+4. `docker compose --env-file deploy/media-agent.env.example -f deploy/docker-compose.example.yml config`
 5. confirm README and Compose docs match current env vars and volume layout
 6. confirm example config does not contain secrets
-7. confirm `VERSION`, `pyproject.toml`, and `src/seed_agent/__init__.py` match
+7. confirm `VERSION`, `pyproject.toml`, and `src/media_agent/__init__.py` match
 
 ## Current Gaps
 

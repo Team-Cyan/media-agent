@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from seed_agent.media_import.store import MediaStore
-from seed_agent.media_import.subtitles.provider import ProviderError
-from seed_agent.media_import.subtitles.quota import DownloadBudget, quota_evidence
+from media_agent.media_import.store import MediaStore
+from media_agent.media_import.subtitles.provider import ProviderError
+from media_agent.media_import.subtitles.quota import DownloadBudget, quota_evidence
 
 
 def test_provider_reset_uses_utc_or_duration_never_local_midnight():
@@ -56,7 +56,7 @@ def test_response_lost_reservation_is_shared_and_durable(tmp_path):
 
 
 def test_restore_cannot_refund_downloads_after_snapshot(tmp_path):
-    from seed_agent.media_import.maintenance import backup_media_database, restore_media_database
+    from media_agent.media_import.maintenance import backup_media_database, restore_media_database
 
     store = MediaStore(tmp_path / "media.db")
     backup = tmp_path / "before-download.db"

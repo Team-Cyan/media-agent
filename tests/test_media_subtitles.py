@@ -7,9 +7,9 @@ import pytest
 from test_media_import import import_three as base_import_three
 from test_media_import import media as media
 
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-from seed_agent.media_import.subtitles.provider import Candidate, ProviderError
-from seed_agent.media_import.subtitles.validation import validate
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.subtitles.provider import Candidate, ProviderError
+from media_agent.media_import.subtitles.validation import validate
 
 
 def import_three(media):
@@ -173,8 +173,8 @@ def test_local_subtitle_and_artwork_are_owned_and_reconciled(media):
 
 
 def test_actual_opensubtitles_adapter_script_country_roundtrip_and_hash(tmp_path, monkeypatch):
-    from seed_agent.media_import.filesystem import fingerprint
-    from seed_agent.media_import.subtitles.provider import OpenSubtitles, movie_hash
+    from media_agent.media_import.filesystem import fingerprint
+    from media_agent.media_import.subtitles.provider import OpenSubtitles, movie_hash
 
     provider = OpenSubtitles({"api_key": "fixture", "username": "fixture", "password": "fixture"})
     path = tmp_path / "video.mkv"
@@ -304,7 +304,7 @@ def test_profile_filter_does_not_publish_other_profile_sidecars(media):
 def test_real_adapter_paces_every_search_request_and_retry_after(monkeypatch):
     import requests
 
-    from seed_agent.media_import.subtitles.provider import OpenSubtitles
+    from media_agent.media_import.subtitles.provider import OpenSubtitles
 
     events = []
     provider = OpenSubtitles({"api_key": "fixture"})
@@ -423,7 +423,7 @@ def test_forced_subtitle_without_release_match_still_requires_confirmation(media
 
 
 def test_restore_fences_inflight_network_response(media):
-    from seed_agent.media_import.maintenance import backup_media_database, restore_media_database
+    from media_agent.media_import.maintenance import backup_media_database, restore_media_database
 
     import_three(media)
     engine, _, target, _ = media
@@ -446,7 +446,7 @@ def test_restore_fences_inflight_network_response(media):
     assert not list(target.rglob("*.srt"))
     assert all(j["claim_token"] is None for j in engine.snapshot()["subtitles"])
     provider.late = None
-    from seed_agent.media_import.engine import Engine
+    from media_agent.media_import.engine import Engine
 
     restarted = Engine(
         engine.store, engine.config, metadata=engine.metadata, media_probe=engine.probe
@@ -459,7 +459,7 @@ def test_api_key_only_download_never_requires_login(monkeypatch):
     import requests
     import respx
 
-    from seed_agent.media_import.subtitles.provider import OpenSubtitles
+    from media_agent.media_import.subtitles.provider import OpenSubtitles
 
     provider = OpenSubtitles({"api_key": "fixture-key"})
 
@@ -492,7 +492,7 @@ def test_api_redirect_is_bounded_and_never_forwards_credentials_to_other_host(
 ):
     import requests
 
-    from seed_agent.media_import.subtitles.provider import OpenSubtitles
+    from media_agent.media_import.subtitles.provider import OpenSubtitles
 
     provider = OpenSubtitles({"api_key": "fixture-key"})
     events = []
@@ -526,7 +526,7 @@ def test_api_redirect_is_bounded_and_never_forwards_credentials_to_other_host(
 def test_anonymous_quota_is_not_misreported_as_missing_credentials(monkeypatch):
     import requests
 
-    from seed_agent.media_import.subtitles.provider import OpenSubtitles
+    from media_agent.media_import.subtitles.provider import OpenSubtitles
 
     provider = OpenSubtitles({"api_key": "fixture-key"})
 
@@ -547,8 +547,8 @@ def test_anonymous_quota_is_not_misreported_as_missing_credentials(monkeypatch):
 def test_revoked_policy_during_provider_response_prevents_actual_publication(media, tmp_path):
     import yaml
 
-    from seed_agent.config import atomic_write_text
-    from seed_agent.config_views import MediaConfigGuard, load_view
+    from media_agent.config import atomic_write_text
+    from media_agent.config_views import MediaConfigGuard, load_view
 
     import_three(media)
     engine, _, target, _ = media
@@ -755,7 +755,7 @@ def test_duplicate_candidates_do_not_fill_independent_choice_cap(media):
     ],
 )
 def test_release_normalization_formats_only(release):
-    from seed_agent.media_import.subtitles.validation import normalized_release
+    from media_agent.media_import.subtitles.validation import normalized_release
 
     assert normalized_release(release) == normalized_release("Movie.2024.1080p.WEB-DL-GROUP.mkv")
 
@@ -772,7 +772,7 @@ def test_release_normalization_formats_only(release):
     ],
 )
 def test_release_normalization_preserves_version_tokens_and_extensionless_group(other):
-    from seed_agent.media_import.subtitles.validation import normalized_release
+    from media_agent.media_import.subtitles.validation import normalized_release
 
     assert normalized_release(other) != normalized_release("Movie.2024.1080p.WEB-DL-GROUP")
     assert normalized_release("Movie.2024.GROUP").endswith("group")
@@ -781,8 +781,8 @@ def test_release_normalization_preserves_version_tokens_and_extensionless_group(
 def test_opensubtitles_lost_link_response_stays_attempted_and_reserved(media, monkeypatch):
     import requests
 
-    from seed_agent.media_import.subtitles.provider import OpenSubtitles
-    from seed_agent.media_import.subtitles.quota import DownloadBudget
+    from media_agent.media_import.subtitles.provider import OpenSubtitles
+    from media_agent.media_import.subtitles.quota import DownloadBudget
 
     engine = media[0]
     provider = OpenSubtitles({"api_key": "fixture"})
@@ -1025,7 +1025,7 @@ def test_ass_events_can_be_grouped_out_of_time_order():
 def test_explicit_different_edition_cannot_enter_automatic_timing_path(release):
     from types import SimpleNamespace
 
-    from seed_agent.media_import.subtitles.validation import compatibility
+    from media_agent.media_import.subtitles.validation import compatibility
 
     candidate = Candidate(id="edition", language="zh-Hans", tmdb_id=1, release=release)
     score, reason = compatibility(

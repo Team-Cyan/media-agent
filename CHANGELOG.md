@@ -4,6 +4,25 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.1.0 - 2026-11-16
+
+### Added
+
+- Rename the product, Python package and image to media-agent; retain the
+  seed-agent CLI, seed_agent import identity, SEED_AGENT variables, existing
+  state/audit paths, metrics and token header for integrations and upgrades.
+- Supervise scheduler, Web and the configured media worker in one container.
+  Exit on child failure, forward shutdown signals and reap child processes;
+  health checks validate each enabled role and Web health.
+- Provide single-container Compose and DockerMan templates with bounded resources,
+  a common media mount and explicit upgrade/recovery guidance. Existing state
+  remains in place; no library rescan, schema migration or source deletion.
+
+### Fixed
+
+- Reject unified startup for media-only legacy deployments and preserve both
+  explicit CLI prefixes and shared legacy/canonical Python module identities.
+
 ## 1.0.1 - 2026-11-15
 
 ### Fixed
@@ -1470,7 +1489,7 @@ checks and are not implied by this release's local validation.
 
 ### Added
 
-- Added `seed-agent strategy-report`, a read-only tracker strategy report that
+- Added `media-agent strategy-report`, a read-only tracker strategy report that
   groups current candidates and linked qB outcomes by demand, size, score, and
   original enqueue evidence.
 - Added recommendation-only tracker strategy config examples for balanced,
@@ -1496,7 +1515,7 @@ checks and are not implied by this release's local validation.
 
 ### Added
 
-- Added `seed-agent runtime-status` plus startup runtime-status logging so
+- Added `media-agent runtime-status` plus startup runtime-status logging so
   Unraid and Compose installs can see the package version, config path,
   heartbeat path, state/audit paths, and credential-file visibility without
   opening application internals.
@@ -1521,7 +1540,7 @@ checks and are not implied by this release's local validation.
 
 ### Added
 
-- `seed-agent web` now exposes read-only state, budget pool, and heartbeat health
+- `media-agent web` now exposes read-only state, budget pool, and heartbeat health
   API endpoints for local operator visibility without opening Docker logs.
 - The local Web UI now opens on a read-only status overview that displays
   heartbeat health, candidate/intent state counts, and configured budget pools.
@@ -1563,7 +1582,7 @@ checks and are not implied by this release's local validation.
 
 ### Added
 
-- Local `seed-agent web` settings UI for tracker configuration, preserving the
+- Local `media-agent web` settings UI for tracker configuration, preserving the
   YAML reference versus local secret file boundary and exposing safe
   tracker-local validation, site probe, and dry-run preview actions.
 
@@ -1646,7 +1665,7 @@ checks and are not implied by this release's local validation.
 
 ### Changed
 
-- README and operations docs now treat `seed-agent` as a Docker-first self-hosted
+- README and operations docs now treat `media-agent` as a Docker-first self-hosted
   app, with Docker Compose installation as the primary user path instead of a
   contributor-first local Python workflow.
 - Repository AI docs now describe M-Team API discovery as a current capability while

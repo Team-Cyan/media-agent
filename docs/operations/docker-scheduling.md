@@ -5,7 +5,13 @@ strategy loop.
 
 ## Deployment Modes
 
-`seed-agent` supports two Docker-friendly modes:
+The default `app` mode supervises scheduler, optional Web and configured media
+worker together. `app-healthcheck` checks all enabled roles. Restart intentionally
+after enabling/disabling roles; media-only legacy deployments must use their
+explicit role command and must never run beside a unified app sharing state.
+
+Legacy explicit Docker-friendly modes remain supported:
+
 
 1. Long-running scheduler container
    - runs `schedule-run`
@@ -38,7 +44,7 @@ only for that transition. The entrypoint does not recursively change mounted
 ownership.
 
 On the reference Unraid deployment, qBittorrent and Plex use `PUID=1000` and
-`PGID=100`; the seed-agent DockerMan template uses the same values so mounted
+`PGID=100`; the media-agent DockerMan template uses the same values so mounted
 appdata remains writable without running the application as root.
 
 M-Team search, detail, and token requests share a per-process minimum request
@@ -104,7 +110,7 @@ If M-Team does not return a known remaining free window for a candidate,
 `--require-known-free-window` rejects that candidate during execute-mode runs.
 One important exception now exists: some M-Team API rows represent effectively
 permanent FREE torrents by returning `discount=FREE` with an explicit
-`discountEndTime=null`. `seed-agent` treats that shape as a known unlimited
+`discountEndTime=null`. `media-agent` treats that shape as a known unlimited
 free window, so those candidates remain eligible during execute-mode runs.
 If you pass these flags during dry-run, the CLI will also preview that same
 safety decision in the printed candidate output.
@@ -114,7 +120,7 @@ safety decision in the printed candidate output.
 Build locally:
 
 ```bash
-docker build -t seed-agent:local .
+docker build -t media-agent:local .
 ```
 
 The Dockerfile now installs application dependencies through `uv.lock`, so
@@ -135,7 +141,7 @@ docker run --rm \
   -e SEED_AGENT_MIN_FREE_WINDOW_MINUTES=180 \
   -e SEED_AGENT_REQUIRE_KNOWN_FREE_WINDOW=true \
   -e SEED_AGENT_HEARTBEAT_FILE=/state/schedule-heartbeat.json \
-  seed-agent:local
+  media-agent:local
 ```
 
 Single-run job example:
@@ -150,7 +156,7 @@ docker run --rm \
   -e SEED_AGENT_EXECUTE=true \
   -e SEED_AGENT_MIN_FREE_WINDOW_MINUTES=180 \
   -e SEED_AGENT_REQUIRE_KNOWN_FREE_WINDOW=true \
-  seed-agent:local
+  media-agent:local
 ```
 
 ## Environment Variables
@@ -181,7 +187,7 @@ For long-running scheduler containers:
 - expect the first scheduler cycle to take longer than a healthcheck probe when
   site discovery is slow, so give Compose or your supervisor a few minutes of
   `start_period`,
-- run `seed-agent healthcheck --config /app/config/config.yaml --heartbeat-file ...`
+- run `media-agent healthcheck --config /app/config/config.yaml --heartbeat-file ...`
   from Docker Compose, Kubernetes, or another supervisor; when the Web UI is
   enabled, add `--web-health-url http://127.0.0.1:8765/api/health` so the
   health check verifies the Web process and its SQLite read path too,
@@ -200,7 +206,7 @@ docker run --rm \
   -e SEED_AGENT_HEARTBEAT_FILE=/state/schedule-heartbeat.json \
   -e SEED_AGENT_MAX_STALENESS_MINUTES=90 \
   -e SEED_AGENT_PRUNE=true \
-  seed-agent:local
+  media-agent:local
 ```
 
 First-class examples live in:

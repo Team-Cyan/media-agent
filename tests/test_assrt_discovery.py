@@ -1,4 +1,4 @@
-from seed_agent.media_import.subtitles.assrt import Assrt, subtitles
+from media_agent.media_import.subtitles.assrt import Assrt, subtitles
 
 RELEASE = "夜王.2026.1080p.WEB-DL-GROUP.mkv"
 MAPPING = {
@@ -90,7 +90,7 @@ def test_detail_parser_retains_existing_five_item_limit():
 def test_nonempty_undocumented_rows_never_become_empty_corpus():
     import pytest
 
-    from seed_agent.media_import.subtitles.provider import ProviderError
+    from media_agent.media_import.subtitles.provider import ProviderError
 
     # A live response also contained internal fileid/m_* rows, without the
     # documented subtitle id. Do not reinterpret those as safe download IDs.

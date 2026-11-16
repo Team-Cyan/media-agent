@@ -4,9 +4,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seed_agent.actions.intent import add_intent
-from seed_agent.models import Discount, IntentState, RankedRelease, ReleaseCandidate
-from seed_agent.state import StateStore
+from media_agent.actions.intent import add_intent
+from media_agent.models import Discount, IntentState, RankedRelease, ReleaseCandidate
+from media_agent.state import StateStore
 
 
 def _write_config(
@@ -52,19 +52,19 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
     - name: movie
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "movie"]
+      tags: ["media-agent", "movie"]
     - name: tv
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "tv"]
+      tags: ["media-agent", "tv"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -165,7 +165,7 @@ def test_intent_enqueue_dry_run_does_not_touch_downloader_or_state(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -199,7 +199,7 @@ def test_intent_enqueue_dry_run_preserves_score_above_100(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -223,8 +223,8 @@ def test_intent_enqueue_dry_run_reports_runtime_activity_when_qb_visible(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)
@@ -240,7 +240,7 @@ def test_intent_enqueue_dry_run_reports_runtime_activity_when_qb_visible(
                     hash="abcd1234",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="uploading",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=10 * 1024**3,
@@ -270,8 +270,8 @@ def test_intent_enqueue_media_ignores_seed_active_download_gate(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path, discovery_extra="  max_active_downloads: 1\n")
@@ -287,7 +287,7 @@ def test_intent_enqueue_media_ignores_seed_active_download_gate(
                     hash="abcd1234",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="downloading",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=10 * 1024**3,
@@ -318,7 +318,7 @@ def test_intent_enqueue_execute_can_select_release_id_and_updates_state(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -350,7 +350,7 @@ def test_intent_enqueue_execute_can_select_release_id_and_updates_state(
         (
             ranked.release.download_url,
             "movie",
-            ["seed-agent", "movie"],
+            ["media-agent", "movie"],
         )
     ]
     row = store.get_intent(intent.intent_id)
@@ -365,7 +365,7 @@ def test_intent_enqueue_execute_is_idempotent_across_repeated_requests(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -398,7 +398,7 @@ def test_intent_enqueue_projects_capacity_in_selected_media_pool(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -436,7 +436,7 @@ def test_intent_enqueue_projects_capacity_in_selected_media_pool(
 
 
 def test_intent_enqueue_rejects_unknown_release_id(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)
@@ -464,7 +464,7 @@ def test_intent_enqueue_routes_movie_intent_to_movie_category(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -489,7 +489,7 @@ def test_intent_enqueue_routes_movie_intent_to_movie_category(
         (
             ranked.release.download_url,
             "movie",
-            ["seed-agent", "movie"],
+            ["media-agent", "movie"],
         )
     ]
 
@@ -498,7 +498,7 @@ def test_intent_enqueue_routes_show_intent_to_tv_category(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -519,7 +519,7 @@ def test_intent_enqueue_routes_show_intent_to_tv_category(
         (
             ranked.release.download_url,
             "tv",
-            ["seed-agent", "tv"],
+            ["media-agent", "tv"],
         )
     ]
 
@@ -528,7 +528,7 @@ def test_intent_enqueue_uses_downloader_media_category_map_for_anime(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -559,7 +559,7 @@ def test_intent_enqueue_uses_downloader_media_category_map_for_anime(
         (
             ranked.release.download_url,
             "movie",
-            ["seed-agent", "movie"],
+            ["media-agent", "movie"],
         )
     ]
 
@@ -568,7 +568,7 @@ def test_intent_enqueue_execute_resolves_mteam_deferred_download_url(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -633,7 +633,7 @@ tracker_sites:
         (
             "https://dl.m-team.example/26799731?passkey=secret",
             "movie",
-            ["seed-agent", "movie"],
+            ["media-agent", "movie"],
         )
     ]
     rows = store.list_release_candidates(intent.intent_id)
@@ -646,7 +646,7 @@ def test_want_list_enqueue_allows_non_free_release_when_pt_flow_is_free_only(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     downloader = _DummyDownloader()
@@ -688,7 +688,7 @@ def test_intent_enqueue_requires_confirmation_for_ambiguous_release(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)

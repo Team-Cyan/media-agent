@@ -6,10 +6,10 @@ Convert human requests into search/rank/reject/enqueue workflows.
 
 ## Primary Files
 
-- `src/seed_agent/actions/intent.py`
-- `src/seed_agent/intent/parse.py`
-- `src/seed_agent/search/`
-- `src/seed_agent/sources/`
+- `src/media_agent/actions/intent.py`
+- `src/media_agent/intent/parse.py`
+- `src/media_agent/search/`
+- `src/media_agent/sources/`
 - `tests/test_intent_*`
 
 ## Current Responsibilities

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from seed_agent.config import DiscoveryConfig, ScoringConfig
-from seed_agent.models import Discount, TorrentCandidate
-from seed_agent.policies.scoring import score_candidate
+from media_agent.config import DiscoveryConfig, ScoringConfig
+from media_agent.models import Discount, TorrentCandidate
+from media_agent.policies.scoring import score_candidate
 
 
 def make_candidate(**overrides: object) -> TorrentCandidate:

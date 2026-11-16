@@ -5,14 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.media_import import extras
-from seed_agent.media_import import filesystem as fs
-from seed_agent.media_import.config import MediaImportConfig, Profile
-from seed_agent.media_import.engine import Engine
-from seed_agent.media_import.extra_migration import migrate_schema4
-from seed_agent.media_import.metadata import Mapping
-from seed_agent.media_import.schema import SCHEMA
-from seed_agent.media_import.store import CONTROL_SCHEMA, MediaStore
+from media_agent.media_import import extras
+from media_agent.media_import import filesystem as fs
+from media_agent.media_import.config import MediaImportConfig, Profile
+from media_agent.media_import.engine import Engine
+from media_agent.media_import.extra_migration import migrate_schema4
+from media_agent.media_import.metadata import Mapping
+from media_agent.media_import.schema import SCHEMA
+from media_agent.media_import.store import CONTROL_SCHEMA, MediaStore
 
 
 @pytest.fixture
@@ -333,7 +333,7 @@ def test_same_inode_manual_target_race_is_not_adopted(setup_extra, monkeypatch):
 
 @pytest.mark.parametrize("stage", ["pending", "temporary", "linked", "cleanup"])
 def test_recovery_after_recorded_database_stages(setup_extra, monkeypatch, stage):
-    from seed_agent.media_import import roots
+    from media_agent.media_import import roots
 
     engine, source, _, parent = setup_extra
     sid = add_source(engine, source, "extra.mkv")
@@ -500,7 +500,7 @@ def test_idle_yields_only_after_complete_inventory_commit(setup_extra):
 
 
 def test_variant_switch_preserves_sources_and_retires_only_owned_video(setup_extra):
-    from seed_agent.media_import import variants
+    from media_agent.media_import import variants
 
     engine, source, _, parent = setup_extra
     sid = add_source(engine, source, "variant.mkv")
@@ -550,7 +550,7 @@ def setup_variant(engine, source, parent):
 
 
 def test_variant_can_switch_back(setup_extra):
-    from seed_agent.media_import import variants
+    from media_agent.media_import import variants
 
     engine, source, _, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -574,7 +574,7 @@ def test_variant_can_switch_back(setup_extra):
     [("link", 1), ("link", 2), ("link", 3), ("unlink", 1), ("unlink", 2), ("unlink", 3)],
 )
 def test_variant_recovery_at_filesystem_boundaries(setup_extra, monkeypatch, kind, call):
-    from seed_agent.media_import import variants
+    from media_agent.media_import import variants
 
     engine, source, _, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -603,8 +603,8 @@ def test_variant_recovery_at_filesystem_boundaries(setup_extra, monkeypatch, kin
 
 
 def test_variant_fences_late_subtitle_and_retires_owned_sidecar(setup_extra):
-    from seed_agent.media_import import variants
-    from seed_agent.media_import.engine import encode
+    from media_agent.media_import import variants
+    from media_agent.media_import.engine import encode
 
     engine, source, _, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -649,7 +649,7 @@ def test_variant_fences_late_subtitle_and_retires_owned_sidecar(setup_extra):
 
 
 def test_variant_unknown_same_inode_target_and_stale_source_are_preserved(setup_extra):
-    from seed_agent.media_import import variants
+    from media_agent.media_import import variants
 
     engine, source, _, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -717,7 +717,7 @@ def test_backup_rejects_views_and_triggers_without_changing_current(tmp_path, ex
 
 
 def test_variant_confirmation_sets_only_selected_source_readiness(setup_extra):
-    from seed_agent.media_import import variants
+    from media_agent.media_import import variants
 
     engine, source, _, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -749,9 +749,9 @@ def test_variant_confirmation_sets_only_selected_source_readiness(setup_extra):
 
 
 def test_late_subtitle_and_poster_responses_are_rejected(setup_extra, monkeypatch):
-    from seed_agent.media_import import artwork, variants
-    from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-    from seed_agent.media_import.subtitles.provider import Candidate
+    from media_agent.media_import import artwork, variants
+    from media_agent.media_import.subtitles.jobs import SubtitleJobs
+    from media_agent.media_import.subtitles.provider import Candidate
 
     engine, source, _, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -811,7 +811,7 @@ def test_late_subtitle_and_poster_responses_are_rejected(setup_extra, monkeypatc
 
 @pytest.mark.parametrize("change", ["config", "epoch", "source", "root"])
 def test_variant_switch_rejects_stale_baselines(setup_extra, change):
-    from seed_agent.media_import import variants
+    from media_agent.media_import import variants
 
     engine, source, target, parent = setup_extra
     sid = setup_variant(engine, source, parent)
@@ -837,7 +837,7 @@ def test_variant_switch_rejects_stale_baselines(setup_extra, change):
 
 
 def test_completion_confirmation_without_mapping_or_provider(setup_extra, monkeypatch):
-    from seed_agent.media_import.completion import confirm
+    from media_agent.media_import.completion import confirm
 
     engine, source, _, _ = setup_extra
     engine.config.profiles[0].readiness = "manual"
@@ -863,7 +863,7 @@ def test_completion_confirmation_without_mapping_or_provider(setup_extra, monkey
 
 
 def test_completion_rejects_unstable_and_replaced_source(setup_extra):
-    from seed_agent.media_import.completion import confirm
+    from media_agent.media_import.completion import confirm
 
     engine, source, _, _ = setup_extra
     sid = add_source(engine, source, "unknown.mkv")
@@ -887,7 +887,7 @@ def test_completion_rejects_unstable_and_replaced_source(setup_extra):
 
 
 def test_completion_fact_not_inherited_by_new_generation(setup_extra, monkeypatch):
-    from seed_agent.media_import.completion import confirm
+    from media_agent.media_import.completion import confirm
 
     engine, source, _, _ = setup_extra
     engine.config.profiles[0].readiness = "manual"

@@ -46,26 +46,26 @@ jobs:
         run: uv run --with pip-audit pip-audit --strict --local
 
       - name: Validate Compose example
-        run: docker compose --env-file deploy/seed-agent.env.example -f deploy/docker-compose.example.yml config
+        run: docker compose --env-file deploy/media-agent.env.example -f deploy/docker-compose.example.yml config
 
       - name: Build Docker image
-        run: docker build --build-arg REVISION="${{ github.sha }}" -t seed-agent:ci .
+        run: docker build --build-arg REVISION="${{ github.sha }}" -t media-agent:ci .
 
       - name: Verify candidate image and descriptor hardlinks
         env:
           EXPECTED_REVISION: ${{ github.sha }}
         run: |
-          test "$(docker image inspect seed-agent:ci --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$EXPECTED_REVISION"
-          test "$(docker image inspect seed-agent:ci --format '{{index .Config.Labels "org.opencontainers.image.version"}}')" = "$(cat VERSION)"
-          docker image inspect seed-agent:ci --format 'image={{.Id}} os={{.Os}} architecture={{.Architecture}}'
-          docker run --rm -i --user 1000:100 --entrypoint python seed-agent:ci - <<'PYTHON'
+          test "$(docker image inspect media-agent:ci --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$EXPECTED_REVISION"
+          test "$(docker image inspect media-agent:ci --format '{{index .Config.Labels "org.opencontainers.image.version"}}')" = "$(cat VERSION)"
+          docker image inspect media-agent:ci --format 'image={{.Id}} os={{.Os}} architecture={{.Architecture}}'
+          docker run --rm -i --user 1000:100 --entrypoint python media-agent:ci - <<'PYTHON'
           import json
           import os
           import sys
           import tempfile
           from pathlib import Path
-          from seed_agent import __version__
-          from seed_agent.media_import import filesystem as fs
+          from media_agent import __version__
+          from media_agent.media_import import filesystem as fs
 
           assert sys.platform == "linux"
           assert (os.geteuid(), os.getegid()) == (1000, 100)
@@ -100,14 +100,14 @@ jobs:
 
       - name: Docker smoke healthcheck with example config
         run: |
-          state_dir="${RUNNER_TEMP}/seed-agent-state"
+          state_dir="${RUNNER_TEMP}/media-agent-state"
           mkdir -p "${state_dir}"
           docker run --rm \
             --entrypoint python \
             -v "${state_dir}:/app/.seed-agent" \
-            seed-agent:ci \
-            -c "from pathlib import Path; from seed_agent.state import StateStore; StateStore(Path('/app/.seed-agent/state.db'))"
+            media-agent:ci \
+            -c "from pathlib import Path; from media_agent.state import StateStore; StateStore(Path('/app/.seed-agent/state.db'))"
           docker run --rm \
             -v "${{ github.workspace }}/config:/app/config:ro" \
             -v "${state_dir}:/app/.seed-agent" \
-            seed-agent:ci healthcheck --config /app/config/example.yaml
+            media-agent:ci healthcheck --config /app/config/example.yaml

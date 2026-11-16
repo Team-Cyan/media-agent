@@ -10,9 +10,9 @@ from threading import Event, Thread
 
 import pytest
 
-from seed_agent.actions.intent import add_intent
-from seed_agent.models import LifecycleState, ManagedTorrent
-from seed_agent.state import StateStore
+from media_agent.actions.intent import add_intent
+from media_agent.models import LifecycleState, ManagedTorrent
+from media_agent.state import StateStore
 
 
 def test_state_store_forces_private_database_lock_and_wal_permissions(tmp_path: Path) -> None:
@@ -179,7 +179,7 @@ def test_candidate_state_cannot_regress_during_concurrent_upserts(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import state as state_module
+    from media_agent import state as state_module
 
     store = StateStore(tmp_path / "state.sqlite3")
     store.upsert_candidate(
@@ -493,7 +493,7 @@ def test_state_store_applies_recent_upload_snapshot_and_clears_stale_pause(
         hash="abcd1234",
         name="Demo Torrent",
         category="pt-auto",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="uploading",
         size_bytes=10 * 1024**3,
         uploaded_bytes=13 * 1024**3,
@@ -530,7 +530,7 @@ def test_state_store_tracks_no_upload_observation_start(tmp_path: Path) -> None:
         hash="abcd1234",
         name="Demo Torrent",
         category="pt-auto",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="stalledUP",
         size_bytes=10 * 1024**3,
         uploaded_bytes=10 * 1024**3,
@@ -558,7 +558,7 @@ def test_state_store_starts_zero_upload_observation_at_torrent_added_at(
         hash="zero-upload",
         name="Zero Upload",
         category="pt-auto",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="downloading",
         size_bytes=10 * 1024**3,
         uploaded_bytes=0,
@@ -591,7 +591,7 @@ def test_state_store_enriches_runtime_with_candidate_discount(tmp_path: Path) ->
         hash="paid-hash",
         name="Paid Torrent",
         category="pt-auto",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="downloading",
         size_bytes=10 * 1024**3,
         uploaded_bytes=0,
@@ -615,7 +615,7 @@ def test_state_store_stamps_first_seen_pause_timestamp_for_paused_torrent(
         hash="paused-first-seen",
         name="Paused Torrent",
         category="pt-auto",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="pausedUP",
         size_bytes=10 * 1024**3,
         uploaded_bytes=5 * 1024**3,
@@ -739,7 +739,7 @@ def test_state_store_clears_missing_marker_when_torrent_reappears(tmp_path: Path
         hash="gone-hash",
         name="Gone Torrent",
         category="seed",
-        tags={"seed-agent"},
+        tags={"media-agent"},
         state="uploading",
         size_bytes=10 * 1024**3,
         uploaded_bytes=1 * 1024**3,

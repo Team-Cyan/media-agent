@@ -9,15 +9,15 @@ RUN python /build/build_sqlite_io.py /build/sqlite_io_native.so
 
 FROM ${AGENT_PYTHON_UV_BASE}
 
-ARG VERSION=1.0.1
+ARG VERSION=1.1.0
 ARG REVISION=unknown
 ARG BUILD_DATE=unknown
 
-LABEL org.opencontainers.image.title="seed-agent" \
+LABEL org.opencontainers.image.title="media-agent" \
     org.opencontainers.image.description="Docker-first PT automation for NAS and homelab downloader operations" \
-    org.opencontainers.image.url="https://github.com/Team-Cyan/seed-agent" \
-    org.opencontainers.image.source="https://github.com/Team-Cyan/seed-agent" \
-    org.opencontainers.image.icon="https://raw.githubusercontent.com/Team-Cyan/seed-agent/main/docs/assets/icon.png" \
+    org.opencontainers.image.url="https://github.com/Team-Cyan/media-agent" \
+    org.opencontainers.image.source="https://github.com/Team-Cyan/media-agent" \
+    org.opencontainers.image.icon="https://raw.githubusercontent.com/Team-Cyan/media-agent/main/docs/assets/icon.png" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.revision="${REVISION}" \
     org.opencontainers.image.created="${BUILD_DATE}"
@@ -26,7 +26,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/usr/local \
-    HOME=/tmp/seed-agent
+    HOME=/tmp/media-agent
 
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libmediainfo0v5 \
     && rm -rf /var/lib/apt/lists/*
@@ -40,11 +40,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY src /app/src
 COPY docs/assets/icon.png /app/docs/assets/icon.png
 COPY docker /app/docker
-COPY --from=sqlite-io-build /build/sqlite_io_native.so /usr/local/lib/seed-agent/sqlite_io_native.so
+COPY --from=sqlite-io-build /build/sqlite_io_native.so /usr/local/lib/media-agent/sqlite_io_native.so
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable \
     && chmod +x /app/docker/entrypoint.sh
-RUN python -c 'import os, runpy, sys; os.setgid(100); os.setuid(1000); sys.argv = ["verify", "--library", "/usr/local/lib/seed-agent/sqlite_io_native.so"]; runpy.run_path("/app/docker/verify_sqlite_io_native.py", run_name="__main__")'
+RUN python -c 'import os, runpy, sys; os.setgid(100); os.setuid(1000); sys.argv = ["verify", "--library", "/usr/local/lib/media-agent/sqlite_io_native.so"]; runpy.run_path("/app/docker/verify_sqlite_io_native.py", run_name="__main__")'
 
 EXPOSE 8765
 

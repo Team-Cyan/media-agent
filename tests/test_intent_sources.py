@@ -5,9 +5,9 @@ from pathlib import Path
 import httpx
 import pytest
 
-from seed_agent.models import IntentSource
-from seed_agent.sources import telegram as telegram_source
-from seed_agent.sources.douban import (
+from media_agent.models import IntentSource
+from media_agent.sources import telegram as telegram_source
+from media_agent.sources.douban import (
     build_douban_interest_rss_url,
     build_douban_wish_url,
     enrich_douban_wanted_event,
@@ -17,15 +17,15 @@ from seed_agent.sources.douban import (
     parse_douban_wish_html,
     read_douban_wanted,
 )
-from seed_agent.sources.file_inbox import read_file_inbox
-from seed_agent.sources.imdb import parse_imdb_watchlist_csv, parse_imdb_watchlist_html
-from seed_agent.sources.letterboxd import parse_letterboxd_watchlist_csv
-from seed_agent.sources.telegram import (
+from media_agent.sources.file_inbox import read_file_inbox
+from media_agent.sources.imdb import parse_imdb_watchlist_csv, parse_imdb_watchlist_html
+from media_agent.sources.letterboxd import parse_letterboxd_watchlist_csv
+from media_agent.sources.telegram import (
     parse_telegram_update,
     poll_telegram_update_batch,
     poll_telegram_updates,
 )
-from seed_agent.sources.wechat_bridge import parse_wechat_bridge_event
+from media_agent.sources.wechat_bridge import parse_wechat_bridge_event
 
 
 def test_file_inbox_reads_jsonl_events_and_skips_invalid_lines(tmp_path: Path) -> None:

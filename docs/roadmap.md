@@ -30,12 +30,19 @@ Private corpus identities, counts and receipts belong in ignored runtime evidenc
 
 ## 1.0.1 Subtitle Correction
 
-Automatic top-five full-subtitle selection is prepared for release and controlled deployment: exact work/language candidates no longer require identical
+Automatic top-five full-subtitle selection was published in 1.0.1: exact work/language candidates no longer require identical
 release filenames; real cue timing and text checks gate automatic publication.
 Five is a hard automatic cap, with quotas, deduplication and existing identity
 fences retained. The immutable 1.0.0 release remains unchanged.
 
-## Candidate 1.1: Acceptance And Operations
+## 1.1 Single-Container Rename
+
+The product is now `media-agent`. One supervisor runs Web, scheduler and the
+configured media worker; legacy CLI/import names, environment keys, metrics and
+`.seed-agent` state paths remain compatible. Publication and controlled deployment
+verification are tracked separately in the versioned review.
+
+## Candidate Later 1.x: Acceptance And Operations
 
 - Broader fake-provider/downloader scheduler-cycle and Web preview integration
   coverage beyond the existing phase-order, run-ID and state-transaction tests.
@@ -47,7 +54,7 @@ fences retained. The immutable 1.0.0 release remains unchanged.
   focused mobile/accessibility improvements.
 - Read-only joined upload/headroom analysis before tuning retention or eviction.
 
-## Candidate 1.2: Provider And Media Robustness
+## Candidate Later 1.x: Provider And Media Robustness
 
 - Additional subtitle archive/format support, numbering/sync/retiming review and
   provider failure/quota handling after measured corpus evidence.
@@ -67,8 +74,8 @@ whole-library playback acceptance is promised by 1.0.
   authorization and deployment redesign; the current trusted-operator console
   does not promise this boundary.
 
-These are options, not selected implementation work. No product rename, cloud
-migration, dashboard-first rewrite or browser-login strategy is in this release.
+These are options, not selected implementation work. Cloud migration, a dashboard-first rewrite and browser-login strategy remain
+outside this release.
 
 ## References
 

@@ -10,7 +10,7 @@ FILES = (
     "VERSION",
     "Dockerfile",
     "pyproject.toml",
-    "src/seed_agent/__init__.py",
+    "src/media_agent/__init__.py",
     "uv.lock",
     "docs/operations/release-process.md",
     "tests/test_package_import.py",
@@ -35,7 +35,7 @@ def bump_version(root: Path, version: str) -> list[Path]:
             f'version = "{version}"',
             count=1,
         ),
-        "src/seed_agent/__init__.py": lambda text: _replace(
+        "src/media_agent/__init__.py": lambda text: _replace(
             text,
             r'__version__ = "\d+\.\d+\.\d+"',
             f'__version__ = "{version}"',
@@ -75,12 +75,12 @@ def _replace(text: str, pattern: str, replacement: str, *, count: int) -> str:
 
 
 def _replace_seed_agent_lock_version(text: str, version: str) -> str:
-    pattern = r'(\[\[package\]\]\nname = "seed-agent"\nversion = ")\d+\.\d+\.\d+(")'
+    pattern = r'(\[\[package\]\]\nname = "media-agent"\nversion = ")\d+\.\d+\.\d+(")'
     return _replace(text, pattern, rf"\g<1>{version}\2", count=1)
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Synchronize seed-agent version files.")
+    parser = argparse.ArgumentParser(description="Synchronize media-agent version files.")
     parser.add_argument("version")
     parser.add_argument("--root", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)

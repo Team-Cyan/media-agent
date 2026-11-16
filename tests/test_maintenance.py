@@ -7,16 +7,16 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.audit import AuditLogger
-from seed_agent.maintenance import (
+from media_agent.audit import AuditLogger
+from media_agent.maintenance import (
     archive_audit_jsonl,
     backup_sqlite_database,
     restore_sqlite_database,
     storage_health,
     verify_sqlite_database,
 )
-from seed_agent.models import Decision, LifecycleState
-from seed_agent.state import StateStore
+from media_agent.models import Decision, LifecycleState
+from media_agent.state import StateStore
 
 _LEGACY_CANDIDATES_SCHEMA = """
 CREATE TABLE candidates (

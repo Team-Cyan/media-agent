@@ -8,6 +8,7 @@
 __pycache__
 *.pyc
 .seed-agent
+.media-import
 .superpowers
 local
 state

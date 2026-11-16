@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.actions.intent import add_intent, search_intent
-from seed_agent.config import IntentConfig
-from seed_agent.models import Discount, ReleaseCandidate
-from seed_agent.state import StateStore
+from media_agent.actions.intent import add_intent, search_intent
+from media_agent.config import IntentConfig
+from media_agent.models import Discount, ReleaseCandidate
+from media_agent.state import StateStore
 
 
 def _release(**overrides: object) -> ReleaseCandidate:

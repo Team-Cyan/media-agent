@@ -23,19 +23,19 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: reject
-      tags: [seed-agent, seed]
+      tags: [media-agent, seed]
     - name: movie
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: reject
-      tags: [seed-agent, movie]
+      tags: [media-agent, movie]
     - name: tv
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: reject
-      tags: [seed-agent, tv]
+      tags: [media-agent, tv]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -67,9 +67,9 @@ automatically when space reclamation is actually needed. Add-only media
 categories remain protected from cleanup mutations.
 
 ```bash
-uv run seed-agent discover --config config/example.yaml
-uv run seed-agent score --config config/example.yaml
-uv run seed-agent run-once --config config/example.yaml
+uv run media-agent discover --config config/example.yaml
+uv run media-agent score --config config/example.yaml
+uv run media-agent run-once --config config/example.yaml
 ```
 
 Use the dry-run output to confirm:
@@ -85,15 +85,15 @@ Use the dry-run output to confirm:
 When the dry-run output looks right, rerun the same command with `--execute`:
 
 ```bash
-uv run seed-agent run-once --config config/example.yaml --execute
-uv run seed-agent schedule-run --config config/example.yaml --execute --interval-minutes 30
+uv run media-agent run-once --config config/example.yaml --execute
+uv run media-agent schedule-run --config config/example.yaml --execute --interval-minutes 30
 ```
 
 To combine the normal discovery/enqueue loop with managed torrent cleanup,
 add `--prune` to `run-once` or `schedule-run`:
 
 ```bash
-uv run seed-agent schedule-run --config config/example.yaml --execute \
+uv run media-agent schedule-run --config config/example.yaml --execute \
   --interval-minutes 30 \
   --prune
 ```
@@ -114,7 +114,7 @@ space.
 To ask an already-running scheduler to start one cycle immediately, use:
 
 ```bash
-uv run seed-agent schedule-trigger --config config/example.yaml
+uv run media-agent schedule-trigger --config config/example.yaml
 ```
 
 The request is accepted only while the lease owner is waiting. It never starts
@@ -123,7 +123,7 @@ cycle start. After a bounded tracker probe confirms a recorded backoff is stale,
 clear only the current backoff with:
 
 ```bash
-uv run seed-agent scheduler-backoff-clear --config config/example.yaml
+uv run media-agent scheduler-backoff-clear --config config/example.yaml
 ```
 
 This does not disable the M-Team request pacer or future automatic backoff.
@@ -131,7 +131,7 @@ This does not disable the M-Team request pacer or future automatic backoff.
 For unattended runs, prefer adding free-window safety flags:
 
 ```bash
-uv run seed-agent run-once --config config/example.yaml --execute \
+uv run media-agent run-once --config config/example.yaml --execute \
   --min-free-window-minutes 180 \
   --require-known-free-window
 ```

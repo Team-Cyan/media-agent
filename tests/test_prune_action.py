@@ -4,9 +4,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from seed_agent.config import CategoryPolicyConfig, CleanupConfig
-from seed_agent.models import ManagedTorrent
-from seed_agent.policies.category_policy import PoolUsage
+from media_agent.config import CategoryPolicyConfig, CleanupConfig
+from media_agent.models import ManagedTorrent
+from media_agent.policies.category_policy import PoolUsage
 
 
 def _cleanup() -> CleanupConfig:
@@ -26,7 +26,7 @@ def _torrent(**overrides: object) -> ManagedTorrent:
         "hash": "abcd1234",
         "name": "Demo Torrent",
         "category": "seed",
-        "tags": {"seed-agent", "seed"},
+        "tags": {"media-agent", "seed"},
         "state": "uploading",
         "size_bytes": 10 * 1024**3,
         "uploaded_bytes": 10 * 1024**3,
@@ -63,7 +63,7 @@ def _policy(**overrides: object) -> CategoryPolicyConfig:
         "budget_pool": "downloads",
         "delete_enabled": True,
         "over_budget_behavior": "add_paused",
-        "tags": ["seed-agent", "seed"],
+        "tags": ["media-agent", "seed"],
     }
     data.update(overrides)
     return CategoryPolicyConfig(**data)
@@ -114,7 +114,7 @@ class StatefulDownloader(DummyDownloader):
 
 @pytest.mark.asyncio
 async def test_dry_run_prune_does_not_call_downloader() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -134,7 +134,7 @@ async def test_dry_run_prune_does_not_call_downloader() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_prune_deletes_cold_incomplete_managed_torrent() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -159,7 +159,7 @@ async def test_execute_prune_deletes_cold_incomplete_managed_torrent() -> None:
 
 @pytest.mark.asyncio
 async def test_prune_decision_records_policy_and_pool_usage() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -188,7 +188,7 @@ async def test_prune_decision_records_policy_and_pool_usage() -> None:
 
 @pytest.mark.asyncio
 async def test_prune_orders_mutable_torrents_by_eviction_rank() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -234,7 +234,7 @@ async def test_prune_orders_mutable_torrents_by_eviction_rank() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_never_deletes_unmanaged_torrent() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -242,7 +242,7 @@ async def test_execute_never_deletes_unmanaged_torrent() -> None:
         [
             _torrent(
                 category="movie",
-                tags={"seed-agent", "movie"},
+                tags={"media-agent", "movie"},
                 state="paused",
                 metadata={"paused_at": datetime.now(UTC) - timedelta(days=10)},
             )
@@ -260,7 +260,7 @@ async def test_execute_never_deletes_unmanaged_torrent() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_batch_failure_carries_prior_cleanup_decisions() -> None:
-    from seed_agent.actions.qb import MutationBatchError, prune_cold_torrents
+    from media_agent.actions.qb import MutationBatchError, prune_cold_torrents
 
     downloader = FailingSecondDownloader()
 
@@ -291,7 +291,7 @@ async def test_execute_batch_failure_carries_prior_cleanup_decisions() -> None:
 
 @pytest.mark.asyncio
 async def test_prune_keeps_cold_torrent_when_pool_is_not_over_budget() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -315,7 +315,7 @@ async def test_prune_keeps_cold_torrent_when_pool_is_not_over_budget() -> None:
 
 @pytest.mark.asyncio
 async def test_force_space_reclamation_deletes_cold_torrent_when_pool_is_not_over_budget() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -341,7 +341,7 @@ async def test_force_space_reclamation_deletes_cold_torrent_when_pool_is_not_ove
 
 @pytest.mark.asyncio
 async def test_prune_stops_capacity_deletion_after_reclaim_target_is_met() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
     size = 600 * 1024**3
@@ -376,7 +376,7 @@ async def test_prune_stops_capacity_deletion_after_reclaim_target_is_met() -> No
 
 @pytest.mark.asyncio
 async def test_disk_reclaim_target_uses_downloaded_bytes_for_incomplete_torrents() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
     gib = 1024**3
@@ -415,7 +415,7 @@ async def test_disk_reclaim_target_uses_downloaded_bytes_for_incomplete_torrents
 
 @pytest.mark.asyncio
 async def test_prune_stops_capacity_deletion_at_per_run_limit() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
     cleanup = CleanupConfig(**{**_cleanup().model_dump(), "max_capacity_deletes_per_run": 1})
@@ -442,7 +442,7 @@ async def test_prune_stops_capacity_deletion_at_per_run_limit() -> None:
 
 @pytest.mark.asyncio
 async def test_hard_pool_limit_bypasses_per_run_capacity_delete_limit() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
     cleanup = CleanupConfig(**{**_cleanup().model_dump(), "max_capacity_deletes_per_run": 1})
@@ -475,7 +475,7 @@ async def test_hard_pool_limit_bypasses_per_run_capacity_delete_limit() -> None:
 
 @pytest.mark.asyncio
 async def test_capacity_delete_limit_does_not_block_direct_paid_risk_delete() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
     cleanup = CleanupConfig(**{**_cleanup().model_dump(), "max_capacity_deletes_per_run": 1})
@@ -507,7 +507,7 @@ async def test_capacity_delete_limit_does_not_block_direct_paid_risk_delete() ->
 
 @pytest.mark.asyncio
 async def test_completed_low_upload_requires_reclamation_keeps_under_budget_seed() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
     now = datetime.now(UTC)
@@ -551,7 +551,7 @@ async def test_completed_low_upload_requires_reclamation_keeps_under_budget_seed
 
 @pytest.mark.asyncio
 async def test_prune_deletes_incomplete_confirmed_non_free_torrent_with_files() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     downloader = DummyDownloader()
 
@@ -583,7 +583,7 @@ async def test_prune_deletes_incomplete_confirmed_non_free_torrent_with_files() 
 
 @pytest.mark.asyncio
 async def test_prune_revalidates_category_before_delete() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     original = _incomplete_torrent(
         hash="moved",
@@ -609,7 +609,7 @@ async def test_prune_revalidates_category_before_delete() -> None:
 
 @pytest.mark.asyncio
 async def test_prune_reclassifies_latest_completed_state_before_delete() -> None:
-    from seed_agent.actions.qb import prune_cold_torrents
+    from media_agent.actions.qb import prune_cold_torrents
 
     original = _incomplete_torrent(
         hash="completed-before-delete",
@@ -642,7 +642,7 @@ async def test_prune_reclassifies_latest_completed_state_before_delete() -> None
 async def test_prune_fails_when_delete_cannot_be_verified(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent.actions import qb
+    from media_agent.actions import qb
 
     original = _incomplete_torrent(
         hash="still-present",

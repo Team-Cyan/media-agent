@@ -7,7 +7,7 @@ from test_media_import import media as media
 from test_media_subtitles import SHORT_PAYLOAD as PAYLOAD
 from test_media_subtitles import import_three
 
-from seed_agent.media_import.subtitles.local_import import LocalSubtitleImport
+from media_agent.media_import.subtitles.local_import import LocalSubtitleImport
 
 
 def stage(engine, data):
@@ -212,9 +212,9 @@ def test_cli_worker_preview_then_execute_and_reject_changed_staging(local, tmp_p
     from test_web_settings import _write_minimal_config
     from typer.testing import CliRunner
 
-    from seed_agent import cli
-    from seed_agent.config_views import load_view
-    from seed_agent.media_import import worker
+    from media_agent import cli
+    from media_agent.config_views import load_view
+    from media_agent.media_import import worker
 
     engine, target, _, request = local
     config = _write_minimal_config(tmp_path)

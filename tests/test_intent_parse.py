@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from seed_agent.intent.parse import parse_resource_intent
-from seed_agent.models import IntentKind, IntentSource, IntentState
+from media_agent.intent.parse import parse_resource_intent
+from media_agent.models import IntentKind, IntentSource, IntentState
 
 REQUESTED_AT = datetime(2026, 4, 22, tzinfo=UTC)
 

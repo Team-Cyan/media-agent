@@ -4,10 +4,10 @@ import yaml
 from test_media_import import media as media
 from test_media_subtitles import FakeProvider, import_three
 
-from seed_agent.config import atomic_write_text
-from seed_agent.media_import.commands import status, submit
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-from seed_agent.media_import.worker import process_one
+from media_agent.config import atomic_write_text
+from media_agent.media_import.commands import status, submit
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.worker import process_one
 
 
 def setup_command_config(media, tmp_path):
@@ -36,7 +36,7 @@ def test_exact_target_command_refreshes_only_source_and_coalesces(media, tmp_pat
     before = {j["source_id"]: j["next_attempt"] for j in engine.snapshot()["subtitles"]}
     provider = FakeProvider()
     monkeypatch.setattr(
-        "seed_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
+        "media_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
     )
     first = submit(config, "subtitle-search", body, execute=True)
     assert (
@@ -55,7 +55,7 @@ def test_target_preview_cannot_gain_payload_authority(media, tmp_path, monkeypat
     source = engine.snapshot()["sources"][0]
     provider = FakeProvider()
     monkeypatch.setattr(
-        "seed_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
+        "media_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
     )
     submit(
         config,
@@ -89,7 +89,7 @@ def test_target_source_generation_and_plan_changes_reject_before_provider(
         )
     provider = FakeProvider()
     monkeypatch.setattr(
-        "seed_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
+        "media_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
     )
     assert process_one(config)["status"] == "failed" and provider.calls == 0
 
@@ -110,7 +110,7 @@ def test_target_replaced_video_spends_no_provider_request(media, tmp_path, monke
     (media[1] / source["path"]).write_bytes(b"changed")
     provider = FakeProvider()
     monkeypatch.setattr(
-        "seed_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
+        "media_agent.media_import.runtime.build_subtitle_provider", lambda *args: provider
     )
     value = process_one(config)
     assert (

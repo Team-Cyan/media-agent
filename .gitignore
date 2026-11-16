@@ -17,6 +17,8 @@ config/*.yaml
 config/*.yml
 !config/example.yaml
 .seed-agent/
+.media-import/
+deploy/*.env
 /runtime/
 /state/
 *.cookie

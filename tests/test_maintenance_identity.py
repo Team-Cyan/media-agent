@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.maintenance import (
+from media_agent.maintenance import (
     backup_sqlite_database,
     restore_sqlite_database,
     verify_sqlite_database,
 )
-from seed_agent.runtime_identity import RuntimeIdentityError
-from seed_agent.state import StateStore
+from media_agent.runtime_identity import RuntimeIdentityError
+from media_agent.state import StateStore
 
 
 def tree_snapshot(root):

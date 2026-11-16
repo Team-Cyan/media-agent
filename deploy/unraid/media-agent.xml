@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Container version="2">
+  <Name>media-agent</Name>
+  <Repository>ghcr.io/team-cyan/media-agent:latest</Repository>
+  <Registry>https://github.com/Team-Cyan/media-agent/pkgs/container/media-agent</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/Team-Cyan/media-agent/issues</Support>
+  <Project>https://github.com/Team-Cyan/media-agent</Project>
+  <ReadMe>https://github.com/Team-Cyan/media-agent#readme</ReadMe>
+  <Overview>Docker-first PT automation for PT downloaders and M-Team, designed for long-running NAS deployment with mounted config, local secrets, audit, and state.</Overview>
+  <Category>Downloaders:Tools:Utilities</Category>
+  <WebUI>http://[IP]:[PORT:8765]</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/Team-Cyan/media-agent/main/deploy/unraid/media-agent.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/Team-Cyan/media-agent/main/docs/assets/icon.png</Icon>
+  <ExtraSearchTerms>pt qbittorrent m-team seedbox nas</ExtraSearchTerms>
+  <ExtraParams>--read-only --restart=on-failure:5 --cpus=1.0 --memory=1g --pids-limit=128 --stop-timeout=45 --security-opt=no-new-privileges:true --tmpfs=/tmp:rw,noexec,nosuid,size=128m --health-cmd='/app/docker/entrypoint.sh app-healthcheck' --health-interval=1m --health-timeout=20s --health-retries=3 --health-start-period=4m</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>0</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <CategoryList>Downloaders</CategoryList>
+  <CategoryList>Tools-Utilities</CategoryList>
+  <Author>Team-Cyan</Author>
+  <Config Name="Appdata Root" Target="/workspace" Default="/mnt/user/appdata/seed-agent" Mode="rw" Description="Single mounted root folder containing runtime/config, runtime/local, runtime/.seed-agent, runtime/.media-import, and runtime/state." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/seed-agent</Config>
+  <Config Name="Common Media Parent" Target="/media" Default="" Mode="rw" Description="One common parent for source and library; configure paths under /media. No nested overlays. Application preserves source; this mount is writable." Type="Path" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="Timezone" Target="TZ" Default="Asia/Shanghai" Mode="" Description="Container timezone." Type="Variable" Display="always" Required="true" Mask="false">Asia/Shanghai</Config>
+  <Config Name="Runtime UID" Target="PUID" Default="1000" Mode="" Description="Run media-agent as this numeric UID after startup. Match the owner used by related downloader and media containers." Type="Variable" Display="advanced" Required="true" Mask="false">1000</Config>
+  <Config Name="Runtime GID" Target="PGID" Default="100" Mode="" Description="Run media-agent as this numeric GID after startup. Unraid users commonly use 100." Type="Variable" Display="advanced" Required="true" Mask="false">100</Config>
+  <Config Name="Mode" Target="SEED_AGENT_MODE" Default="app" Mode="" Description="Primary entry mode for the container." Type="Variable" Display="always" Required="true" Mask="false">app</Config>
+  <Config Name="Config Path" Target="SEED_AGENT_CONFIG" Default="/workspace/runtime/config/config.yaml" Mode="" Description="Path to the runtime config file inside the mounted root folder." Type="Variable" Display="always" Required="true" Mask="false">/workspace/runtime/config/config.yaml</Config>
+  <Config Name="Verified Image Digest" Target="SEED_AGENT_IMAGE_DIGEST" Default="" Mode="" Description="Verified digest of the selected image for runtime identity; inspect the container image to verify it." Type="Variable" Display="advanced" Required="false" Mask="false"></Config>
+  <Config Name="Execute" Target="SEED_AGENT_EXECUTE" Default="true" Mode="" Description="Set true for unattended execution or false for dry-run scheduler mode." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Heartbeat File" Target="SEED_AGENT_HEARTBEAT_FILE" Default="/workspace/runtime/state/schedule-heartbeat.json" Mode="" Description="Heartbeat file used by Docker health checks and runtime visibility." Type="Variable" Display="always" Required="true" Mask="false">/workspace/runtime/state/schedule-heartbeat.json</Config>
+  <Config Name="Max Staleness Minutes" Target="SEED_AGENT_MAX_STALENESS_MINUTES" Default="90" Mode="" Description="Healthcheck staleness threshold for the scheduler heartbeat." Type="Variable" Display="advanced" Required="true" Mask="false">90</Config>
+  <Config Name="Startup Status Log" Target="SEED_AGENT_STARTUP_STATUS" Default="true" Mode="" Description="Print a redacted runtime-status JSON line on container startup so Docker logs show version, config path, heartbeat path, and mounted state visibility." Type="Variable" Display="advanced" Required="true" Mask="false">true</Config>
+  <Config Name="Enable Web UI" Target="SEED_AGENT_WEB_ENABLED" Default="true" Mode="" Description="Start the settings Web UI next to the scheduler so DockerMan's WebUI button can open it." Type="Variable" Display="always" Required="true" Mask="false">true</Config>
+  <Config Name="Web UI Host" Target="SEED_AGENT_WEB_HOST" Default="0.0.0.0" Mode="" Description="Bind address for the in-container Web UI server. Keep 0.0.0.0 for Docker bridge publishing." Type="Variable" Display="advanced" Required="true" Mask="false">0.0.0.0</Config>
+  <Config Name="Web UI Internal Port" Target="SEED_AGENT_WEB_PORT" Default="8765" Mode="" Description="Internal Web UI port inside the container. Keep this aligned with the container side of the port mapping." Type="Variable" Display="advanced" Required="true" Mask="false">8765</Config>
+  <Config Name="Web UI Write Token" Target="SEED_AGENT_WEB_TOKEN" Default="" Mode="" Description="Optional token required for Web UI write/search/enqueue POST requests when non-empty. Keep empty for trusted local-only deployments." Type="Variable" Display="advanced" Required="false" Mask="true"></Config>
+  <Config Name="WebUI Host Port" Target="8765" Default="8765" Mode="tcp" Description="Host port for DockerMan's WebUI button. Change only the host side if 8765 is already in use." Type="Port" Display="always" Required="true" Mask="false">8765</Config>
+  <TailscaleStateDir/>
+</Container>

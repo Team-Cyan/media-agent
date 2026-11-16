@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from seed_agent.actions.intent import (
+from media_agent.actions.intent import (
     add_intent,
     enqueue_intent,
     rank_intent,
@@ -13,14 +13,14 @@ from seed_agent.actions.intent import (
     search_intent,
     search_intents_batch,
 )
-from seed_agent.config import CategoryPolicyConfig, IntentConfig, SearchConfig
-from seed_agent.intent.workflow import next_search_at, normalize_external_id
-from seed_agent.models import IntentKind, IntentState, ReleaseCandidate, TorrentCandidate
-from seed_agent.policies.intent_ranking import rank_releases
-from seed_agent.search.mteam import MTeamSearchProvider
-from seed_agent.sites.mteam import MTeamApiResponseError
-from seed_agent.state import StateStore
-from seed_agent.web.app import _want_searchable, _wants_payload
+from media_agent.config import CategoryPolicyConfig, IntentConfig, SearchConfig
+from media_agent.intent.workflow import next_search_at, normalize_external_id
+from media_agent.models import IntentKind, IntentState, ReleaseCandidate, TorrentCandidate
+from media_agent.policies.intent_ranking import rank_releases
+from media_agent.search.mteam import MTeamSearchProvider
+from media_agent.sites.mteam import MTeamApiResponseError
+from media_agent.state import StateStore
+from media_agent.web.app import _want_searchable, _wants_payload
 
 NOW = datetime(2026, 10, 7, 1, tzinfo=ZoneInfo("Asia/Shanghai"))
 CONFIG = IntentConfig(confirmation_threshold=0.5, auto_enqueue_threshold=0.5)
@@ -30,7 +30,7 @@ POLICY = CategoryPolicyConfig(
     budget_pool="media",
     delete_enabled=False,
     over_budget_behavior="reject",
-    tags=["seed-agent"],
+    tags=["media-agent"],
 )
 
 

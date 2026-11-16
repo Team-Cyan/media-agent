@@ -4,9 +4,9 @@ from dataclasses import replace
 from test_media_import import media as media
 from test_media_subtitles import PAYLOAD, FakeProvider, import_three
 
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-from seed_agent.media_import.subtitles.pool import ProviderPool
-from seed_agent.media_import.subtitles.provider import ProviderError
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.subtitles.pool import ProviderPool
+from media_agent.media_import.subtitles.provider import ProviderError
 
 
 def embedded(media):

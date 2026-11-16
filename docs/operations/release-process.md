@@ -1,6 +1,6 @@
 # Release Process
 
-`seed-agent` publishes Docker images as the primary distribution artifact.
+`media-agent` publishes Docker images as the primary distribution artifact.
 
 ## Version Source
 
@@ -9,9 +9,9 @@ Keep these files on the same version before tagging a release:
 - `VERSION`
 - `Dockerfile`
 - `pyproject.toml`
-- `src/seed_agent/__init__.py`
+- `src/media_agent/__init__.py`
 
-The current release line is `1.0.1`.
+The current release line is `1.1.0`.
 
 ## Version Bump Policy
 
@@ -34,15 +34,15 @@ visible.
 
 GitHub Actions publishes to:
 
-- `ghcr.io/team-cyan/seed-agent:latest`
-- `ghcr.io/team-cyan/seed-agent:main`
-- `ghcr.io/team-cyan/seed-agent:sha-<short-sha>`
+- `ghcr.io/team-cyan/media-agent:latest`
+- `ghcr.io/team-cyan/media-agent:main`
+- `ghcr.io/team-cyan/media-agent:sha-<short-sha>`
 
 Version tags such as `v0.1.3` also publish:
 
-- `ghcr.io/team-cyan/seed-agent:v0.1.3`
-- `ghcr.io/team-cyan/seed-agent:0.1.3`
-- `ghcr.io/team-cyan/seed-agent:0.1`
+- `ghcr.io/team-cyan/media-agent:v0.1.3`
+- `ghcr.io/team-cyan/media-agent:0.1.3`
+- `ghcr.io/team-cyan/media-agent:0.1`
 
 The image name must stay lowercase for registry compatibility.
 

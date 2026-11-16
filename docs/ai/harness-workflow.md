@@ -87,7 +87,7 @@ If you are opening a fresh session, prefer a narrow objective name such as:
 
 Avoid broad names like:
 
-- `seed-agent-improvements`
+- `media-agent-improvements`
 - `phase-3-work`
 
 ## When To Split

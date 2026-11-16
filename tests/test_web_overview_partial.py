@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-SCRIPT = Path("src/seed_agent/web/static/app.js")
+SCRIPT = Path("src/media_agent/web/static/app.js")
 KEYS = ["health", "stateSummary", "pools", "ops"]
 GOOD = {
     "health": {"status": "ok", "heartbeat_exists": True},

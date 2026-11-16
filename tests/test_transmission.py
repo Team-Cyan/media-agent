@@ -8,11 +8,11 @@ import httpx
 import pytest
 import respx
 
-from seed_agent.actions.qb import prune_cold_torrents
-from seed_agent.config import CategoryPolicyConfig, CleanupConfig
-from seed_agent.downloaders.transmission import TransmissionClient, TransmissionError
-from seed_agent.models import ManagedTorrent
-from seed_agent.policies.category_policy import PoolUsage
+from media_agent.actions.qb import prune_cold_torrents
+from media_agent.config import CategoryPolicyConfig, CleanupConfig
+from media_agent.downloaders.transmission import TransmissionClient, TransmissionError
+from media_agent.models import ManagedTorrent
+from media_agent.policies.category_policy import PoolUsage
 
 
 @pytest.mark.asyncio
@@ -40,7 +40,7 @@ async def test_transmission_add_url_retries_with_session_id_and_labels() -> None
     torrent_hash = await client.add_url(
         "https://tracker.example/download.php?id=42",
         category="seed",
-        tags=["seed-agent"],
+        tags=["media-agent"],
         paused=True,
     )
 
@@ -53,7 +53,7 @@ async def test_transmission_add_url_retries_with_session_id_and_labels() -> None
     payload = calls[1].content
     assert b'"method":"torrent-add"' in payload
     assert b'"paused":true' in payload
-    assert b'"labels":["seed","seed-agent"]' in payload
+    assert b'"labels":["media-agent","seed"]' in payload
 
 
 @pytest.mark.asyncio
@@ -69,7 +69,7 @@ async def test_transmission_list_torrents_maps_and_filters_labels() -> None:
                         {
                             "hashString": "abcd1234",
                             "name": "Example Torrent",
-                            "labels": ["seed", "seed-agent"],
+                            "labels": ["seed", "media-agent"],
                             "status": 6,
                             "totalSize": 123456,
                             "uploadedEver": 654321,
@@ -99,14 +99,14 @@ async def test_transmission_list_torrents_maps_and_filters_labels() -> None:
     )
     client = TransmissionClient("https://tr.example")
 
-    torrents = await client.list_torrents(category="seed", tags={"seed-agent"})
+    torrents = await client.list_torrents(category="seed", tags={"media-agent"})
 
     assert torrents == [
         ManagedTorrent(
             hash="abcd1234",
             name="Example Torrent",
             category="seed",
-            tags={"seed", "seed-agent"},
+            tags={"seed", "media-agent"},
             state="seeding",
             size_bytes=123456,
             uploaded_bytes=654321,
@@ -116,7 +116,7 @@ async def test_transmission_list_torrents_maps_and_filters_labels() -> None:
             last_activity_at=datetime.fromtimestamp(1700000200, tz=UTC),
             save_path="/mnt/downloads",
             metadata={
-                "transmission_labels": ["seed", "seed-agent"],
+                "transmission_labels": ["media-agent", "seed"],
                 "upspeed_bps": 2048,
                 "dlspeed_bps": 1024,
                 "amount_left_bytes": 0,
@@ -138,21 +138,21 @@ async def test_transmission_category_resolution_requires_explicit_or_unique_poli
                         {
                             "hashString": "ambiguous",
                             "name": "Ambiguous",
-                            "labels": ["tv", "seed", "seed-agent"],
+                            "labels": ["tv", "seed", "media-agent"],
                             "status": 6,
                             "addedDate": 1700000000,
                         },
                         {
                             "hashString": "movie",
                             "name": "Movie",
-                            "labels": ["movie", "mteam", "seed-agent"],
+                            "labels": ["movie", "mteam", "media-agent"],
                             "status": 6,
                             "addedDate": 1700000000,
                         },
                         {
                             "hashString": "unknown",
                             "name": "Unknown",
-                            "labels": ["archive", "seed-agent"],
+                            "labels": ["archive", "media-agent"],
                             "status": 6,
                             "addedDate": 1700000000,
                         },
@@ -194,7 +194,7 @@ async def test_transmission_emits_only_provable_cleanup_metadata() -> None:
                         {
                             "hashString": "protected",
                             "name": "Protected",
-                            "labels": ["seed", "seed-agent", "H&R", "manual"],
+                            "labels": ["seed", "media-agent", "H&R", "manual"],
                             "status": 6,
                             "addedDate": 1700000000,
                             "downloadDir": "/mnt/user/media/movies",
@@ -202,7 +202,7 @@ async def test_transmission_emits_only_provable_cleanup_metadata() -> None:
                         {
                             "hashString": "unproven",
                             "name": "Unproven",
-                            "labels": ["seed", "seed-agent", "manual-copy"],
+                            "labels": ["seed", "media-agent", "manual-copy"],
                             "status": 6,
                             "addedDate": 1700000000,
                             "downloadDir": "/mnt/user/downloads/movies.tmp",
@@ -256,7 +256,7 @@ async def test_transmission_execute_prune_revalidates_requested_category() -> No
     torrent_row = {
         "hashString": "abcd1234",
         "name": "Cold Incomplete",
-        "labels": ["seed", "seed-agent"],
+        "labels": ["seed", "media-agent"],
         "status": 4,
         "totalSize": 10 * 1024**3,
         "uploadedEver": 0,
@@ -303,7 +303,7 @@ async def test_transmission_execute_prune_revalidates_requested_category() -> No
             budget_pool="downloads",
             delete_enabled=True,
             over_budget_behavior="add_paused",
-            tags=["seed-agent", "seed"],
+            tags=["media-agent", "seed"],
         ),
         execute=True,
         pool_usage=PoolUsage(

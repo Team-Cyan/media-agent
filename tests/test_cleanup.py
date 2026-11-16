@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from seed_agent.config import CleanupConfig
-from seed_agent.models import ManagedTorrent
+from media_agent.config import CleanupConfig
+from media_agent.models import ManagedTorrent
 
 
 def _cleanup(**overrides: object) -> CleanupConfig:
@@ -27,7 +27,7 @@ def _torrent(**overrides: object) -> ManagedTorrent:
         "hash": "abcd1234",
         "name": "Demo Torrent",
         "category": "pt-auto",
-        "tags": {"seed-agent", "pt-auto"},
+        "tags": {"media-agent", "pt-auto"},
         "state": "uploading",
         "size_bytes": 10 * 1024**3,
         "uploaded_bytes": 10 * 1024**3,
@@ -43,13 +43,13 @@ def _torrent(**overrides: object) -> ManagedTorrent:
 
 
 def test_protects_unmanaged_torrent() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(category="other", tags={"unrelated"}),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "protect"
@@ -57,13 +57,13 @@ def test_protects_unmanaged_torrent() -> None:
 
 
 def test_tag_alone_does_not_grant_cleanup_management() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
-        _torrent(category="movie", tags={"seed-agent", "seed"}),
+        _torrent(category="movie", tags={"media-agent", "seed"}),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "protect"
@@ -80,13 +80,13 @@ def test_tag_alone_does_not_grant_cleanup_management() -> None:
 def test_cold_managed_torrent_with_insufficient_recent_upload_enters_observation(
     metadata: dict[str, object],
 ) -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(metadata=metadata),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -103,13 +103,13 @@ def test_cold_managed_torrent_with_insufficient_recent_upload_enters_observation
 def test_cold_managed_torrent_with_meaningful_recent_upload_is_kept(
     metadata: dict[str, object],
 ) -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(metadata=metadata),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -117,7 +117,7 @@ def test_cold_managed_torrent_with_meaningful_recent_upload_is_kept(
 
 
 def test_currently_uploading_torrent_is_kept_even_with_stale_no_upload_marker() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -130,7 +130,7 @@ def test_currently_uploading_torrent_is_kept_even_with_stale_no_upload_marker() 
         ),
         _cleanup(delete_after_no_upload_hours=2),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -138,7 +138,7 @@ def test_currently_uploading_torrent_is_kept_even_with_stale_no_upload_marker() 
 
 
 def test_completed_seed_is_kept_when_free_window_cannot_survive_next_check() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -151,7 +151,7 @@ def test_completed_seed_is_kept_when_free_window_cannot_survive_next_check() -> 
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -159,7 +159,7 @@ def test_completed_seed_is_kept_when_free_window_cannot_survive_next_check() -> 
 
 
 def test_managed_torrent_keeps_when_free_window_survives_next_check() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -172,7 +172,7 @@ def test_managed_torrent_keeps_when_free_window_survives_next_check() -> None:
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -192,13 +192,13 @@ def test_protects_hr_manual_and_media_library_when_configured(
     cleanup_overrides: dict[str, object],
     reason_fragment: str,
 ) -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(metadata=metadata),
         _cleanup(**cleanup_overrides),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "protect"
@@ -206,7 +206,7 @@ def test_protects_hr_manual_and_media_library_when_configured(
 
 
 def test_hard_capacity_deletes_stopped_completed_seed_regardless_of_age() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -217,7 +217,7 @@ def test_hard_capacity_deletes_stopped_completed_seed_regardless_of_age() -> Non
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
         space_reclamation_required=True,
     )
 
@@ -229,13 +229,13 @@ def test_hard_capacity_deletes_stopped_completed_seed_regardless_of_age() -> Non
 def test_hard_capacity_overrides_mutable_retention_protection(
     protection_flag: str,
 ) -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(metadata={protection_flag: True, "upspeed_bps": 1024}),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
         space_reclamation_required=True,
     )
 
@@ -247,7 +247,7 @@ def test_hard_capacity_overrides_mutable_retention_protection(
 def test_broken_incomplete_managed_torrent_is_deleted_without_capacity_pressure(
     state: str,
 ) -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -258,7 +258,7 @@ def test_broken_incomplete_managed_torrent_is_deleted_without_capacity_pressure(
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -266,7 +266,7 @@ def test_broken_incomplete_managed_torrent_is_deleted_without_capacity_pressure(
 
 
 def test_keeps_stopped_managed_torrent_when_space_reclamation_is_not_required() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -277,7 +277,7 @@ def test_keeps_stopped_managed_torrent_when_space_reclamation_is_not_required() 
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -285,7 +285,7 @@ def test_keeps_stopped_managed_torrent_when_space_reclamation_is_not_required() 
 
 
 def test_keeps_active_seed_while_no_upload_observation_window_is_young() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -300,7 +300,7 @@ def test_keeps_active_seed_while_no_upload_observation_window_is_young() -> None
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -308,7 +308,7 @@ def test_keeps_active_seed_while_no_upload_observation_window_is_young() -> None
 
 
 def test_hard_capacity_deletes_recent_non_uploading_completed_seed() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -323,7 +323,7 @@ def test_hard_capacity_deletes_recent_non_uploading_completed_seed() -> None:
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
         space_reclamation_required=True,
     )
 
@@ -332,7 +332,7 @@ def test_hard_capacity_deletes_recent_non_uploading_completed_seed() -> None:
 
 
 def test_deletes_incomplete_torrent_when_free_window_expires_before_next_check() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -347,7 +347,7 @@ def test_deletes_incomplete_torrent_when_free_window_expires_before_next_check()
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -355,7 +355,7 @@ def test_deletes_incomplete_torrent_when_free_window_expires_before_next_check()
 
 
 def test_deletes_incomplete_torrent_when_discount_is_confirmed_non_free() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -368,7 +368,7 @@ def test_deletes_incomplete_torrent_when_discount_is_confirmed_non_free() -> Non
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -379,7 +379,7 @@ def test_deletes_incomplete_torrent_when_discount_is_confirmed_non_free() -> Non
 def test_incomplete_billing_risk_overrides_retention_protection(
     protection_flag: str,
 ) -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -393,7 +393,7 @@ def test_incomplete_billing_risk_overrides_retention_protection(
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -401,7 +401,7 @@ def test_incomplete_billing_risk_overrides_retention_protection(
 
 
 def test_deletes_incomplete_torrent_when_bounded_lookup_leaves_free_status_unknown() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -414,7 +414,7 @@ def test_deletes_incomplete_torrent_when_bounded_lookup_leaves_free_status_unkno
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -422,7 +422,7 @@ def test_deletes_incomplete_torrent_when_bounded_lookup_leaves_free_status_unkno
 
 
 def test_incomplete_promotion_risk_overrides_current_upload_protection() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -436,7 +436,7 @@ def test_incomplete_promotion_risk_overrides_current_upload_protection() -> None
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -444,7 +444,7 @@ def test_incomplete_promotion_risk_overrides_current_upload_protection() -> None
 
 
 def test_keeps_incomplete_torrent_with_unknown_discount_until_other_rules_apply() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     decision = classify_cleanup(
         _torrent(
@@ -455,7 +455,7 @@ def test_keeps_incomplete_torrent_with_unknown_discount_until_other_rules_apply(
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -463,7 +463,7 @@ def test_keeps_incomplete_torrent_with_unknown_discount_until_other_rules_apply(
 
 
 def test_deletes_completed_seed_with_low_upload_when_policy_enabled() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -483,7 +483,7 @@ def test_deletes_completed_seed_with_low_upload_when_policy_enabled() -> None:
             completed_low_upload_min_gb=1,
         ),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "delete"
@@ -491,7 +491,7 @@ def test_deletes_completed_seed_with_low_upload_when_policy_enabled() -> None:
 
 
 def test_keeps_completed_low_upload_seed_when_reclamation_is_required_but_not_needed() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -511,7 +511,7 @@ def test_keeps_completed_low_upload_seed_when_reclamation_is_required_but_not_ne
             completed_low_upload_min_gb=1,
         ),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
         completed_low_upload_requires_reclamation=True,
     )
 
@@ -520,7 +520,7 @@ def test_keeps_completed_low_upload_seed_when_reclamation_is_required_but_not_ne
 
 
 def test_keeps_completed_seed_with_low_upload_before_policy_window() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -540,7 +540,7 @@ def test_keeps_completed_seed_with_low_upload_before_policy_window() -> None:
             completed_low_upload_min_gb=1,
         ),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -548,7 +548,7 @@ def test_keeps_completed_seed_with_low_upload_before_policy_window() -> None:
 
 
 def test_keeps_completed_seed_with_enough_total_upload_when_policy_enabled() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -568,7 +568,7 @@ def test_keeps_completed_seed_with_enough_total_upload_when_policy_enabled() -> 
             completed_low_upload_min_gb=1,
         ),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"
@@ -576,7 +576,7 @@ def test_keeps_completed_seed_with_enough_total_upload_when_policy_enabled() -> 
 
 
 def test_deletes_cold_completed_seed_when_hard_capacity_requires_space() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -590,7 +590,7 @@ def test_deletes_cold_completed_seed_when_hard_capacity_requires_space() -> None
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
         space_reclamation_required=True,
     )
 
@@ -599,7 +599,7 @@ def test_deletes_cold_completed_seed_when_hard_capacity_requires_space() -> None
 
 
 def test_deletes_incomplete_zero_upload_torrent_after_observation_window() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -615,7 +615,7 @@ def test_deletes_incomplete_zero_upload_torrent_after_observation_window() -> No
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
         space_reclamation_required=True,
     )
 
@@ -624,7 +624,7 @@ def test_deletes_incomplete_zero_upload_torrent_after_observation_window() -> No
 
 
 def test_keeps_zero_upload_torrent_when_space_reclamation_is_not_required() -> None:
-    from seed_agent.policies.cleanup import classify_cleanup
+    from media_agent.policies.cleanup import classify_cleanup
 
     now = datetime.now(UTC)
     decision = classify_cleanup(
@@ -640,7 +640,7 @@ def test_keeps_zero_upload_torrent_when_space_reclamation_is_not_required() -> N
         ),
         _cleanup(),
         managed_category="pt-auto",
-        managed_tags={"seed-agent", "pt-auto"},
+        managed_tags={"media-agent", "pt-auto"},
     )
 
     assert decision.action == "keep"

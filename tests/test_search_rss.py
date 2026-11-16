@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from seed_agent.models import Discount, IntentKind, IntentSource, IntentState, ResourceIntent
-from seed_agent.search.rss import RssSearchProvider
-from seed_agent.sites.rss import parse_rss_candidates
+from media_agent.models import Discount, IntentKind, IntentSource, IntentState, ResourceIntent
+from media_agent.search.rss import RssSearchProvider
+from media_agent.sites.rss import parse_rss_candidates
 
 
 def _intent(**overrides: object) -> ResourceIntent:
@@ -248,8 +248,8 @@ async def test_rss_search_provider_supports_mteam_sparse_candidates() -> None:
 @pytest.mark.parametrize("title", ["测试电影", "テスト映画", "Пример фильма"])
 @pytest.mark.parametrize("drift", [None, "title", "year", "season", "episode"])
 def test_rss_unicode_title_matching_keeps_identity_bounds(title, drift):
-    from seed_agent.models import TorrentCandidate
-    from seed_agent.search.rss import _matches_intent
+    from media_agent.models import TorrentCandidate
+    from media_agent.search.rss import _matches_intent
     candidate = TorrentCandidate(
         title=f"{title if drift != 'title' else 'Other'} 2020 S02E03 1080p",
         site="demo", source_url="https://tracker.example/detail/1",

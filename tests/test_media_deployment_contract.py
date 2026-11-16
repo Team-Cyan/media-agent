@@ -1,4 +1,4 @@
-"""Static examples prove declared isolation, never real mount/image acceptance."""
+"""Static deployment contracts; actual mounts and image require runtime acceptance."""
 
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -8,44 +8,36 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_compose_media_role_has_one_common_parent_no_source_overlay():
+def test_compose_unified_app_has_bounded_resources_and_one_media_mount():
     services = yaml.safe_load((ROOT / "deploy/docker-compose.example.yml").read_text())["services"]
-    seed, media = services["seed-agent"], services["media-worker"]
-    assert seed["image"] == media["image"] and "immutable" in media["image"]
-    assert media["environment"]["SEED_AGENT_ROLE"] == "media"
-    assert media["environment"]["SEED_AGENT_MODE"] == "media-worker"
-    assert media["environment"]["SEED_AGENT_WEB_ENABLED"] == "false"
-    assert "ports" not in media and "depends_on" not in media
-    assert media["read_only"] is True
-    assert media["restart"] == seed["restart"] == "on-failure:5"
-    assert all(
-        role.get(key) for role in [seed, media] for key in ["cpus", "mem_limit", "pids_limit"]
-    )
-    mounts = media["volumes"]
-    media_mounts = [m for m in mounts if ":/media" in m]
-    assert len(media_mounts) == 1 and media_mounts[0].endswith(":/media:rw")
-    assert "../config:/app/config:ro" in mounts
-    assert "../.media-import:/app/.media-import:rw" in mounts
-    assert all(".seed-agent" not in m and "docker.sock" not in m for m in mounts)
-    secret_mounts = [m for m in mounts if "/secrets" in m]
-    assert len(secret_mounts) == 4
-    assert all(m.endswith(".json:ro") and m.count(".json") == 2 for m in secret_mounts)
-    assert all("downloader" not in m and "qbittorrent" not in m for m in secret_mounts)
-    assert media["healthcheck"]["test"] == [
-        "CMD",
-        "/app/docker/entrypoint.sh",
-        "healthcheck",
-        "--role",
-        "media",
-        "--config",
-        "/app/config/config.yaml",
+    assert set(services) == {"media-agent"}
+    app = services["media-agent"]
+    assert app["environment"]["SEED_AGENT_MODE"] == "app"
+    assert app["restart"] == "on-failure:5"
+    assert all(app.get(key) for key in ["cpus", "mem_limit", "pids_limit"])
+    assert app["read_only"] is True
+    assert int(app["stop_grace_period"].removesuffix("s")) > 15
+    mounts = app["volumes"]
+    assert [m for m in mounts if ":/media" in m] == [
+        "${MEDIA_PARENT_DIR:?Set the common source and library parent}:/media:rw"
     ]
+    for path in [
+        "../config:/app/config",
+        "../local:/app/local",
+        "../.seed-agent:/app/.seed-agent",
+        "../.media-import:/app/.media-import",
+        "../state:/state",
+    ]:
+        assert path in mounts
+    assert all("docker.sock" not in m for m in mounts)
+    assert app["healthcheck"]["test"] == ["CMD", "/app/docker/entrypoint.sh", "app-healthcheck"]
 
 
-def test_unraid_template_declares_bounded_role_and_common_parent_mount():
-    root = ET.parse(ROOT / "deploy/unraid/media-worker.xml").getroot()
+def test_unraid_templates_match_and_preserve_upgrade_root():
+    new = ROOT / "deploy/unraid/media-agent.xml"
+    assert new.read_text() == (ROOT / "deploy/unraid/seed-agent.xml").read_text()
+    root = ET.parse(new).getroot()
     assert root.findtext("Privileged") == "false"
-    assert root.find("WebUI") is None
     extra = root.findtext("ExtraParams")
     for argument in [
         "--restart=on-failure:5",
@@ -53,26 +45,26 @@ def test_unraid_template_declares_bounded_role_and_common_parent_mount():
         "--memory=1g",
         "--pids-limit=128",
         "--read-only",
-        "healthcheck --role media",
+        "--stop-timeout=45",
+        "app-healthcheck",
     ]:
         assert argument in extra
     configs = {c.attrib["Target"]: c for c in root.findall("Config")}
-    assert configs["SEED_AGENT_MODE"].text == "media-worker"
-    assert configs["SEED_AGENT_WEB_ENABLED"].text == "false"
+    assert configs["SEED_AGENT_MODE"].text == "app"
+    assert configs["/workspace"].text == "/mnt/user/appdata/seed-agent"
     mounts = {k: c.attrib["Mode"] for k, c in configs.items() if c.attrib["Type"] == "Path"}
     assert mounts["/media"] == "rw"
-    assert not any(k.startswith("/media/") for k in mounts)
-    assert mounts["/workspace/runtime/config"] == "ro"
-    assert mounts["/workspace/runtime/.media-import"] == "rw"
-    assert all(
-        mode == "ro" and path.endswith(".json")
-        for path, mode in mounts.items()
-        if "secrets" in path
-    )
-    assert not any("docker.sock" in path or "/.seed-agent" in path for path in mounts)
+    assert not any(k.startswith("/media/") or "docker.sock" in k for k in mounts)
+    assert "never run alongside" in ET.parse(
+        ROOT / "deploy/unraid/media-worker.xml"
+    ).getroot().findtext("Overview")
 
 
-def test_deployment_guidance_does_not_promise_kernel_source_ro_or_hardlink_proof():
-    text = (ROOT / "deploy/media-worker.md").read_text()
-    for required in ["EXDEV", "kernel-level", "no copy", "atomic replacement", "restart budget"]:
-        assert required in text
+def test_environment_examples_and_guidance_cover_upgrade_safety():
+    env = (ROOT / "deploy/media-agent.env.example").read_text()
+    assert env == (ROOT / "deploy/seed-agent.env.example").read_text()
+    assert "SEED_AGENT_IMAGE_DIGEST=" in env and "MEDIA_PARENT_DIR=" in env
+    for name in ["docker-compose-user-guide.md", "unraid-dockerman.md"]:
+        text = (ROOT / "docs/operations" / name).read_text()
+        for required in ["media-state-init", "does not replay scans", "EXDEV", "credentials"]:
+            assert required in text

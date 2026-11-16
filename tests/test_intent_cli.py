@@ -3,8 +3,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seed_agent.models import IntentState
-from seed_agent.state import StateStore
+from media_agent.models import IntentState
+from media_agent.state import StateStore
 
 _HELP_ENV = {"COLUMNS": "160", "GITHUB_ACTIONS": ""}
 
@@ -51,7 +51,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -83,7 +83,7 @@ def _json_output(result) -> dict[str, object]:
 
 
 def test_intent_add_cli_persists_intent_and_writes_audit(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)
@@ -106,7 +106,7 @@ def test_intent_add_cli_persists_intent_and_writes_audit(tmp_path: Path, monkeyp
 
 
 def test_intent_add_cli_redacts_sensitive_text(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)
@@ -127,7 +127,7 @@ def test_intent_add_cli_redacts_sensitive_text(tmp_path: Path, monkeypatch) -> N
 
 
 def test_intent_inbox_cli_ingests_configured_jsonl(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)
@@ -154,7 +154,7 @@ def test_intent_inbox_cli_ingests_configured_jsonl(tmp_path: Path, monkeypatch) 
 
 
 def test_intent_commands_show_in_help() -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     result = _invoke_help(app, ["--help"])
 

@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
-from seed_agent.media_import.store import MediaStore, _restrict_sidecar
+from media_agent.media_import.store import MediaStore, _restrict_sidecar
 
 
 def test_disappearing_sidecar_is_harmless(tmp_path, monkeypatch):

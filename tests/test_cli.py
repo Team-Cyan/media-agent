@@ -10,8 +10,8 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from seed_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
-from seed_agent.models import (
+from media_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
+from media_agent.models import (
     Decision,
     IntentKind,
     IntentSource,
@@ -22,9 +22,9 @@ from seed_agent.models import (
     ScoreBreakdown,
     TorrentCandidate,
 )
-from seed_agent.policies.category_policy import PoolUsage
-from seed_agent.sources.base import SourceIntentEvent
-from seed_agent.state import StateStore
+from media_agent.policies.category_policy import PoolUsage
+from media_agent.sources.base import SourceIntentEvent
+from media_agent.state import StateStore
 
 _HELP_ENV = {"COLUMNS": "160", "GITHUB_ACTIONS": ""}
 
@@ -74,7 +74,7 @@ def _config(secret_ref: str | None = None) -> SeedAgentConfig:
                     "budget_pool": "downloads",
                     "delete_enabled": True,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "seed"],
+                    "tags": ["media-agent", "seed"],
                 },
                 {
                     "name": "movie",
@@ -82,7 +82,7 @@ def _config(secret_ref: str | None = None) -> SeedAgentConfig:
                     "budget_pool": "media",
                     "delete_enabled": False,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "movie"],
+                    "tags": ["media-agent", "movie"],
                 },
             ],
             "budget_pools": [
@@ -133,7 +133,7 @@ def _scored(**overrides: object) -> ScoreBreakdown:
 
 
 def test_pt_batch_rejects_large_candidate_without_blocking_smaller_fit() -> None:
-    from seed_agent.cli import _enqueue_candidate_batches
+    from media_agent.cli import _enqueue_candidate_batches
 
     config = _config()
     max_size_bytes = 10 * 1024**4
@@ -177,7 +177,7 @@ def test_pt_batch_rejects_large_candidate_without_blocking_smaller_fit() -> None
 
 
 def test_apply_free_window_safety_allows_mteam_unlimited_window() -> None:
-    from seed_agent.cli import _apply_free_window_safety
+    from media_agent.cli import _apply_free_window_safety
 
     candidate = _candidate(
         site="mteam",
@@ -200,7 +200,7 @@ def test_apply_free_window_safety_allows_mteam_unlimited_window() -> None:
 
 
 def test_candidate_free_window_uses_far_future_for_unlimited_mteam_api() -> None:
-    from seed_agent.cli import _candidate_free_window_expires_at
+    from media_agent.cli import _candidate_free_window_expires_at
 
     candidate = _candidate(
         site="mteam",
@@ -220,7 +220,7 @@ def _managed_torrent(**overrides: object) -> ManagedTorrent:
         "hash": "abcd1234",
         "name": "Managed Torrent",
         "category": "seed",
-        "tags": {"seed-agent", "seed"},
+        "tags": {"media-agent", "seed"},
         "state": "uploading",
         "size_bytes": 10 * 1024 * 1024 * 1024,
         "uploaded_bytes": 512 * 1024 * 1024,
@@ -251,7 +251,7 @@ def _managed_incomplete_torrent(**overrides: object) -> ManagedTorrent:
 
 
 def test_seed_active_download_gate_ignores_media_category_torrents() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config = _config()
     config = config.model_copy(
@@ -272,7 +272,7 @@ def test_seed_active_download_gate_ignores_media_category_torrents() -> None:
 
 
 def test_zero_runtime_upper_limits_are_disabled() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config = _config()
     config = config.model_copy(
@@ -303,7 +303,7 @@ def test_zero_runtime_upper_limits_are_disabled() -> None:
 def test_qb_only_backfill_targets_prioritize_unknown_incomplete_risk(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
     torrents = [
@@ -355,7 +355,7 @@ def test_qb_only_backfill_targets_prioritize_unknown_incomplete_risk(
 def test_backfill_targets_refresh_tracked_incomplete_but_not_tracked_completed(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
     incomplete = _managed_incomplete_torrent(hash="tracked-incomplete")
@@ -376,7 +376,7 @@ def test_backfill_targets_refresh_tracked_incomplete_but_not_tracked_completed(
 
 
 def test_mteam_torrent_id_from_tracker_decodes_credential() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     credential = base64.b64encode(b"sign=abc&t=1783531016&tid=1206069&uid=123456").decode()
     torrent = _managed_torrent(
@@ -390,7 +390,7 @@ def test_mteam_torrent_id_from_tracker_decodes_credential() -> None:
 
 
 def test_mteam_batch_match_prefers_tracker_tid() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     credential = base64.b64encode(b"sign=abc&t=1783531016&tid=1206069&uid=123456").decode()
     torrent = _managed_incomplete_torrent(
@@ -426,7 +426,7 @@ async def test_backfill_uses_partial_batch_match_without_detail_fallback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     raw = _config().model_dump(mode="json")
     raw["tracker_sites"] = [
@@ -511,7 +511,7 @@ async def test_backfill_uses_partial_batch_match_without_detail_fallback(
 
 
 def test_mteam_backfill_fallback_refresh_due_uses_tracker_evidence_age(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
     torrent = _managed_incomplete_torrent()
@@ -545,7 +545,7 @@ async def test_backfill_skips_fallback_for_fresh_tracker_evidence(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     raw = _config().model_dump(mode="json")
     raw["tracker_sites"] = [
@@ -619,7 +619,7 @@ async def test_backfill_does_not_fallback_after_batch_application_error(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     raw = _config().model_dump(mode="json")
     raw["tracker_sites"] = [
@@ -688,7 +688,7 @@ async def test_backfill_does_not_fallback_after_batch_application_error(
 def test_live_reconciliation_links_unlinked_candidate_by_tracker_tid(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
     store.upsert_candidate(
@@ -721,7 +721,7 @@ def test_live_reconciliation_links_unlinked_candidate_by_tracker_tid(
 async def test_find_mteam_match_uses_tracker_tid_before_keyword_search(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     calls: list[str] = []
 
@@ -822,13 +822,13 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
     - name: movie
       mode: add_only
       budget_pool: media
       delete_enabled: false
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "movie"]
+      tags: ["media-agent", "movie"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -856,7 +856,7 @@ def _json_output(result) -> dict[str, object]:
 
 
 def test_cli_help_lists_phase_one_commands() -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     result = _invoke_help(app, ["--help"])
 
@@ -875,8 +875,8 @@ def test_cli_help_lists_phase_one_commands() -> None:
 
 
 def test_cli_version_option_reports_package_version() -> None:
-    from seed_agent import __version__
-    from seed_agent.cli import app
+    from media_agent import __version__
+    from media_agent.cli import app
 
     result = CliRunner().invoke(app, ["--version"])
 
@@ -885,7 +885,7 @@ def test_cli_version_option_reports_package_version() -> None:
 
 
 def test_enqueue_help_includes_execute_flag() -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     result = _invoke_help(app, ["enqueue", "--help"])
 
@@ -895,7 +895,7 @@ def test_enqueue_help_includes_execute_flag() -> None:
 
 @pytest.mark.parametrize("command", ["prune", "run-once"])
 def test_mutating_command_help_includes_execute_flag(command: str) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     result = _invoke_help(app, [command, "--help"])
 
@@ -904,7 +904,7 @@ def test_mutating_command_help_includes_execute_flag(command: str) -> None:
 
 
 def test_schedule_run_help_includes_interval_and_free_window_flags() -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     result = _invoke_help(app, ["schedule-run", "--help"])
 
@@ -916,7 +916,7 @@ def test_schedule_run_help_includes_interval_and_free_window_flags() -> None:
 
 
 def test_web_help_includes_local_server_options() -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     result = _invoke_help(app, ["web", "--help"])
 
@@ -931,8 +931,8 @@ def test_web_reports_actionable_port_conflict(
 ) -> None:
     import errno
 
-    import seed_agent.web.app as web_app
-    from seed_agent.cli import app
+    import media_agent.web.app as web_app
+    from media_agent.cli import app
 
     config_path = tmp_path / "config.yaml"
     config_path.write_text("mode: balanced\ntracker_sites: []\n", encoding="utf-8")
@@ -955,7 +955,7 @@ def test_web_reports_actionable_port_conflict(
 def test_discover_command_prints_safe_output_without_raw_download_url(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     config = _config()
@@ -982,7 +982,7 @@ def test_discover_command_prints_safe_output_without_raw_download_url(
 def test_schedule_run_executes_single_cycle_and_emits_schedule_metadata(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import __version__, cli
+    from media_agent import __version__, cli
 
     config_path = _config_file(tmp_path)
     heartbeat_path = tmp_path / "state" / "heartbeat.json"
@@ -1147,7 +1147,7 @@ def test_schedule_run_executes_single_cycle_and_emits_schedule_metadata(
 def test_schedule_run_can_skip_intent_cycle(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     intent_called = False
@@ -1214,7 +1214,7 @@ def test_schedule_run_can_skip_intent_cycle(
 def test_schedule_run_uses_yaml_scheduler_defaults(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -1281,7 +1281,7 @@ def test_schedule_run_uses_yaml_scheduler_defaults(
 def test_schedule_trigger_queues_only_when_live_scheduler_is_waiting(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -1311,7 +1311,7 @@ def test_schedule_trigger_queues_only_when_live_scheduler_is_waiting(
 
 
 def test_scheduler_interval_restarts_from_manual_cycle_start() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     assert (
         cli._remaining_schedule_interval_seconds(
@@ -1332,7 +1332,7 @@ def test_scheduler_interval_restarts_from_manual_cycle_start() -> None:
 
 
 def test_schedule_log_summary_preserves_manual_trigger_provenance() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     trigger = {
         "trigger_name": "schedule-run",
@@ -1355,7 +1355,7 @@ def test_schedule_log_summary_preserves_manual_trigger_provenance() -> None:
 def test_scheduler_backoff_clear_deactivates_file_and_sqlite_backoff(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     cli._record_schedule_rate_limit_backoff(
@@ -1381,7 +1381,7 @@ def test_scheduler_backoff_clear_deactivates_file_and_sqlite_backoff(
 
 
 def test_scheduler_backoff_clear_resets_every_endpoint_streak(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -1407,7 +1407,7 @@ def test_scheduler_backoff_clear_resets_every_endpoint_streak(tmp_path: Path) ->
 
 
 def test_scheduled_intent_search_runs_once_after_daily_hour() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     assert (
         cli._scheduled_intent_search_due(
@@ -1451,7 +1451,7 @@ def test_scheduled_intent_search_runs_once_after_daily_hour() -> None:
 
 
 def test_pending_normalized_intent_keeps_scheduled_search_due(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
     assert cli._pending_intent_search_due(store) is False
@@ -1472,7 +1472,7 @@ def test_pending_normalized_intent_keeps_scheduled_search_due(tmp_path: Path) ->
 
 
 def test_schedule_run_retries_ready_intents_outside_search_window(tmp_path, monkeypatch):
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     monkeypatch.setattr(cli, "_run_once_payload", lambda *a, **k: {
@@ -1510,7 +1510,7 @@ def test_schedule_run_retries_ready_intents_outside_search_window(tmp_path, monk
 def test_latest_scheduled_intent_refresh_accepts_refresh_and_legacy_search_runs(
     summary: dict[str, bool],
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     class FakeStore:
         def latest_completed_scheduler_run(
@@ -1544,7 +1544,7 @@ def test_latest_scheduled_intent_refresh_accepts_refresh_and_legacy_search_runs(
 
 
 def test_failed_scheduled_intent_refresh_is_not_a_daily_success(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
     store.start_scheduler_run(
@@ -1583,7 +1583,7 @@ def test_failed_scheduled_intent_refresh_is_not_a_daily_success(tmp_path: Path) 
 
 
 def test_scheduler_status_warns_when_tracker_backfill_is_unresolved() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     assert (
         cli._schedule_run_status({"tracker_source_backfill": {"summary": {"not_found": 1}}})
@@ -1594,7 +1594,7 @@ def test_scheduler_status_warns_when_tracker_backfill_is_unresolved() -> None:
 def test_schedule_rate_limit_backoff_escalates_without_midnight_alignment(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     local_tz = datetime.now().astimezone().tzinfo
@@ -1623,7 +1623,7 @@ def test_schedule_rate_limit_backoff_escalates_without_midnight_alignment(
 def test_successful_mteam_batch_resets_rate_limit_backoff_escalation(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     endpoint = "member/getUserTorrentList"
@@ -1666,7 +1666,7 @@ def test_successful_mteam_batch_resets_rate_limit_backoff_escalation(
 def test_successful_mteam_batch_does_not_log_without_a_rate_limit_streak(
     tmp_path: Path,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     store = StateStore(tmp_path / "state.db")
 
@@ -1695,7 +1695,7 @@ def test_mteam_batch_snapshot_success_requires_real_request_without_failure(
     payload: dict[str, object],
     expected: bool,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     assert cli._mteam_batch_snapshot_succeeded(payload) is expected
 
@@ -1704,7 +1704,7 @@ def test_schedule_run_refreshes_sources_but_skips_search_after_mteam_rate_limit(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     intent_search_modes: list[bool] = []
@@ -1792,8 +1792,8 @@ def test_schedule_run_contains_intent_mteam_rate_limit_and_finishes_run(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.sites.mteam import MTeamApiResponseError
+    from media_agent import cli
+    from media_agent.sites.mteam import MTeamApiResponseError
 
     config_path = _config_file(tmp_path)
 
@@ -1864,7 +1864,7 @@ def test_schedule_run_contains_generic_intent_search_failure_as_warning(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
 
@@ -1917,7 +1917,7 @@ def test_schedule_run_turns_intent_network_failure_into_backoff(
 ) -> None:
     import httpx
 
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     monkeypatch.setattr(
@@ -1970,7 +1970,7 @@ def test_schedule_run_does_not_apply_mteam_backoff_to_torznab_network_failure(
 ) -> None:
     import httpx
 
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     monkeypatch.setattr(
@@ -2023,7 +2023,7 @@ def test_schedule_run_records_network_backoff_after_mteam_timeout(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
 
@@ -2114,7 +2114,7 @@ def test_schedule_run_prunes_after_tracker_backfill_network_backoff(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     prune_calls: list[int | None] = []
@@ -2232,7 +2232,7 @@ def test_schedule_run_skips_work_while_backoff_is_active(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     cli._record_schedule_rate_limit_backoff(
@@ -2327,7 +2327,7 @@ def test_schedule_run_skips_work_from_sqlite_tracker_backoff(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2386,7 +2386,7 @@ def test_schedule_run_skips_work_from_sqlite_tracker_backoff(
 
 
 def test_scheduler_report_reads_runs_events_backoff_and_want_history(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2440,7 +2440,7 @@ def test_scheduler_report_reads_runs_events_backoff_and_want_history(tmp_path: P
 
 
 def test_tracker_api_report_filters_events(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2471,7 +2471,7 @@ def test_tracker_api_report_filters_events(tmp_path: Path) -> None:
 
 
 def test_config_status_and_runtime_doctor_are_read_only(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
 
@@ -2499,7 +2499,7 @@ def test_contribution_report_sorts_low_contribution_torrents(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
 
@@ -2509,7 +2509,7 @@ def test_contribution_report_sorts_low_contribution_torrents(
                 name="large-zero",
                 hash="zero",
                 category="seed",
-                tags=["seed-agent"],
+                tags=["media-agent"],
                 size_bytes=180 * 1024**3,
                 downloaded_bytes=180 * 1024**3,
                 uploaded_bytes=0,
@@ -2521,7 +2521,7 @@ def test_contribution_report_sorts_low_contribution_torrents(
                 name="useful",
                 hash="useful",
                 category="seed",
-                tags=["seed-agent"],
+                tags=["media-agent"],
                 size_bytes=20 * 1024**3,
                 downloaded_bytes=20 * 1024**3,
                 uploaded_bytes=40 * 1024**3,
@@ -2553,7 +2553,7 @@ def test_contribution_report_sorts_low_contribution_torrents(
 def test_schedule_run_can_execute_intent_cycle_when_explicit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     seen_execute: list[bool] = []
@@ -2631,7 +2631,7 @@ def test_schedule_run_can_execute_intent_cycle_when_explicit(
 def test_schedule_run_daemon_keeps_running_after_cycle_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     heartbeat_path = tmp_path / "state" / "heartbeat.json"
@@ -2678,7 +2678,7 @@ def test_schedule_run_daemon_keeps_running_after_cycle_error(
 def test_intent_run_once_reports_source_warnings(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -2733,9 +2733,9 @@ def test_intent_source_only_refresh_does_not_load_downloader_or_search_providers
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import IntentSource
-    from seed_agent.sources.base import SourceIntentEvent
+    from media_agent import cli
+    from media_agent.models import IntentSource
+    from media_agent.sources.base import SourceIntentEvent
 
     config_path = _config_file(tmp_path)
     event = SourceIntentEvent(
@@ -2789,7 +2789,7 @@ def test_intent_source_failure_does_not_commit_pending_cursor(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     cursor_key = "telegram:local/secrets/telegram.yaml"
@@ -2825,7 +2825,7 @@ def test_intent_source_warning_does_not_commit_pending_cursor(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     cursor_key = "telegram:local/secrets/telegram.yaml"
@@ -2859,7 +2859,7 @@ def test_intent_source_warning_does_not_commit_pending_cursor(
 
 
 def test_schedule_run_can_prune_each_cycle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     config_path.write_text(
@@ -3021,7 +3021,7 @@ scheduler:
 def test_schedule_run_passes_terminal_unknown_incomplete_hashes_to_prune(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     risky_hashes: list[set[str]] = []
@@ -3110,7 +3110,7 @@ def test_category_filtered_backfill_reconciles_against_all_live_torrents(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config = _config()
@@ -3158,7 +3158,7 @@ def test_prune_capacity_delete_limit_is_shared_across_mutable_categories(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     raw = _config().model_dump(mode="json")
@@ -3169,7 +3169,7 @@ def test_prune_capacity_delete_limit_is_shared_across_mutable_categories(
             "budget_pool": "downloads",
             "delete_enabled": True,
             "over_budget_behavior": "add_paused",
-            "tags": ["seed-agent", "seed-alt"],
+            "tags": ["media-agent", "seed-alt"],
         }
     )
     raw["seed_cleanup"]["max_capacity_deletes_per_run"] = 1
@@ -3227,7 +3227,7 @@ def test_prune_execute_fails_closed_when_live_pool_remains_over_hard_cap(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config = _config()
@@ -3235,7 +3235,7 @@ def test_prune_execute_fails_closed_when_live_pool_remains_over_hard_cap(
         hash="still-over",
         name="Still over",
         category="seed",
-        tags={"seed-agent", "seed"},
+        tags={"media-agent", "seed"},
         state="stalledUP",
         size_bytes=11 * 1024**4,
         uploaded_bytes=1,
@@ -3268,7 +3268,7 @@ def test_prune_execute_fails_closed_when_live_pool_remains_over_hard_cap(
 def test_schedule_run_persists_phase_order_with_shared_run_id(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     intent_run_ids: list[str | None] = []
@@ -3421,7 +3421,7 @@ def test_schedule_run_persists_phase_order_with_shared_run_id(
 def test_schedule_run_prune_uses_twice_interval_as_free_window_horizon(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     seen: list[int | None] = []
@@ -3472,7 +3472,7 @@ def test_schedule_run_prune_uses_twice_interval_as_free_window_horizon(
 
 
 def test_schedule_free_window_horizon_keeps_larger_configured_minimum() -> None:
-    from seed_agent.cli import _schedule_free_window_safety_minutes
+    from media_agent.cli import _schedule_free_window_safety_minutes
 
     assert (
         _schedule_free_window_safety_minutes(
@@ -3486,7 +3486,7 @@ def test_schedule_free_window_horizon_keeps_larger_configured_minimum() -> None:
 def test_execute_enqueue_persists_candidate_free_window_expiry(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -3540,7 +3540,7 @@ def test_execute_enqueue_persists_candidate_free_window_expiry(
 
 
 def test_duplicate_candidate_titles_keep_strongest_candidate() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     weaker = _scored(
         candidate=_candidate(
@@ -3568,7 +3568,7 @@ def test_duplicate_candidate_titles_keep_strongest_candidate() -> None:
 def test_run_once_persists_candidate_snapshot_fields(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -3617,7 +3617,7 @@ def test_run_once_persists_candidate_snapshot_fields(
 def test_run_once_applies_site_history_feedback_before_scoring(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -3678,7 +3678,7 @@ def test_run_once_applies_site_history_feedback_before_scoring(
 
 
 def test_healthcheck_reports_recent_heartbeat(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
     StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -3719,7 +3719,7 @@ def test_healthcheck_reports_recent_heartbeat(tmp_path: Path) -> None:
 
 
 def test_healthcheck_fails_for_stale_heartbeat(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
     StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -3758,7 +3758,7 @@ def test_healthcheck_fails_for_stale_heartbeat(tmp_path: Path) -> None:
 
 
 def test_healthcheck_fails_when_state_database_is_missing(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
 
@@ -3782,7 +3782,7 @@ def test_healthcheck_can_verify_the_web_endpoint(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -3828,8 +3828,8 @@ def test_healthcheck_can_verify_the_web_endpoint(
 
 
 def test_runtime_status_reports_version_config_paths_and_heartbeat(tmp_path: Path) -> None:
-    from seed_agent import __version__
-    from seed_agent.cli import app
+    from media_agent import __version__
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path, secret_ref="local/secrets/qbittorrent.yaml")
     secret_path = tmp_path / "local" / "secrets" / "qbittorrent.yaml"
@@ -3879,7 +3879,7 @@ def test_runtime_status_reports_version_config_paths_and_heartbeat(tmp_path: Pat
 def test_site_probe_reports_sparse_and_enriched_counts(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     config = SeedAgentConfig(
@@ -3948,7 +3948,7 @@ def test_site_probe_reports_sparse_and_enriched_counts(
 def test_mutating_dry_run_does_not_require_qb_secret_or_real_downloader(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path, secret_ref=None)
     config = _config()
@@ -4010,7 +4010,7 @@ def test_mutating_dry_run_does_not_require_qb_secret_or_real_downloader(
 def test_enqueue_dry_run_uses_default_category_policy(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path, secret_ref=None)
     config = _config()
@@ -4033,7 +4033,7 @@ def test_enqueue_dry_run_uses_default_category_policy(
         pause_reasons=None,
     ):
         assert policy.name == "seed"
-        assert list(policy.tags) == ["seed-agent", "seed"]
+        assert list(policy.tags) == ["media-agent", "seed"]
         assert execute is False
         assert paused is False
         assert pool_usage is None
@@ -4073,7 +4073,7 @@ def test_enqueue_dry_run_uses_default_category_policy(
 def test_prune_execute_updates_state_to_deleted_for_cold_incomplete_torrent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4126,7 +4126,7 @@ def test_prune_execute_updates_state_to_deleted_for_cold_incomplete_torrent(
 def test_prune_execute_updates_state_to_deleted_for_old_paused_incomplete_torrent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4191,7 +4191,7 @@ def test_prune_execute_updates_state_to_deleted_for_old_paused_incomplete_torren
 def test_prune_execute_uses_persisted_pause_timestamp_for_delete(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4255,7 +4255,7 @@ def test_prune_execute_uses_persisted_pause_timestamp_for_delete(
 def test_cli_runtime_files_follow_config_workspace_not_invocation_cwd(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     workspace = tmp_path / "workspace"
     runtime_cwd = tmp_path / "elsewhere"
@@ -4278,7 +4278,7 @@ def test_cli_runtime_files_follow_config_workspace_not_invocation_cwd(
 def test_prune_dry_run_does_not_update_state_store(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4312,7 +4312,7 @@ def test_prune_dry_run_does_not_update_state_store(
 def test_prune_dry_run_previews_live_torrents_without_mutation(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4372,7 +4372,7 @@ def test_prune_dry_run_previews_live_torrents_without_mutation(
 def test_prune_preview_includes_joined_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4435,7 +4435,7 @@ def test_prune_preview_includes_joined_evidence(
 def test_prune_links_live_torrent_without_existing_candidate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4470,7 +4470,7 @@ def test_prune_links_live_torrent_without_existing_candidate(
 def test_prune_links_live_torrent_to_existing_unhashed_candidate(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4533,7 +4533,7 @@ def test_prune_links_live_torrent_to_existing_unhashed_candidate(
 def test_prune_marks_deleted_candidate_present_when_seen_live(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4575,7 +4575,7 @@ def test_prune_marks_deleted_candidate_present_when_seen_live(
 def test_prune_dry_run_keeps_recently_uploaded_torrent_from_runtime_snapshot(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4638,7 +4638,7 @@ def test_prune_dry_run_keeps_recently_uploaded_torrent_from_runtime_snapshot(
 def test_prune_pool_usage_includes_add_only_categories(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4659,7 +4659,7 @@ def test_prune_pool_usage_includes_add_only_categories(
                     _managed_torrent(
                         hash="movie-hash",
                         category="movie",
-                        tags={"seed-agent", "movie"},
+                        tags={"media-agent", "movie"},
                         size_bytes=2 * 1024**4,
                     ),
                 ]
@@ -4685,7 +4685,7 @@ def test_prune_pool_usage_includes_add_only_categories(
 
 
 def test_load_policy_torrents_uses_single_qb_listing_for_multiple_categories() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config = _config(secret_ref="local/secrets/qb.yaml")
 
@@ -4713,7 +4713,7 @@ def test_load_policy_torrents_uses_single_qb_listing_for_multiple_categories() -
 
 
 def test_load_policy_torrents_keeps_category_filter_for_single_category() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config = _config(secret_ref="local/secrets/qb.yaml")
     seed_policy = config.download_client.category_policies[0]
@@ -4743,7 +4743,7 @@ def test_load_policy_torrents_keeps_category_filter_for_single_category() -> Non
 def test_review_reports_runtime_activity_summary(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4779,7 +4779,7 @@ def test_review_reports_runtime_activity_summary(
                     _managed_torrent(
                         hash="movie-paused",
                         category="movie",
-                        tags={"seed-agent", "movie"},
+                        tags={"media-agent", "movie"},
                         state="pausedUP",
                         metadata={},
                     ),
@@ -4805,7 +4805,7 @@ def test_review_reports_runtime_activity_summary(
 def test_review_reports_joined_candidate_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4870,7 +4870,7 @@ def test_review_reports_joined_candidate_evidence(
 def test_review_reconciles_missing_qb_torrents(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4920,7 +4920,7 @@ def test_review_reconciles_missing_qb_torrents(
 def test_daily_report_reports_joined_candidate_evidence(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -4969,7 +4969,7 @@ def test_daily_report_reports_joined_candidate_evidence(
 def test_strategy_report_cli_reports_candidate_distribution_and_runtime_outcomes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -5077,7 +5077,7 @@ def test_strategy_report_cli_reports_candidate_distribution_and_runtime_outcomes
 def test_run_once_dry_run_reports_runtime_activity_and_default_pool_usage(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -5152,7 +5152,7 @@ def test_run_once_dry_run_reports_runtime_activity_and_default_pool_usage(
 def test_run_once_reports_discovery_warnings(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -5203,7 +5203,7 @@ def test_run_once_reports_discovery_warnings(
 def test_enqueue_dry_run_reports_runtime_activity_and_default_pool_usage(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -5276,7 +5276,7 @@ def test_enqueue_dry_run_reports_runtime_activity_and_default_pool_usage(
 def test_prune_execute_failure_persists_prior_state_and_audit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -5342,7 +5342,7 @@ def test_prune_execute_failure_persists_prior_state_and_audit(
 def test_execute_commands_fail_when_downloader_secret_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path, secret_ref=None)
     config = _config()
@@ -5374,8 +5374,8 @@ def test_execute_commands_fail_when_downloader_secret_missing(
 def test_build_downloader_resolves_repo_relative_secret_for_config_dir_named_config(
     tmp_path: Path,
 ) -> None:
-    from seed_agent.cli import build_downloader
-    from seed_agent.config import load_config
+    from media_agent.cli import build_downloader
+    from media_agent.config import load_config
 
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -5417,7 +5417,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -5447,9 +5447,9 @@ seed_cleanup:
 
 
 def test_build_downloader_accepts_transmission_secret(tmp_path: Path) -> None:
-    from seed_agent.cli import build_downloader
-    from seed_agent.config import load_config
-    from seed_agent.downloaders.transmission import TransmissionClient
+    from media_agent.cli import build_downloader
+    from media_agent.config import load_config
+    from media_agent.downloaders.transmission import TransmissionClient
 
     secret_dir = tmp_path / "local" / "secrets"
     secret_dir.mkdir(parents=True)
@@ -5478,9 +5478,9 @@ def test_read_configured_source_events_polls_telegram_secret(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import IntentSource
-    from seed_agent.sources.base import SourceIntentEvent
+    from media_agent import cli
+    from media_agent.models import IntentSource
+    from media_agent.sources.base import SourceIntentEvent
 
     config_path = _config_file(tmp_path)
     secret = tmp_path / "local" / "secrets" / "telegram.yaml"
@@ -5503,7 +5503,7 @@ want_sources:
 
     def fake_poll(**kwargs):
         calls.append(kwargs)
-        from seed_agent.sources.telegram import TelegramPollBatch
+        from media_agent.sources.telegram import TelegramPollBatch
 
         return TelegramPollBatch(
             events=[
@@ -5554,7 +5554,7 @@ def test_configured_douban_source_keeps_local_names_when_rss_fetch_is_blocked(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     export_path = tmp_path / "local" / "inbox" / "douban.json"
@@ -5602,7 +5602,7 @@ def test_configured_douban_detail_failure_uses_matching_imdb_watchlist_event(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     config_path.write_text(
@@ -5678,7 +5678,7 @@ want_sources:
 def test_douban_rss_detail_failure_uses_unique_exact_imdb_title_without_year(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     douban_event = SourceIntentEvent(
         source=IntentSource.DOUBAN_WANTED,
@@ -5718,7 +5718,7 @@ def test_douban_rss_detail_failure_uses_unique_exact_imdb_title_without_year(
 def test_douban_rss_detail_failure_deduplicates_identical_imdb_source_events(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     douban_event = SourceIntentEvent(
         source=IntentSource.DOUBAN_WANTED,
@@ -5751,7 +5751,7 @@ def test_douban_rss_detail_failure_deduplicates_identical_imdb_source_events(
 def test_douban_rss_detail_failure_does_not_match_ambiguous_imdb_title_without_year(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     douban_event = SourceIntentEvent(
         source=IntentSource.DOUBAN_WANTED,
@@ -5787,8 +5787,8 @@ def test_configured_douban_source_reuses_persisted_subject_detail(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.actions.intent import ingest_events
+    from media_agent import cli
+    from media_agent.actions.intent import ingest_events
 
     config_path = _config_file(tmp_path)
     config_path.write_text(
@@ -5840,8 +5840,8 @@ def test_configured_douban_source_refreshes_legacy_subject_classification(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.actions.intent import ingest_events
+    from media_agent import cli
+    from media_agent.actions.intent import ingest_events
 
     stored = SourceIntentEvent(
         source=IntentSource.DOUBAN_WANTED,
@@ -5885,7 +5885,7 @@ def test_configured_douban_source_refreshes_legacy_subject_classification(
 def test_douban_detail_enrichment_is_deduplicated_within_one_refresh(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     first = SourceIntentEvent(
         source=IntentSource.DOUBAN_WANTED,
@@ -5926,7 +5926,7 @@ def test_douban_detail_enrichment_is_deduplicated_within_one_refresh(
 
 
 def test_read_configured_telegram_requires_chat_allowlist(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _config_file(tmp_path)
     secret = tmp_path / "local" / "secrets" / "telegram.yaml"
@@ -5948,7 +5948,7 @@ want_sources:
 
 
 def test_config_export_and_import_dry_run_report_changed_sections(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
     rules_path = tmp_path / "rules.yaml"
@@ -5975,7 +5975,7 @@ def test_config_export_and_import_dry_run_report_changed_sections(tmp_path: Path
 
 
 def test_config_import_execute_writes_validated_rules(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
     exported = yaml.safe_load(config_path.read_text(encoding="utf-8"))
@@ -6002,7 +6002,7 @@ def test_config_import_execute_writes_validated_rules(tmp_path: Path) -> None:
 
 
 def test_release_profiles_command_resolves_profile_overrides(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
     config_path.write_text(
@@ -6028,7 +6028,7 @@ release_profiles:
 
 
 def test_reseed_report_lists_high_score_missing_candidates(tmp_path: Path) -> None:
-    from seed_agent.cli import app
+    from media_agent.cli import app
 
     config_path = _config_file(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -6058,7 +6058,7 @@ def test_headroom_report_projects_accepted_candidate_size(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _config_file(tmp_path)
@@ -6089,8 +6089,8 @@ def test_headroom_report_flags_disk_headroom_after_existing_liability(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.downloaders.base import DownloaderStatus
+    from media_agent import cli
+    from media_agent.downloaders.base import DownloaderStatus
 
     monkeypatch.chdir(tmp_path)
     config_path = _config_file(tmp_path)
@@ -6144,7 +6144,7 @@ def test_headroom_report_flags_disk_headroom_after_existing_liability(
 
 
 def test_run_once_invoke_with_execute_flag(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _config_file(tmp_path, secret_ref="local/secrets/qb.yaml")

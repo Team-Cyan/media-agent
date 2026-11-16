@@ -6,9 +6,9 @@ Handle M-Team-specific discovery, detail enrichment, and download-token generati
 
 ## Primary Files
 
-- `src/seed_agent/sites/mteam.py`
-- `src/seed_agent/search/mteam.py`
-- `src/seed_agent/sites/rss.py`
+- `src/media_agent/sites/mteam.py`
+- `src/media_agent/search/mteam.py`
+- `src/media_agent/sites/rss.py`
 - `tests/test_mteam_site.py`
 - `tests/test_search_mteam.py`
 - `docs/specs/2026-04-24-mteam-api-driven-discovery.md`
@@ -120,7 +120,7 @@ Current fallback still present in code:
 ## Verification
 
 - `uv run pytest -q tests/test_mteam_site.py tests/test_search_mteam.py tests/test_rss_site.py`
-- `uv run seed-agent site-probe --config <mteam-config>`
+- `uv run media-agent site-probe --config <mteam-config>`
 
 ## If You Get Stuck
 

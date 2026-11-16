@@ -3,8 +3,8 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
-from seed_agent.config import SearchConfig
-from seed_agent.models import (
+from media_agent.config import SearchConfig
+from media_agent.models import (
     Discount,
     IntentKind,
     IntentSource,
@@ -13,8 +13,8 @@ from seed_agent.models import (
     ResourceIntent,
     TorrentCandidate,
 )
-from seed_agent.search.mteam import MTeamSearchProvider, resolve_mteam_release_download_url
-from seed_agent.sites.mteam import MTeamApiResponseError
+from media_agent.search.mteam import MTeamSearchProvider, resolve_mteam_release_download_url
+from media_agent.sites.mteam import MTeamApiResponseError
 
 
 def _intent(**overrides: object) -> ResourceIntent:
@@ -532,7 +532,7 @@ async def test_mteam_search_provider_can_search_episode_keywords() -> None:
 
 @pytest.mark.asyncio
 async def test_resolve_mteam_release_download_url_fetches_deferred_token(monkeypatch) -> None:
-    from seed_agent.search import mteam as mteam_search
+    from media_agent.search import mteam as mteam_search
 
     async def fake_resolve_deferred_download_url(candidate, **kwargs):
         assert kwargs["api_key"] == "secret-api-key"
@@ -581,7 +581,7 @@ async def test_resolve_mteam_release_download_url_fetches_deferred_token(monkeyp
 
 @pytest.mark.asyncio
 async def test_mteam_detail_enrichment_updates_discount() -> None:
-    from seed_agent.sites.mteam import enrich_candidates
+    from media_agent.sites.mteam import enrich_candidates
 
     candidate = TorrentCandidate(
         site="mt",

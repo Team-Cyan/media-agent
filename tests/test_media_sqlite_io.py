@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from seed_agent.media_import import sqlite_io
-from seed_agent.media_import.store import MediaStore
+from media_agent.media_import import sqlite_io
+from media_agent.media_import.store import MediaStore
 
 
 class Native:

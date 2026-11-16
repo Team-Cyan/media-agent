@@ -8,8 +8,8 @@ from test_media_runtime import media_config
 from test_media_subtitles import PAYLOAD, FakeProvider, import_three
 from test_web_settings import _running_server
 
-from seed_agent.media_import.commands import submit
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.commands import submit
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
 
 
 def test_five_unique_choices_share_one_cap_across_languages_and_keep_existing(media):
@@ -101,7 +101,7 @@ def test_covered_job_does_not_inherit_one_second_partial_provider_retry(media):
 
 
 def test_ready_commands_link_video_before_enrichment_and_without_cursor_edit(tmp_path, monkeypatch):
-    from seed_agent.media_import import worker
+    from media_agent.media_import import worker
 
     config, source, target = media_config(tmp_path)
     raw = yaml.safe_load(config.read_text())
@@ -214,7 +214,7 @@ def test_worker_error_logs_safe_sqlite_code_even_when_status_write_fails(monkeyp
 
     import pytest
 
-    from seed_agent.media_import import role_health
+    from media_agent.media_import import role_health
 
     records = []
     monkeypatch.setattr(

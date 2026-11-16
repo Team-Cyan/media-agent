@@ -10,8 +10,8 @@ import httpx
 import pytest
 import respx
 
-from seed_agent.models import TorrentCandidate
-from seed_agent.sites.mteam import (
+from media_agent.models import TorrentCandidate
+from media_agent.sites.mteam import (
     MTeamApiClient,
     MTeamApiDiscoveryOptions,
     MTeamApiResponseError,
@@ -43,7 +43,7 @@ def test_parse_api_datetime_preserves_explicit_offset() -> None:
 
 
 def test_process_wide_request_slot_enforces_minimum_spacing(monkeypatch) -> None:
-    from seed_agent.sites import mteam
+    from media_agent.sites import mteam
 
     clock = [10.0]
     sleeps: list[float] = []
@@ -64,7 +64,7 @@ def test_process_wide_request_slot_enforces_minimum_spacing(monkeypatch) -> None
 
 
 def test_mteam_request_interval_defaults_to_rate_safe_value(monkeypatch) -> None:
-    from seed_agent.sites import mteam
+    from media_agent.sites import mteam
 
     monkeypatch.delenv(mteam.MTEAM_MIN_REQUEST_INTERVAL_ENV, raising=False)
     assert mteam._mteam_min_request_interval_seconds() == 5.0

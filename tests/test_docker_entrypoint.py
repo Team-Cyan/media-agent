@@ -9,12 +9,12 @@ def test_entrypoint_adds_prune_flag_from_environment(tmp_path: Path) -> None:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     log_path = tmp_path / "argv.txt"
-    seed_agent = bin_dir / "seed-agent"
-    seed_agent.write_text(
+    media_agent = bin_dir / "media-agent"
+    media_agent.write_text(
         '#!/bin/sh\nprintf \'%s\\n\' "$@" > "$SEED_AGENT_ARGV_LOG"\n',
         encoding="utf-8",
     )
-    seed_agent.chmod(0o755)
+    media_agent.chmod(0o755)
 
     env = {
         **os.environ,
@@ -43,12 +43,12 @@ def test_entrypoint_adds_intent_execute_flag_from_environment(tmp_path: Path) ->
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     log_path = tmp_path / "argv.txt"
-    seed_agent = bin_dir / "seed-agent"
-    seed_agent.write_text(
+    media_agent = bin_dir / "media-agent"
+    media_agent.write_text(
         '#!/bin/sh\nprintf \'%s\\n\' "$@" > "$SEED_AGENT_ARGV_LOG"\n',
         encoding="utf-8",
     )
-    seed_agent.chmod(0o755)
+    media_agent.chmod(0o755)
 
     env = {
         **os.environ,
@@ -77,12 +77,12 @@ def test_entrypoint_emits_startup_runtime_status(tmp_path: Path) -> None:
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     log_path = tmp_path / "argv.txt"
-    seed_agent = bin_dir / "seed-agent"
-    seed_agent.write_text(
+    media_agent = bin_dir / "media-agent"
+    media_agent.write_text(
         '#!/bin/sh\nprintf \'%s\\n\' "$@" >> "$SEED_AGENT_ARGV_LOG"\n',
         encoding="utf-8",
     )
-    seed_agent.chmod(0o755)
+    media_agent.chmod(0o755)
 
     env = {
         **os.environ,
@@ -116,9 +116,9 @@ def _entrypoint_calls(tmp_path, arguments=(), **overrides):
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     log = tmp_path / "calls.jsonl"
-    stub = bin_dir / "seed-agent"
+    stub = bin_dir / "media-agent"
     # Use this interpreter directly; the entrypoint's PATH intentionally has no
-    # dependency on an installed seed-agent command.
+    # dependency on an installed media-agent command.
     import sys
 
     stub.write_text(
@@ -200,14 +200,16 @@ def test_media_role_cannot_launch_seed_scheduler(tmp_path):
 
 
 def test_seed_explicit_command_passthrough_still_preserves_arguments(tmp_path):
-    result, calls = _entrypoint_calls(tmp_path, ["seed-agent", "runtime-status", "--config", "a b"])
+    result, calls = _entrypoint_calls(
+        tmp_path, ["media-agent", "runtime-status", "--config", "a b"]
+    )
     assert result.returncode == 0
     assert calls == [["runtime-status", "--config", "a b"]]
 
 
 def test_explicit_command_prefix_cannot_bypass_media_role_boundary(tmp_path):
     result, calls = _entrypoint_calls(
-        tmp_path, ["seed-agent", "schedule-run"], SEED_AGENT_ROLE="media"
+        tmp_path, ["media-agent", "schedule-run"], SEED_AGENT_ROLE="media"
     )
     assert result.returncode == 2
     assert calls == []
@@ -216,6 +218,20 @@ def test_explicit_command_prefix_cannot_bypass_media_role_boundary(tmp_path):
 def test_media_deployment_cannot_healthcheck_seed_role(tmp_path):
     result, calls = _entrypoint_calls(
         tmp_path, ["healthcheck", "--role", "seed"], SEED_AGENT_ROLE="media"
+    )
+    assert result.returncode == 2
+    assert calls == []
+
+
+def test_legacy_command_prefix_preserves_arguments(tmp_path):
+    result, calls = _entrypoint_calls(tmp_path, ["seed-agent", "runtime-status", "--config", "a b"])
+    assert result.returncode == 0
+    assert calls == [["runtime-status", "--config", "a b"]]
+
+
+def test_legacy_prefix_cannot_bypass_media_role(tmp_path):
+    result, calls = _entrypoint_calls(
+        tmp_path, ["seed-agent", "schedule-run"], SEED_AGENT_ROLE="media"
     )
     assert result.returncode == 2
     assert calls == []

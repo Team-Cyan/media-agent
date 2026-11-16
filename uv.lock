@@ -633,8 +633,8 @@ wheels = [
 ]
 
 [[package]]
-name = "seed-agent"
-version = "1.0.1"
+name = "media-agent"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },

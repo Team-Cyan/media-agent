@@ -7,18 +7,18 @@ qBittorrent remains the reference implementation.
 
 ## Primary Files
 
-- `src/seed_agent/downloaders/qbittorrent.py`
-- `src/seed_agent/downloaders/transmission.py`
-- `src/seed_agent/downloaders/base.py`
-- `src/seed_agent/actions/qb.py`
-- `src/seed_agent/cli.py`
+- `src/media_agent/downloaders/qbittorrent.py`
+- `src/media_agent/downloaders/transmission.py`
+- `src/media_agent/downloaders/base.py`
+- `src/media_agent/actions/qb.py`
+- `src/media_agent/cli.py`
 - `docs/specs/qbittorrent-web-api-contract.md`
 
 ## Official Reference
 
 - qBittorrent WebUI API 5.0+: <https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-%28qBittorrent-5.0%29>
 
-`seed-agent` only targets the latest qBittorrent WebUI API. Do not add legacy
+`media-agent` only targets the latest qBittorrent WebUI API. Do not add legacy
 qBittorrent API compatibility unless the project explicitly changes that
 support policy.
 
@@ -91,7 +91,7 @@ support policy.
   infer safety from the state string alone; keep the printed candidate set as
   the source of truth.
 - If a torrent is missing from qB after previously being linked in local state,
-  record that absence locally but do not infer that seed-agent deleted it unless
+  record that absence locally but do not infer that media-agent deleted it unless
   an executed `qb.cleanup.delete` audit entry exists for the same hash.
 - Transmission is contract-tested as a second implementation, but qBittorrent is
   still the behavioral baseline for cleanup and live Unraid operations.

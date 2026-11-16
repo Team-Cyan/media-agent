@@ -1,6 +1,6 @@
 from typer.testing import CliRunner
 
-from seed_agent.cli import app
+from media_agent.cli import app
 
 
 def test_cli_help() -> None:
@@ -8,4 +8,4 @@ def test_cli_help() -> None:
 
     assert result.exit_code == 0
     expected = "Docker-first PT automation for NAS and homelab operations."
-    assert "seed-agent" in result.output or expected in result.output
+    assert "media-agent" in result.output or expected in result.output

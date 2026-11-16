@@ -23,7 +23,7 @@ if [ "$(id -u)" = "0" ] && [ -n "$PUID" ] && [ "${SEED_AGENT_PRIVILEGES_DROPPED:
   fi
   exec env \
     SEED_AGENT_PRIVILEGES_DROPPED=true \
-    HOME=/tmp/seed-agent \
+    HOME=/tmp/media-agent \
     setpriv \
       --reuid "$PUID" \
       --regid "$PGID" \
@@ -40,25 +40,25 @@ if [ -n "$PUID" ] && { [ "$(id -u)" != "$PUID" ] || [ "$(id -g)" != "$PGID" ]; }
   exit 2
 fi
 
-mkdir -p "${HOME:-/tmp/seed-agent}"
+mkdir -p "${HOME:-/tmp/media-agent}"
 
-if [ "${1:-}" = "seed-agent" ]; then
+if [ "${1:-}" = "media-agent" ] || [ "${1:-}" = "seed-agent" ]; then
   shift
   if [ "${SEED_AGENT_ROLE:-seed}" != "media" ] && [ "${1:-}" != "media-worker" ]; then
-    exec seed-agent "$@"
+    exec media-agent "$@"
   fi
 fi
 
 case "${1:-}" in
   "")
-    MODE="${SEED_AGENT_MODE:-schedule-run}"
+    MODE="${SEED_AGENT_MODE:-app}"
     ;;
   -*)
     if [ "${SEED_AGENT_ROLE:-seed}" = "media" ]; then
       echo "media role requires an explicit media command" >&2
       exit 2
     fi
-    exec seed-agent "$@"
+    exec media-agent "$@"
     ;;
   *)
     MODE="$1"
@@ -81,6 +81,22 @@ STARTUP_STATUS="${SEED_AGENT_STARTUP_STATUS:-true}"
 WEB_ENABLED="${SEED_AGENT_WEB_ENABLED:-false}"
 WEB_HOST="${SEED_AGENT_WEB_HOST:-0.0.0.0}"
 WEB_PORT="${SEED_AGENT_WEB_PORT:-8765}"
+
+# Unified mode retains the identity guard above and never starts the legacy background Web.
+if [ "$MODE" = "app" ] || [ "$MODE" = "app-healthcheck" ]; then
+  if [ "${SEED_AGENT_ROLE:-seed}" != "seed" ]; then
+    echo "media role requires media-worker, healthcheck or runtime-status" >&2
+    exit 2
+  fi
+  if [ "$#" -ne 0 ]; then
+    echo "$MODE does not accept additional arguments" >&2
+    exit 2
+  fi
+  if [ "$MODE" = "app-healthcheck" ]; then
+    exec python -m media_agent.supervisor healthcheck --config "$CONFIG_PATH"
+  fi
+  exec python -m media_agent.supervisor run --config "$CONFIG_PATH"
+fi
 
 ROLE="${SEED_AGENT_ROLE:-seed}"
 if [ "$MODE" = "media-worker" ]; then
@@ -192,7 +208,7 @@ startup_status() {
   if [ "$ROLE" = "seed" ] && [ -n "$MAX_STALENESS_MINUTES" ]; then
     set -- "$@" --max-staleness-minutes "$MAX_STALENESS_MINUTES"
   fi
-  seed-agent "$@" || true
+  media-agent "$@" || true
 }
 
 if [ "$STARTUP_STATUS" = "true" ] && [ "$MODE" != "healthcheck" ]; then
@@ -201,8 +217,8 @@ if [ "$STARTUP_STATUS" = "true" ] && [ "$MODE" != "healthcheck" ]; then
 fi
 
 if [ "$ROLE" = "seed" ] && [ "$WEB_ENABLED" = "true" ] && [ "$MODE" != "web" ] && [ "$MODE" != "healthcheck" ]; then
-  echo "Starting seed-agent web UI at http://$WEB_HOST:$WEB_PORT"
-  seed-agent web --config "$CONFIG_PATH" --host "$WEB_HOST" --port "$WEB_PORT" &
+  echo "Starting media-agent web UI at http://$WEB_HOST:$WEB_PORT"
+  media-agent web --config "$CONFIG_PATH" --host "$WEB_HOST" --port "$WEB_PORT" &
 fi
 
-exec seed-agent "$MODE" --config "$CONFIG_PATH" "$@"
+exec media-agent "$MODE" --config "$CONFIG_PATH" "$@"

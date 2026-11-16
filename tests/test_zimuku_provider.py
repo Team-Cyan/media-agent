@@ -2,8 +2,8 @@
 import httpx
 import pytest
 
-from seed_agent.media_import.subtitles.provider import Candidate, ProviderError
-from seed_agent.media_import.subtitles.zimuku import Zimuku, _valid_url
+from media_agent.media_import.subtitles.provider import Candidate, ProviderError
+from media_agent.media_import.subtitles.zimuku import Zimuku, _valid_url
 
 MAPPING = {
     "media_type": "movie",
@@ -19,7 +19,7 @@ SOURCE = {"original_release": RELEASE}
 def use_http(monkeypatch, handler):
     client = httpx.Client
     monkeypatch.setattr(
-        "seed_agent.media_import.subtitles.zimuku.httpx.Client",
+        "media_agent.media_import.subtitles.zimuku.httpx.Client",
         lambda **kwargs: client(transport=httpx.MockTransport(handler), **kwargs),
     )
 
@@ -165,9 +165,9 @@ def test_payload_size_is_bounded(monkeypatch):
 
 
 def test_optional_runtime_registration_needs_no_secret_and_keeps_all_four(tmp_path):
-    from seed_agent.media_import.config import MediaImportConfig
-    from seed_agent.media_import.runtime import build_subtitle_provider
-    from seed_agent.media_import.subtitles.pool import ProviderPool
+    from media_agent.media_import.config import MediaImportConfig
+    from media_agent.media_import.runtime import build_subtitle_provider
+    from media_agent.media_import.subtitles.pool import ProviderPool
 
     assert build_subtitle_provider(MediaImportConfig(), tmp_path) is None
     options = MediaImportConfig(
@@ -270,7 +270,7 @@ def test_404_challenge_retains_status_and_attempt(monkeypatch, payload):
 
 @pytest.mark.parametrize("html", ["<div>" * 65, "<a></a>" * 1001, "<br>" * 10001])
 def test_structural_html_limits_fail_before_unbounded_parser_growth(html):
-    from seed_agent.media_import.subtitles.zimuku import _parse
+    from media_agent.media_import.subtitles.zimuku import _parse
 
     with pytest.raises(ProviderError, match="retrying") as error:
         _parse(html.encode(), "search")

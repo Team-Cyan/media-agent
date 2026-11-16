@@ -22,7 +22,7 @@ def render_wants(language, *, items=None, filters=None, loading=False, error=Non
     node = shutil.which("node")
     if node is None:
         pytest.skip("Node.js is required for Want JavaScript behavior tests")
-    source = Path("src/seed_agent/web/static/app.js").read_text()
+    source = Path("src/media_agent/web/static/app.js").read_text()
     snippets = [
         source[source.index("const copy ="):
                source.index("const settingsPanelsByLanguage =")],

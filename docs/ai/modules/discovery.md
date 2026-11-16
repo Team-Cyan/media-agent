@@ -6,11 +6,11 @@ Turn external site-specific list sources into `TorrentCandidate` objects.
 
 ## Primary Files
 
-- `src/seed_agent/sites/rss.py`
-- `src/seed_agent/sites/mteam.py`
-- `src/seed_agent/actions/pt.py`
-- `src/seed_agent/search/rss.py`
-- `src/seed_agent/search/mteam.py`
+- `src/media_agent/sites/rss.py`
+- `src/media_agent/sites/mteam.py`
+- `src/media_agent/actions/pt.py`
+- `src/media_agent/search/rss.py`
+- `src/media_agent/search/mteam.py`
 
 ## Current Responsibilities
 
@@ -41,8 +41,8 @@ Turn external site-specific list sources into `TorrentCandidate` objects.
 ## Verification
 
 - `uv run pytest -q tests/test_rss_site.py tests/test_pt_actions.py tests/test_search_rss.py`
-- `uv run seed-agent discover --config <config>`
-- `uv run seed-agent site-probe --config <config>`
+- `uv run media-agent discover --config <config>`
+- `uv run media-agent site-probe --config <config>`
 
 ## Near-Term Work
 

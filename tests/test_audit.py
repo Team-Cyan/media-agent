@@ -1,8 +1,8 @@
 import stat
 from pathlib import Path
 
-from seed_agent.audit import AuditLogger, redact_payload, redact_sensitive_text
-from seed_agent.models import Decision
+from media_agent.audit import AuditLogger, redact_payload, redact_sensitive_text
+from media_agent.models import Decision
 
 
 def test_redact_sensitive_text_masks_credentials_in_urls_and_assignments() -> None:

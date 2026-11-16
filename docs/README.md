@@ -47,7 +47,7 @@ This repository keeps durable project knowledge under `docs/`.
 8. `docs/operations/docker-image-publishing.md`
 9. `docs/operations/release-process.md`
 10. `deploy/docker-compose.example.yml`
-11. `deploy/seed-agent.env.example`
+11. `deploy/media-agent.env.example`
 12. `docs/operations/phase-1-usage.md` or `docs/operations/phase-2-usage.md`
 
 ### For agents

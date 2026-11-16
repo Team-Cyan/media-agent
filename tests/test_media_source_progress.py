@@ -1,7 +1,7 @@
 from test_media_import import media as media
 from test_media_subtitles import import_three
 
-from seed_agent.media_import.source_progress import source_progress
+from media_agent.media_import.source_progress import source_progress
 
 
 def test_source_progress_partitions_latest_configured_generations(media):

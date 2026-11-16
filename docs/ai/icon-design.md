@@ -1,11 +1,11 @@
 # Agent Icon Design Standard
 
-This document defines how the `seed-agent` icon implements the current agent
+This document defines how the `media-agent` icon implements the current agent
 icon family standard.
 
 ## Scope And Ownership
 
-- Ordinary `seed-agent` icon work applies and validates this standard only in
+- Ordinary `media-agent` icon work applies and validates this standard only in
   this repository. It does not require inspecting or modifying sibling repos.
 - The values in this document remain fixed until the user explicitly requests
   a family-standard change.
@@ -31,8 +31,8 @@ model or edit a PNG as the canonical source.
 ## Reference Contract
 
 - Public URL:
-  `https://raw.githubusercontent.com/Team-Cyan/seed-agent/main/docs/assets/icon.png`
-- DockerMan template: `deploy/unraid/seed-agent.xml`
+  `https://raw.githubusercontent.com/Team-Cyan/media-agent/main/docs/assets/icon.png`
+- DockerMan template: `deploy/unraid/media-agent.xml`
 - OCI image metadata: `Dockerfile`
 - Compose OCI metadata: `deploy/docker-compose.example.yml`
 - Web UI favicon and sidebar: `/static/icon.png`
@@ -69,7 +69,7 @@ textures, or opaque corner backgrounds.
 The visible subject may contain negative space, but its outer geometry must fit
 the shared frame. Preserve comparable visual weight at 64 px and 256 px.
 
-The `seed-agent` subject is a controller/core mark. Preserve that product
+The `media-agent` subject is a controller/core mark. Preserve that product
 meaning when refining the foreground.
 
 ## Deterministic Export

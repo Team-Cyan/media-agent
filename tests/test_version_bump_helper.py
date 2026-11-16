@@ -19,7 +19,7 @@ def test_bump_version_updates_release_metadata(tmp_path: Path) -> None:
         "VERSION",
         "Dockerfile",
         "pyproject.toml",
-        "src/seed_agent/__init__.py",
+        "src/media_agent/__init__.py",
         "uv.lock",
         "docs/operations/release-process.md",
         "tests/test_package_import.py",
@@ -36,7 +36,7 @@ def test_bump_version_updates_release_metadata(tmp_path: Path) -> None:
         "VERSION",
         "Dockerfile",
         "pyproject.toml",
-        "src/seed_agent/__init__.py",
+        "src/media_agent/__init__.py",
         "uv.lock",
         "docs/operations/release-process.md",
         "tests/test_package_import.py",
@@ -44,10 +44,10 @@ def test_bump_version_updates_release_metadata(tmp_path: Path) -> None:
     assert (tmp_path / "VERSION").read_text(encoding="utf-8") == "1.2.3\n"
     assert "ARG VERSION=1.2.3" in (tmp_path / "Dockerfile").read_text(encoding="utf-8")
     assert 'version = "1.2.3"' in (tmp_path / "pyproject.toml").read_text(encoding="utf-8")
-    assert '__version__ = "1.2.3"' in (tmp_path / "src/seed_agent/__init__.py").read_text(
+    assert '__version__ = "1.2.3"' in (tmp_path / "src/media_agent/__init__.py").read_text(
         encoding="utf-8",
     )
-    assert 'name = "seed-agent"\nversion = "1.2.3"' in (tmp_path / "uv.lock").read_text(
+    assert 'name = "media-agent"\nversion = "1.2.3"' in (tmp_path / "uv.lock").read_text(
         encoding="utf-8",
     )
     assert "The current release line is `1.2.3`." in (

@@ -3,8 +3,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seed_agent.models import Discount, IntentState, ReleaseCandidate
-from seed_agent.state import StateStore
+from media_agent.models import Discount, IntentState, ReleaseCandidate
+from media_agent.state import StateStore
 
 
 def _write_config(tmp_path: Path) -> Path:
@@ -43,7 +43,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -98,7 +98,7 @@ class _FakeSearchProvider:
 
 
 def test_intent_search_rank_and_review_cli_flow(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -151,7 +151,7 @@ def test_intent_search_rank_and_review_cli_flow(tmp_path: Path, monkeypatch) -> 
 
 
 def test_intent_search_missing_intent_exits_nonzero(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(cli, "_build_search_providers", lambda config: [_FakeSearchProvider()])
@@ -170,8 +170,8 @@ def test_build_search_providers_uses_mteam_api_for_intent_search(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.search.mteam import MTeamSearchProvider
+    from media_agent import cli
+    from media_agent.search.mteam import MTeamSearchProvider
 
     monkeypatch.chdir(tmp_path)
     secret = tmp_path / "local" / "secrets" / "mt.api-key"
@@ -217,8 +217,8 @@ def test_build_search_providers_uses_torznab_provider(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.search.torznab import TorznabSearchProvider
+    from media_agent import cli
+    from media_agent.search.torznab import TorznabSearchProvider
 
     monkeypatch.chdir(tmp_path)
     secret = tmp_path / "local" / "secrets" / "torznab-api-key.txt"

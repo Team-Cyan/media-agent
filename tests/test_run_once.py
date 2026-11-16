@@ -6,17 +6,17 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seed_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
-from seed_agent.downloaders.base import DownloaderStatus
-from seed_agent.models import (
+from media_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
+from media_agent.downloaders.base import DownloaderStatus
+from media_agent.models import (
     Decision,
     LifecycleState,
     ManagedTorrent,
     ScoreBreakdown,
     TorrentCandidate,
 )
-from seed_agent.policies.category_policy import PoolUsage
-from seed_agent.state import StateStore
+from media_agent.policies.category_policy import PoolUsage
+from media_agent.state import StateStore
 
 
 def _config(
@@ -67,7 +67,7 @@ def _config(
                     "budget_pool": "downloads",
                     "delete_enabled": True,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "seed"],
+                    "tags": ["media-agent", "seed"],
                 }
             ],
             "budget_pools": [{"name": "downloads", "max_size_tib": 10}],
@@ -157,7 +157,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -190,7 +190,7 @@ password: s3cr3t
 
 
 def test_enqueue_batch_hard_pool_limit_is_exact_to_one_byte() -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     first = _scored(candidate=_candidate(size_bytes=1), score=95)
     second = _scored(
@@ -219,13 +219,13 @@ def test_enqueue_batch_hard_pool_limit_is_exact_to_one_byte() -> None:
 def test_capacity_guard_triggers_prune_when_mutable_pool_is_over_budget(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     torrent = ManagedTorrent(
         hash="over-budget",
         name="Over budget",
         category="seed",
-        tags={"seed-agent", "seed"},
+        tags={"media-agent", "seed"},
         state="stalledUP",
         size_bytes=11 * 1024**4,
         uploaded_bytes=1,
@@ -264,7 +264,7 @@ def test_capacity_guard_triggers_prune_when_mutable_pool_is_over_budget(
 
 
 def test_capacity_guard_wait_checks_between_full_cycles(monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     sleeps: list[int] = []
     checks: list[bool] = []
@@ -298,7 +298,7 @@ def test_capacity_guard_wait_checks_between_full_cycles(monkeypatch) -> None:
 
 
 def test_capacity_guard_wait_survives_transient_downloader_failure(monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     outputs: list[dict[str, object]] = []
     attempts = 0
@@ -343,7 +343,7 @@ def _json_output(result) -> dict[str, object]:
 
 
 def test_run_once_dry_run_updates_state_and_redacts_audit(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -415,7 +415,7 @@ def test_run_once_dry_run_updates_state_and_redacts_audit(tmp_path: Path, monkey
 def test_run_once_execute_reads_secret_and_preserves_state_monotonically(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -509,7 +509,7 @@ def test_run_once_execute_reads_secret_and_preserves_state_monotonically(
 def test_run_once_execute_marks_enqueued_without_hash_and_preserves_it_on_dry_run(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -569,7 +569,7 @@ def test_run_once_execute_marks_enqueued_without_hash_and_preserves_it_on_dry_ru
 def test_run_once_execute_resolves_hash_when_qb_add_returns_ok_only(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -595,7 +595,7 @@ def test_run_once_execute_resolves_hash_when_qb_add_returns_ok_only(
                     hash="fedcba9876543210fedcba9876543210fedcba98",
                     name=_candidate().title,
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="downloading",
                     size_bytes=_candidate().size_bytes,
                     uploaded_bytes=0,
@@ -638,7 +638,7 @@ def test_run_once_execute_resolves_hash_when_qb_add_returns_ok_only(
 def test_run_once_execute_failure_persists_prior_state_and_audit(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -714,7 +714,7 @@ def test_run_once_execute_failure_persists_prior_state_and_audit(
 
 
 def test_run_once_execute_missing_secret_exits_non_zero(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -739,7 +739,7 @@ def test_run_once_execute_missing_secret_exits_non_zero(tmp_path: Path, monkeypa
 
 
 def test_run_once_skips_previously_enqueued_candidate(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -790,8 +790,8 @@ def test_run_once_skips_previously_enqueued_candidate(tmp_path: Path, monkeypatc
 
 
 def test_run_once_links_existing_live_torrent_before_enqueue(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
 
@@ -822,7 +822,7 @@ def test_run_once_links_existing_live_torrent_before_enqueue(tmp_path: Path, mon
                     hash=live_hash,
                     name=candidate.title,
                     category="seed",
-                    tags={"seed-agent", "seed", "site:demo-free"},
+                    tags={"media-agent", "seed", "site:demo-free"},
                     state="downloading",
                     size_bytes=candidate.size_bytes,
                     uploaded_bytes=0,
@@ -865,7 +865,7 @@ def test_run_once_links_existing_live_torrent_before_enqueue(tmp_path: Path, mon
 
 
 def test_run_once_rejects_candidate_below_execute_free_window(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -910,8 +910,8 @@ def test_run_once_rejects_candidate_below_execute_free_window(tmp_path: Path, mo
 def test_run_once_dry_run_pauses_enqueue_when_runtime_download_gate_exceeded(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
 
@@ -953,7 +953,7 @@ def test_run_once_dry_run_pauses_enqueue_when_runtime_download_gate_exceeded(
                     hash="seed-active",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="downloading",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=1,
@@ -994,8 +994,8 @@ def test_run_once_dry_run_pauses_enqueue_when_runtime_download_gate_exceeded(
 def test_run_once_dry_run_uses_raw_amount_left_for_runtime_gate(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
 
@@ -1039,7 +1039,7 @@ def test_run_once_dry_run_uses_raw_amount_left_for_runtime_gate(
                     hash="seed-active",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="stalledDL",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=1,
@@ -1083,7 +1083,7 @@ def test_run_once_dry_run_uses_raw_amount_left_for_runtime_gate(
 def test_run_once_pauses_when_existing_download_liability_exceeds_free_disk(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _config_file(tmp_path, secret_ref="local/secrets/qb.yaml")
@@ -1119,7 +1119,7 @@ def test_run_once_pauses_when_existing_download_liability_exceeds_free_disk(
                     hash="seed-active",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="stalledDL",
                     size_bytes=30 * 1024**3,
                     uploaded_bytes=0,
@@ -1165,8 +1165,8 @@ def test_run_once_pauses_when_existing_download_liability_exceeds_free_disk(
 def test_run_once_capacity_prune_refreshes_runtime_before_enqueue(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
 
@@ -1220,7 +1220,7 @@ def test_run_once_capacity_prune_refreshes_runtime_before_enqueue(
                         hash="seed-active",
                         name="Managed Torrent",
                         category="seed",
-                        tags={"seed-agent", "seed"},
+                        tags={"media-agent", "seed"},
                         state="stalledDL",
                         size_bytes=10 * 1024**3,
                         uploaded_bytes=0,
@@ -1315,8 +1315,8 @@ def test_run_once_capacity_prune_refreshes_runtime_before_enqueue(
 def test_run_once_dry_run_ignores_zero_progress_stopped_queue_for_runtime_gate(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
 
@@ -1357,7 +1357,7 @@ def test_run_once_dry_run_ignores_zero_progress_stopped_queue_for_runtime_gate(
                     hash="seed-queued",
                     name="Queued Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="stoppedDL",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=0,
@@ -1398,7 +1398,7 @@ def test_run_once_dry_run_ignores_zero_progress_stopped_queue_for_runtime_gate(
 def test_run_once_dry_run_starts_higher_score_candidates_before_pausing_over_budget(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
 
@@ -1470,8 +1470,8 @@ def test_run_once_dry_run_starts_higher_score_candidates_before_pausing_over_bud
 def test_run_once_dry_run_counts_stalled_downloads_for_runtime_gate(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent import cli
-    from seed_agent.models import ManagedTorrent
+    from media_agent import cli
+    from media_agent.models import ManagedTorrent
 
     monkeypatch.chdir(tmp_path)
 
@@ -1512,7 +1512,7 @@ def test_run_once_dry_run_counts_stalled_downloads_for_runtime_gate(
                     hash="seed-stalled",
                     name="Managed Torrent",
                     category="seed",
-                    tags={"seed-agent", "seed"},
+                    tags={"media-agent", "seed"},
                     state="stalledDL",
                     size_bytes=10 * 1024**3,
                     uploaded_bytes=1,

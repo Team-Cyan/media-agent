@@ -2,8 +2,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from seed_agent.config import IntentConfig, SearchConfig
-from seed_agent.models import (
+from media_agent.config import IntentConfig, SearchConfig
+from media_agent.models import (
     Discount,
     IntentKind,
     IntentSource,
@@ -11,7 +11,7 @@ from seed_agent.models import (
     ReleaseCandidate,
     ResourceIntent,
 )
-from seed_agent.policies.intent_ranking import rank_releases
+from media_agent.policies.intent_ranking import rank_releases
 
 
 @pytest.mark.parametrize("title,reason", [
@@ -20,7 +20,7 @@ from seed_agent.policies.intent_ranking import rank_releases
     ("Show 2026 1080p", "missing_season_pack_marker"),
 ])
 def test_filter_log_describes_the_actual_rejection_branch(monkeypatch, title, reason):
-    from seed_agent.policies import intent_ranking
+    from media_agent.policies import intent_ranking
 
     events = []
     monkeypatch.setattr(intent_ranking, "log_event",

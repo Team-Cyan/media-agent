@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from seed_agent.downloaders.base import DownloaderStatus
-from seed_agent.models import ManagedTorrent, ReleaseCandidate
+from media_agent.downloaders.base import DownloaderStatus
+from media_agent.models import ManagedTorrent, ReleaseCandidate
 
 
 class RecordingDownloader:

@@ -43,10 +43,10 @@ def test_ci_workflow_has_python_and_docker_smoke_gates() -> None:
     assert "uv run ruff check ." in step_text
     assert "uv run pytest -q" in step_text
     assert "uv run --with pip-audit pip-audit --strict --local" in step_text
-    assert "docker compose --env-file deploy/seed-agent.env.example" in step_text
+    assert "docker compose --env-file deploy/media-agent.env.example" in step_text
     build_step = next(step for step in job_steps if step["name"] == "Build Docker image")
     assert (
-        'docker build --build-arg REVISION="${{ github.sha }}" -t seed-agent:ci .'
+        'docker build --build-arg REVISION="${{ github.sha }}" -t media-agent:ci .'
         in build_step["run"]
     )
     image_step = next(
@@ -62,7 +62,7 @@ def test_ci_workflow_has_python_and_docker_smoke_gates() -> None:
     assert "StateStore(" in step_text
     assert "/app/.seed-agent/state.db" in step_text
     assert '"${state_dir}:/app/.seed-agent"' in step_text
-    assert "seed-agent:ci healthcheck --config /app/config/example.yaml" in step_text
+    assert "media-agent:ci healthcheck --config /app/config/example.yaml" in step_text
     assert workflow["concurrency"]["cancel-in-progress"] is True
     assert workflow["jobs"]["test"]["timeout-minutes"] == 30
 

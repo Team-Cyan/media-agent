@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.observability import (
+from media_agent.observability import (
     JsonLogFormatter,
     RuntimeFileHandler,
     configure_logging,
@@ -23,7 +23,7 @@ from seed_agent.observability import (
 
 @pytest.fixture(autouse=True)
 def restore_logging():
-    logger = logging.getLogger("seed_agent")
+    logger = logging.getLogger("media_agent")
     handlers, level, propagate = logger.handlers[:], logger.level, logger.propagate
     yield
     for handler in logger.handlers[:]:
@@ -36,7 +36,7 @@ def restore_logging():
 
 def test_json_log_formatter_redacts_credentials_and_urls() -> None:
     record = logging.LogRecord(
-        "seed_agent.search.mteam",
+        "media_agent.search.mteam",
         logging.INFO,
         __file__,
         1,
@@ -106,15 +106,15 @@ def test_context_is_nested_and_thread_isolated(tmp_path: Path) -> None:
 
 
 def test_runtime_rotation_is_bounded_and_tail_merges_backups(tmp_path: Path) -> None:
-    from seed_agent.observability import RUNTIME_LOG_NAME
-    from seed_agent.web.app import _runtime_log_entries
+    from media_agent.observability import RUNTIME_LOG_NAME
+    from media_agent.web.app import _runtime_log_entries
 
     path = tmp_path / ".seed-agent" / RUNTIME_LOG_NAME
     handlers = [RuntimeFileHandler(path, max_bytes=1024) for _ in range(2)]
     for handler in handlers:
         handler.setFormatter(JsonLogFormatter())
     for index in range(50):
-        record = logging.LogRecord("seed_agent.test", logging.INFO, __file__, 1,
+        record = logging.LogRecord("media_agent.test", logging.INFO, __file__, 1,
                                    f"test.{index}", (), None)
         handlers[index % 2].handle(record)
     files = list(path.parent.glob("runtime-events.jsonl*"))
@@ -166,7 +166,7 @@ def test_oversized_event_name_cannot_exceed_runtime_file_limit(tmp_path: Path) -
     path = tmp_path / "events.jsonl"
     handler = RuntimeFileHandler(path, max_bytes=1024)
     handler.setFormatter(JsonLogFormatter())
-    record = logging.LogRecord("seed_agent.test", logging.ERROR, __file__, 1, "x" * 8192, (), None)
+    record = logging.LogRecord("media_agent.test", logging.ERROR, __file__, 1, "x" * 8192, (), None)
     handler.handle(record)
     assert path.stat().st_size <= 1024
     row = json.loads(path.read_text())
@@ -178,7 +178,7 @@ def test_runtime_file_can_encode_unpaired_surrogate(tmp_path: Path) -> None:
     path = tmp_path / "events.jsonl"
     handler = RuntimeFileHandler(path)
     handler.setFormatter(JsonLogFormatter())
-    record = logging.LogRecord("seed_agent.test", logging.INFO, __file__, 1, "surrogate", (), None)
+    record = logging.LogRecord("media_agent.test", logging.INFO, __file__, 1, "surrogate", (), None)
     record.details = {"text": "bad unicode \ud800"}
     handler.handle(record)
     assert json.loads(path.read_text())["event"] == "surrogate"
@@ -189,11 +189,11 @@ def test_runtime_multiple_processes_append_complete_records(tmp_path: Path) -> N
     code = """
 import logging, sys
 from pathlib import Path
-from seed_agent.observability import RuntimeFileHandler, JsonLogFormatter
+from media_agent.observability import RuntimeFileHandler, JsonLogFormatter
 handler = RuntimeFileHandler(Path(sys.argv[1]))
 handler.setFormatter(JsonLogFormatter())
 for index in range(40):
-    handler.handle(logging.LogRecord('seed_agent.test', logging.INFO, '', 1,
+    handler.handle(logging.LogRecord('media_agent.test', logging.INFO, '', 1,
                                     f'{sys.argv[2]}.{index}', (), None))
 """
     with ThreadPoolExecutor(max_workers=3) as pool:
@@ -207,7 +207,7 @@ for index in range(40):
 
 
 def test_runtime_unreadable_tail_does_not_hide_other_sources(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent.web import app
+    from media_agent.web import app
 
     def unreadable(*args, **kwargs):
         raise PermissionError("private location")
@@ -228,7 +228,7 @@ def test_exception_and_non_json_values_are_redacted() -> None:
         raise RuntimeError("Authorization: Bearer hidden-bearer")
     except RuntimeError:
         import sys
-        record = logging.LogRecord("seed_agent.test", logging.ERROR, __file__, 1,
+        record = logging.LogRecord("media_agent.test", logging.ERROR, __file__, 1,
                                    "failed token=hidden-token", (), sys.exc_info())
     record.details = {"object": SecretObject(), "nested": [{"password": "hidden-password"}]}
     formatted = JsonLogFormatter().format(record)
@@ -256,9 +256,9 @@ async def test_search_failure_redacts_validation_input_at_the_first_log_boundary
 ) -> None:
     from pydantic import BaseModel, ValidationError
 
-    from seed_agent.actions.intent import add_intent, search_intents_batch
-    from seed_agent.config import IntentConfig, SearchConfig
-    from seed_agent.state import StateStore
+    from media_agent.actions.intent import add_intent, search_intents_batch
+    from media_agent.config import IntentConfig, SearchConfig
+    from media_agent.state import StateStore
 
     class Response(BaseModel):
         enabled: bool
@@ -287,8 +287,8 @@ async def test_search_failure_redacts_validation_input_at_the_first_log_boundary
 def test_exception_summaries_and_runtime_status_omit_validation_input(monkeypatch) -> None:
     from pydantic import BaseModel, ValidationError
 
-    from seed_agent import cli
-    from seed_agent.actions import pt, qb
+    from media_agent import cli
+    from media_agent.actions import pt, qb
 
     class Draft(BaseModel):
         enabled: bool

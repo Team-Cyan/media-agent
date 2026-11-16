@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
-from seed_agent.models import Discount, ManagedTorrent, ScoreBreakdown, TorrentCandidate
+from media_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
+from media_agent.models import Discount, ManagedTorrent, ScoreBreakdown, TorrentCandidate
 
 
 async def _accept_mteam_preflight(
@@ -81,7 +81,7 @@ def _config(cookie_ref: str | None = None, api_key_ref: str | None = None) -> Se
                     "budget_pool": "downloads",
                     "delete_enabled": True,
                     "over_budget_behavior": "add_paused",
-                    "tags": ["seed-agent", "seed"],
+                    "tags": ["media-agent", "seed"],
                 }
             ],
             "budget_pools": [{"name": "downloads", "max_size_tib": 10}],
@@ -99,7 +99,7 @@ def _config(cookie_ref: str | None = None, api_key_ref: str | None = None) -> Se
 
 
 def test_score_candidates_returns_structured_breakdown() -> None:
-    from seed_agent.actions.pt import score_candidates
+    from media_agent.actions.pt import score_candidates
 
     scored = score_candidates(
         [_candidate()],
@@ -114,7 +114,7 @@ def test_score_candidates_returns_structured_breakdown() -> None:
 
 
 def test_apply_site_history_feedback_sets_candidate_metadata_when_available() -> None:
-    from seed_agent.actions.pt import apply_site_history_feedback
+    from media_agent.actions.pt import apply_site_history_feedback
 
     explicit = _candidate(
         source_url="https://tracker.example/details.php?id=2",
@@ -133,7 +133,7 @@ def test_apply_site_history_feedback_sets_candidate_metadata_when_available() ->
 
 @pytest.mark.asyncio
 async def test_discover_candidates_skips_disabled_sites_and_calls_enabled_site(monkeypatch) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     calls: list[tuple[str, str, str | None, str | None, str]] = []
 
@@ -159,7 +159,7 @@ async def test_discover_candidates_skips_disabled_sites_and_calls_enabled_site(m
 
 @pytest.mark.asyncio
 async def test_discover_candidates_keeps_going_when_one_site_fails(monkeypatch) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     config = SeedAgentConfig(
         mode="balanced",
@@ -221,7 +221,7 @@ async def test_discover_candidates_keeps_going_when_one_site_fails(monkeypatch) 
 
 @pytest.mark.asyncio
 async def test_discover_candidates_clears_runtime_warnings_on_success(monkeypatch) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     async def fail_fetch_rss_candidates(*args, **kwargs):
         raise RuntimeError("temporary")
@@ -242,7 +242,7 @@ async def test_discover_candidates_clears_runtime_warnings_on_success(monkeypatc
 
 @pytest.mark.asyncio
 async def test_discover_candidates_reads_cookie_ref(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     cookie_path = tmp_path / "cookie.txt"
     cookie_path.write_text("session=abc123\n", encoding="utf-8")
@@ -272,15 +272,15 @@ async def test_discover_candidates_reads_cookie_ref(tmp_path: Path, monkeypatch)
 async def test_discover_candidates_resolves_relative_cookie_ref_against_config_path(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
-    from seed_agent.config import load_config
+    from media_agent.actions import pt as pt_actions
+    from media_agent.config import load_config
 
     config_dir = tmp_path / "config-root"
     cookie_path = config_dir / "local" / "secrets" / "demo.cookie"
     cookie_path.parent.mkdir(parents=True)
     cookie_path.write_text("session=relative-cookie\n", encoding="utf-8")
 
-    config_path = config_dir / "seed-agent.yaml"
+    config_path = config_dir / "media-agent.yaml"
     config_path.write_text(
         """
 mode: balanced
@@ -315,7 +315,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -361,8 +361,8 @@ seed_cleanup:
 async def test_discover_candidates_resolves_repo_relative_site_secret_for_config_dir_named_config(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
-    from seed_agent.config import load_config
+    from media_agent.actions import pt as pt_actions
+    from media_agent.config import load_config
 
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -416,7 +416,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -449,8 +449,8 @@ seed_cleanup:
 async def test_discover_candidates_expands_mteam_api_modes_and_deduplicates(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
-    from seed_agent.config import load_config
+    from media_agent.actions import pt as pt_actions
+    from media_agent.config import load_config
 
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -506,7 +506,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -546,8 +546,8 @@ seed_cleanup:
 async def test_discover_candidates_errors_when_mteam_api_secret_is_missing(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
-    from seed_agent.config import load_config
+    from media_agent.actions import pt as pt_actions
+    from media_agent.config import load_config
 
     config_dir = tmp_path / "config"
     config_dir.mkdir()
@@ -597,7 +597,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -627,7 +627,7 @@ seed_cleanup:
 
 @pytest.mark.asyncio
 async def test_discover_candidates_reads_api_key_ref(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     api_key_path = tmp_path / "mteam.api-key"
     api_key_path.write_text("secret-api-key\n", encoding="utf-8")
@@ -658,7 +658,7 @@ async def test_discover_candidates_uses_mteam_api_mode_when_configured(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     api_key_path = tmp_path / "mt.api-key"
     api_key_path.write_text("secret-api-key\n", encoding="utf-8")
@@ -715,7 +715,7 @@ async def test_discover_candidates_inherits_mteam_api_thresholds_from_discovery(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     api_key_path = tmp_path / "mt.api-key"
     api_key_path.write_text("secret-api-key\n", encoding="utf-8")
@@ -773,7 +773,7 @@ async def test_discover_candidates_preserves_explicit_zero_mteam_api_thresholds(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     api_key_path = tmp_path / "mt.api-key"
     api_key_path.write_text("secret-api-key\n", encoding="utf-8")
@@ -831,7 +831,7 @@ async def test_resolve_deferred_download_urls_uses_mteam_api_key(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     api_key_path = tmp_path / "mt.api-key"
     api_key_path.write_text("secret-api-key\n", encoding="utf-8")
@@ -909,7 +909,7 @@ async def test_resolve_deferred_download_urls_uses_mteam_api_key(
 async def test_mteam_preflight_rejects_discount_that_changed_to_half(
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     config = _config()
     candidate = _candidate(
@@ -962,7 +962,7 @@ async def test_mteam_preflight_rejects_discount_that_changed_to_half(
 async def test_execute_free_only_guard_rejects_before_preflight_or_token(
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     config = _config()
     candidate = _candidate(
@@ -998,7 +998,7 @@ async def test_execute_free_only_guard_rejects_before_preflight_or_token(
 
 
 def test_mteam_preflight_reapplies_execute_free_window_threshold() -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     candidate = _candidate(left_time_minutes=150)
     item = ScoreBreakdown(
@@ -1021,7 +1021,7 @@ def test_mteam_preflight_reapplies_execute_free_window_threshold() -> None:
 
 
 def test_mteam_preflight_rejects_missing_refreshed_free_window() -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     candidate = _candidate(
         left_time_minutes=None,
@@ -1053,7 +1053,7 @@ async def test_resolve_deferred_download_urls_rejects_candidate_on_mteam_timeout
 ) -> None:
     import httpx
 
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     api_key_path = tmp_path / "mt.api-key"
     api_key_path.write_text("secret-api-key\n", encoding="utf-8")
@@ -1131,8 +1131,8 @@ async def test_resolve_deferred_download_urls_stops_after_mteam_rate_limit(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
-    from seed_agent.sites.mteam import MTeamApiResponseError
+    from media_agent.actions import pt as pt_actions
+    from media_agent.sites.mteam import MTeamApiResponseError
 
     monkeypatch.setattr(pt_actions, "_LAST_DISCOVERY_WARNINGS", ())
     api_key_path = tmp_path / "mt.api-key"
@@ -1234,8 +1234,8 @@ async def test_resolve_deferred_download_urls_stops_after_mteam_unavailable(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.actions import pt as pt_actions
-    from seed_agent.sites.mteam import MTeamApiResponseError
+    from media_agent.actions import pt as pt_actions
+    from media_agent.sites.mteam import MTeamApiResponseError
 
     monkeypatch.setattr(pt_actions, "_LAST_DISCOVERY_WARNINGS", ())
     api_key_path = tmp_path / "mt.api-key"
@@ -1334,7 +1334,7 @@ async def test_resolve_deferred_download_urls_stops_after_mteam_unavailable(
 
 @pytest.mark.asyncio
 async def test_discover_candidates_keeps_rss_mode_for_non_api_sites(monkeypatch) -> None:
-    from seed_agent.actions import pt as pt_actions
+    from media_agent.actions import pt as pt_actions
 
     rss_calls: list[str] = []
 
@@ -1358,7 +1358,7 @@ async def test_discover_candidates_keeps_rss_mode_for_non_api_sites(monkeypatch)
 
 
 def test_daily_report_returns_stable_counts() -> None:
-    from seed_agent.actions.pt import daily_report
+    from media_agent.actions.pt import daily_report
 
     scored = [
         ScoreBreakdown(
@@ -1400,7 +1400,7 @@ def test_daily_report_returns_stable_counts() -> None:
 
 
 def test_strategy_report_groups_tracker_signals_and_runtime_outcomes() -> None:
-    from seed_agent.actions.pt import strategy_report
+    from media_agent.actions.pt import strategy_report
 
     hot_large = _candidate(
         title="Hot Large Pack",

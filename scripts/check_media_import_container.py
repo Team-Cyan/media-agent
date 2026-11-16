@@ -6,12 +6,12 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from seed_agent.media_import.config import MediaImportConfig, Profile
-from seed_agent.media_import.engine import Engine
-from seed_agent.media_import.metadata import Mapping
-from seed_agent.media_import.store import MediaStore
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-from seed_agent.media_import.subtitles.provider import Candidate
+from media_agent.media_import.config import MediaImportConfig, Profile
+from media_agent.media_import.engine import Engine
+from media_agent.media_import.metadata import Mapping
+from media_agent.media_import.store import MediaStore
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.subtitles.provider import Candidate
 
 
 class Metadata:

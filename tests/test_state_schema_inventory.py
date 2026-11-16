@@ -2,7 +2,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-from seed_agent.state import StateStore
+from media_agent.state import StateStore
 
 DOC_PATH = Path("docs/operations/config-and-state-fields.md")
 

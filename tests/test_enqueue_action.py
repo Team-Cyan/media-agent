@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.audit import AuditLogger
-from seed_agent.config import CategoryPolicyConfig
-from seed_agent.models import ManagedTorrent, ScoreBreakdown, TorrentCandidate
-from seed_agent.policies.category_policy import PoolUsage
+from media_agent.audit import AuditLogger
+from media_agent.config import CategoryPolicyConfig
+from media_agent.models import ManagedTorrent, ScoreBreakdown, TorrentCandidate
+from media_agent.policies.category_policy import PoolUsage
 
 
 def _candidate(**overrides: object) -> TorrentCandidate:
@@ -48,7 +48,7 @@ def _policy(**overrides: object) -> CategoryPolicyConfig:
         "budget_pool": "downloads",
         "delete_enabled": True,
         "over_budget_behavior": "add_paused",
-        "tags": ["seed-agent", "seed"],
+        "tags": ["media-agent", "seed"],
     }
     data.update(overrides)
     return CategoryPolicyConfig(**data)
@@ -97,7 +97,7 @@ def _managed_torrent(**overrides: object) -> ManagedTorrent:
         "hash": "0123456789abcdef0123456789abcdef01234567",
         "name": "High Confidence Torrent",
         "category": "seed",
-        "tags": {"seed-agent", "seed"},
+        "tags": {"media-agent", "seed"},
         "state": "downloading",
         "size_bytes": 10 * 1024 * 1024 * 1024,
         "uploaded_bytes": 0,
@@ -114,7 +114,7 @@ def _managed_torrent(**overrides: object) -> ManagedTorrent:
 
 @pytest.mark.asyncio
 async def test_dry_run_accepted_candidate_skips_downloader_and_returns_execute_false() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader(torrent_hash="deadbeef")
 
@@ -138,7 +138,7 @@ async def test_dry_run_accepted_candidate_skips_downloader_and_returns_execute_f
 
 @pytest.mark.asyncio
 async def test_execute_accepted_candidate_calls_downloader_and_records_hash() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader(torrent_hash="0123456789abcdef0123456789abcdef01234567")
 
@@ -153,7 +153,7 @@ async def test_execute_accepted_candidate_calls_downloader_and_records_hash() ->
         (
             _scored().candidate.download_url,
             "seed",
-            ["seed-agent", "seed"],
+            ["media-agent", "seed"],
             False,
         )
     ]
@@ -165,7 +165,7 @@ async def test_execute_accepted_candidate_calls_downloader_and_records_hash() ->
 
 @pytest.mark.asyncio
 async def test_execute_resolves_hash_from_live_list_when_add_returns_no_hash() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader(
         torrent_hash=None,
@@ -179,14 +179,14 @@ async def test_execute_resolves_hash_from_live_list_when_add_returns_no_hash() -
         execute=True,
     )
 
-    assert downloader.list_calls == [("seed", {"seed-agent", "seed"})]
+    assert downloader.list_calls == [("seed", {"media-agent", "seed"})]
     decision = decisions[0]
     assert decision.new_state["torrent_hash"] == "feedfacefeedfacefeedfacefeedfacefeedface"
 
 
 @pytest.mark.asyncio
 async def test_execute_keeps_enqueue_success_when_hash_resolution_fails() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     class ListFailingDownloader(DummyDownloader):
         async def list_torrents(
@@ -210,7 +210,7 @@ async def test_execute_keeps_enqueue_success_when_hash_resolution_fails() -> Non
 
 @pytest.mark.asyncio
 async def test_rejected_candidate_does_not_call_downloader() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader()
 
@@ -227,7 +227,7 @@ async def test_rejected_candidate_does_not_call_downloader() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_batch_failure_carries_prior_enqueue_decisions() -> None:
-    from seed_agent.actions.qb import MutationBatchError, enqueue_candidates
+    from media_agent.actions.qb import MutationBatchError, enqueue_candidates
 
     first = _scored(candidate=_candidate(title="First", source_url="https://tracker.example/a"))
     second = _scored(candidate=_candidate(title="Second", source_url="https://tracker.example/b"))
@@ -250,7 +250,7 @@ async def test_execute_batch_failure_carries_prior_enqueue_decisions() -> None:
 
 @pytest.mark.asyncio
 async def test_audit_logger_redacts_decision_with_download_url_passkey(tmp_path: Path) -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader()
     decisions = await enqueue_candidates(
@@ -270,7 +270,7 @@ async def test_audit_logger_redacts_decision_with_download_url_passkey(tmp_path:
 
 @pytest.mark.asyncio
 async def test_downloader_exception_propagates() -> None:
-    from seed_agent.actions.qb import MutationBatchError, enqueue_candidates
+    from media_agent.actions.qb import MutationBatchError, enqueue_candidates
 
     class FailingDownloader:
         async def add_url(
@@ -291,7 +291,7 @@ async def test_downloader_exception_propagates() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_candidate_is_rejected_without_downloader_add_when_gate_blocks() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader(torrent_hash="0123456789abcdef0123456789abcdef01234567")
 
@@ -311,7 +311,7 @@ async def test_execute_candidate_is_rejected_without_downloader_add_when_gate_bl
 
 @pytest.mark.asyncio
 async def test_enqueue_decision_records_policy_and_pool_usage() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader()
 
@@ -340,7 +340,7 @@ async def test_enqueue_decision_records_policy_and_pool_usage() -> None:
 
 @pytest.mark.asyncio
 async def test_enqueue_decision_records_pause_reasons_when_paused() -> None:
-    from seed_agent.actions.qb import enqueue_candidates
+    from media_agent.actions.qb import enqueue_candidates
 
     downloader = DummyDownloader()
 

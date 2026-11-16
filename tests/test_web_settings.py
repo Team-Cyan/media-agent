@@ -13,9 +13,9 @@ from typing import Any
 import pytest
 import yaml
 
-from seed_agent.actions.intent import ingest_events
-from seed_agent.audit import AuditLogger
-from seed_agent.models import (
+from media_agent.actions.intent import ingest_events
+from media_agent.audit import AuditLogger
+from media_agent.models import (
     Decision,
     Discount,
     IntentKind,
@@ -26,12 +26,12 @@ from seed_agent.models import (
     ReleaseCandidate,
     ResourceIntent,
 )
-from seed_agent.sources.base import SourceIntentEvent
-from seed_agent.state import StateStore
-from seed_agent.web import app as web_app
-from seed_agent.web import settings as web_settings
-from seed_agent.web.app import MAX_JSON_BODY_BYTES, make_handler
-from seed_agent.web.settings import (
+from media_agent.sources.base import SourceIntentEvent
+from media_agent.state import StateStore
+from media_agent.web import app as web_app
+from media_agent.web import settings as web_settings
+from media_agent.web.app import MAX_JSON_BODY_BYTES, make_handler
+from media_agent.web.settings import (
     ConfigSectionDraft,
     TrackerDraft,
     build_tracker_status,
@@ -67,7 +67,7 @@ def test_mteam_tracker_draft_keeps_secret_value_out_of_config() -> None:
 def test_tracker_status_reports_missing_required_fields() -> None:
     draft = TrackerDraft(type=None, name="")
 
-    status = build_tracker_status(draft, root=Path("/tmp/seed-agent"))
+    status = build_tracker_status(draft, root=Path("/tmp/media-agent"))
 
     assert {"level": "warning", "message": "type is required"} in status
     assert {"level": "warning", "message": "tracker name is required"} in status
@@ -108,7 +108,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: [seed-agent]
+      tags: [media-agent]
   budget_pools:
     - name: downloads
       max_size_tib: 1
@@ -512,7 +512,7 @@ def test_http_state_reads_return_json_when_payload_build_fails(
     payload_name: str,
     expected_error: str,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     config_path = _write_minimal_config(tmp_path)
 
@@ -534,7 +534,7 @@ def test_http_state_backed_reads_return_json_when_database_is_malformed(
     monkeypatch: pytest.MonkeyPatch,
     path: str,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     config_path = _write_minimal_config(tmp_path)
 
@@ -610,7 +610,7 @@ def test_http_logs_preserves_runtime_evidence_when_other_source_is_unreadable(
 ) -> None:
     import logging
 
-    from seed_agent.observability import RUNTIME_LOG_NAME, JsonLogFormatter, RuntimeFileHandler
+    from media_agent.observability import RUNTIME_LOG_NAME, JsonLogFormatter, RuntimeFileHandler
 
     config_path = _write_minimal_config(tmp_path)
     runtime_root = tmp_path / ".seed-agent"
@@ -624,7 +624,7 @@ def test_http_logs_preserves_runtime_evidence_when_other_source_is_unreadable(
         monkeypatch.setattr(web_app, "_audit_tail", fail_audit)
     handler = RuntimeFileHandler(runtime_root / RUNTIME_LOG_NAME)
     handler.setFormatter(JsonLogFormatter())
-    handler.handle(logging.LogRecord("seed_agent.test", logging.ERROR, __file__, 1,
+    handler.handle(logging.LogRecord("media_agent.test", logging.ERROR, __file__, 1,
                                      "retained.failure", (), None))
     with _running_server(config_path) as base_url:
         payload = _request_json(base_url, "GET", "/api/logs")
@@ -652,11 +652,11 @@ def test_http_log_limit_is_bounded(tmp_path: Path, query: str, expected: int) ->
 def test_http_failed_search_has_correlated_redacted_runtime_evidence(tmp_path: Path, monkeypatch):
     import logging
 
-    from seed_agent.observability import RUNTIME_LOG_NAME, JsonLogFormatter, RuntimeFileHandler
+    from media_agent.observability import RUNTIME_LOG_NAME, JsonLogFormatter, RuntimeFileHandler
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
-    from seed_agent.actions.intent import add_intent
+    from media_agent.actions.intent import add_intent
     intent, _ = add_intent("Example Movie 2026", store)
 
     class BrokenProvider:
@@ -664,7 +664,7 @@ def test_http_failed_search_has_correlated_redacted_runtime_evidence(tmp_path: P
             raise RuntimeError("request failed https://tracker.example/search?token=hidden-key")
 
     monkeypatch.setattr(web_app, "_build_want_search_providers", lambda config: [BrokenProvider()])
-    logger = logging.getLogger("seed_agent")
+    logger = logging.getLogger("media_agent")
     original_level = logger.level
     handler = RuntimeFileHandler(tmp_path / ".seed-agent" / RUNTIME_LOG_NAME)
     handler.setFormatter(JsonLogFormatter())
@@ -914,7 +914,7 @@ def test_http_wants_search_runs_filtered_search_without_downloader(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     class FakeSearchProvider:
         async def search(self, intent):
@@ -978,7 +978,7 @@ def test_http_wants_search_records_ranked_release_history_without_downloader(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     class FakeSearchProvider:
         async def search(self, intent):
@@ -1049,7 +1049,7 @@ def test_http_wants_search_persists_multiple_results_as_one_sqlite_batch(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     class FakeSearchProvider:
         async def search(self, intent):
@@ -1120,7 +1120,7 @@ def test_http_wants_search_skips_enqueued_wants(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     calls = 0
 
@@ -1167,7 +1167,7 @@ def test_http_wants_search_skips_during_schedule_backoff(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     def fail_build_providers(config):
         raise AssertionError("providers should not be built during schedule backoff")
@@ -1207,7 +1207,7 @@ def test_http_wants_search_skips_during_sqlite_tracker_backoff(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     def fail_build_providers(config):
         raise AssertionError("providers should not be built during tracker backoff")
@@ -1260,7 +1260,7 @@ def test_http_single_want_search_searches_one_item(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     calls: list[str] = []
 
@@ -1311,7 +1311,7 @@ def test_http_single_want_search_skips_during_schedule_backoff(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     def fail_build_providers(config):
         raise AssertionError("providers should not be built during schedule backoff")
@@ -1363,7 +1363,7 @@ def test_http_single_want_search_skips_enqueued_item(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     calls = 0
 
@@ -1410,7 +1410,7 @@ def test_http_wants_sync_ingests_configured_sources(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     config_path = _write_minimal_config(tmp_path)
     monkeypatch.setattr(
@@ -1451,7 +1451,7 @@ def test_http_wants_search_syncs_sources_before_search(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     class FakeSearchProvider:
         async def search(self, intent):
@@ -1506,7 +1506,7 @@ def test_http_wants_search_does_not_merge_from_candidate_external_ids(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     class MappingSearchProvider:
         async def search(self, intent):
@@ -1583,7 +1583,7 @@ def test_http_want_candidates_show_matching_and_lower_match_releases(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     class FakeSearchProvider:
         async def search(self, intent):
@@ -1945,7 +1945,7 @@ def test_http_want_enqueue_can_select_lower_match_release(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2018,7 +2018,7 @@ def test_http_want_enqueue_can_select_lower_match_release(
         (
             "https://tracker.example/download?id=99",
             "seed",
-            ["seed-agent"],
+            ["media-agent"],
         )
     ]
     row = store.get_intent(intent.intent_id)
@@ -2030,7 +2030,7 @@ def test_http_want_enqueue_rejects_legacy_execute_flag(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2109,7 +2109,7 @@ def test_http_want_enqueue_preflight_avoids_qb_for_missing_and_invalid_selection
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2178,7 +2178,7 @@ def test_http_want_enqueue_already_enqueued_is_idempotent_without_qb(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2242,7 +2242,7 @@ def test_http_want_enqueue_media_ignores_seed_active_download_gate(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     config_path.write_text(
@@ -2252,14 +2252,14 @@ def test_http_want_enqueue_media_ignores_seed_active_download_gate(
             "  allow_hr: false\n  max_active_downloads: 0",
         )
         .replace(
-            "      tags: [seed-agent]\n  budget_pools:",
-            "      tags: [seed-agent]\n"
+            "      tags: [media-agent]\n  budget_pools:",
+            "      tags: [media-agent]\n"
             "    - name: movie\n"
             "      mode: add_only\n"
             "      budget_pool: media\n"
             "      delete_enabled: false\n"
             "      over_budget_behavior: reject\n"
-            "      tags: [seed-agent, movie]\n"
+            "      tags: [media-agent, movie]\n"
             "  budget_pools:",
         )
         .replace(
@@ -2343,7 +2343,7 @@ def test_http_want_enqueue_parallel_request_reports_in_progress(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2448,7 +2448,7 @@ def test_http_want_enqueue_failure_returns_actionable_status(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -2680,7 +2680,7 @@ def test_http_config_section_save_updates_downloader_visual_fields(
                             "budget_pool": "downloads",
                             "delete_enabled": True,
                             "over_budget_behavior": "reject",
-                            "tags": ["seed-agent"],
+                            "tags": ["media-agent"],
                         },
                         {
                             "name": "movie",
@@ -2688,7 +2688,7 @@ def test_http_config_section_save_updates_downloader_visual_fields(
                             "budget_pool": "media",
                             "delete_enabled": False,
                             "over_budget_behavior": "add_paused",
-                            "tags": ["seed-agent", "movie"],
+                            "tags": ["media-agent", "movie"],
                         },
                         {
                             "name": "tv",
@@ -2696,7 +2696,7 @@ def test_http_config_section_save_updates_downloader_visual_fields(
                             "budget_pool": "media",
                             "delete_enabled": False,
                             "over_budget_behavior": "add_paused",
-                            "tags": ["seed-agent", "tv"],
+                            "tags": ["media-agent", "tv"],
                         },
                         {
                             "name": "anime",
@@ -2704,7 +2704,7 @@ def test_http_config_section_save_updates_downloader_visual_fields(
                             "budget_pool": "media",
                             "delete_enabled": False,
                             "over_budget_behavior": "add_paused",
-                            "tags": ["seed-agent", "anime"],
+                            "tags": ["media-agent", "anime"],
                         },
                     ],
                     "budget_pools": [
@@ -3040,7 +3040,7 @@ def test_http_root_serves_static_ui(tmp_path: Path) -> None:
 
     assert response.status == 200
     assert response.getheader("Cache-Control") == "no-cache"
-    assert "seed-agent · 媒体与自动化" in body
+    assert "media-agent · 媒体与自动化" in body
     assert "/static/app.js" in body
 
 
@@ -3233,7 +3233,7 @@ def test_tracker_network_checks_reject_unsafe_cookie_refs_before_network(
     endpoint: str,
     cookie_ref: str,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     config_path = _write_minimal_config(tmp_path)
 
@@ -3265,7 +3265,7 @@ def test_tracker_probe_rejects_secret_symlink_escape_before_network(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     config_path = _write_minimal_config(tmp_path)
     secrets_dir = tmp_path / "local" / "secrets"
@@ -3309,7 +3309,7 @@ def test_tracker_network_checks_reject_cross_service_secret_refs(
     monkeypatch: pytest.MonkeyPatch,
     endpoint: str,
 ) -> None:
-    from seed_agent.web import app as web_app
+    from media_agent.web import app as web_app
 
     config_path = _write_minimal_config(tmp_path)
     secrets_dir = tmp_path / "local" / "secrets"
@@ -3549,7 +3549,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: [seed-agent]
+      tags: [media-agent]
   budget_pools:
     - name: downloads
       max_size_tib: 1

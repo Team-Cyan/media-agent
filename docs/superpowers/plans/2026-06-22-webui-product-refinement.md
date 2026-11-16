@@ -4,7 +4,7 @@
 
 **Goal:** Fix the current WebUI product-review findings and refine the operator experience around config navigation, runtime provenance, Want List enqueue safety, strategy settings, and operator docs.
 
-**Architecture:** Keep the existing lightweight local WebUI: `src/seed_agent/web/app.py` remains the HTTP API, `src/seed_agent/web/static/app.js` remains the static frontend, and `src/seed_agent/web/static/styles.css` remains the visual system. Avoid introducing a JS build pipeline. Extend current API payloads and UI copy instead of creating new product surfaces.
+**Architecture:** Keep the existing lightweight local WebUI: `src/media_agent/web/app.py` remains the HTTP API, `src/media_agent/web/static/app.js` remains the static frontend, and `src/media_agent/web/static/styles.css` remains the visual system. Avoid introducing a JS build pipeline. Extend current API payloads and UI copy instead of creating new product surfaces.
 
 **Tech Stack:** Python 3.14+, Typer, Pydantic, SQLite via `StateStore`, stdlib HTTP server, static HTML/CSS/JavaScript, pytest, ruff. Docker and CI already target Python 3.14, so this plan formalizes that baseline unless dependency resolution exposes a blocker.
 
@@ -12,7 +12,7 @@
 
 ## Product Decisions
 
-- Treat `seed-agent web` as a local operator console, not a dashboard-first media product.
+- Treat `media-agent web` as a local operator console, not a dashboard-first media product.
 - Keep search/sync operations non-mutating.
 - Make qB enqueue from WebUI preview-first, then execute after explicit operator confirmation.
 - Show where config and runtime state come from, because one config file can read shared workspace runtime state.
@@ -22,19 +22,19 @@
 
 ## File Structure
 
-- Modify `src/seed_agent/web/static/app.js`
+- Modify `src/media_agent/web/static/app.js`
   - Fix `config_file` navigation.
   - Add runtime provenance copy and rendering.
   - Change candidate enqueue flow to preview-first.
   - Add compact strategy summary and release preference preset controls.
   - Tighten mobile header behavior.
-- Modify `src/seed_agent/web/static/styles.css`
+- Modify `src/media_agent/web/static/styles.css`
   - Style provenance rows, preview confirmation panel, preset controls, mobile compact header, and strategy summary chips.
-- Modify `src/seed_agent/web/app.py`
+- Modify `src/media_agent/web/app.py`
   - Add runtime provenance to status/config payloads if needed.
   - Honor `execute: false` for Want List candidate enqueue preview.
   - Return preview payload fields useful to the UI.
-- Modify `src/seed_agent/cli.py`
+- Modify `src/media_agent/cli.py`
   - Improve `web` port-conflict message with a concrete alternate-port suggestion.
 - Modify `tests/test_web_static.py`
   - Add static assertions for fixed navigation, preview-first enqueue UI, runtime provenance copy, mobile header refinements, and presets.
@@ -53,7 +53,7 @@
   - Mark the P0 WebUI hardening as completed or update next-work wording.
 - Modify `pyproject.toml`, `uv.lock`
   - Raise the supported Python baseline to 3.14+ and update Ruff target to `py314`.
-- Modify `docs/operations/release-process.md`, `VERSION`, `src/seed_agent/__init__.py`, `tests/test_package_import.py`, `CHANGELOG.md`
+- Modify `docs/operations/release-process.md`, `VERSION`, `src/media_agent/__init__.py`, `tests/test_package_import.py`, `CHANGELOG.md`
   - Bump from `0.11.1` to `0.11.2` if this plan is implemented for deployment.
 
 ---
@@ -61,7 +61,7 @@
 ### Task 1: Fix Config File Navigation Breakage
 
 **Files:**
-- Modify: `src/seed_agent/web/static/app.js`
+- Modify: `src/media_agent/web/static/app.js`
 - Test: `tests/test_web_static.py`
 
 - [ ] **Step 1: Write the failing static test**
@@ -90,7 +90,7 @@ Expected: FAIL because `renderSection()` currently references `copy[state.langua
 
 - [ ] **Step 3: Implement the minimal fix**
 
-In `src/seed_agent/web/static/app.js`, replace the `config_file` branch in `renderSection()` with:
+In `src/media_agent/web/static/app.js`, replace the `config_file` branch in `renderSection()` with:
 
 ```javascript
   if (state.currentSection === "config_file") {
@@ -118,7 +118,7 @@ Expected: PASS.
 Run:
 
 ```bash
-uv run seed-agent web --config config/example.yaml --host 127.0.0.1 --port 8876
+uv run media-agent web --config config/example.yaml --host 127.0.0.1 --port 8876
 ```
 
 Open `http://127.0.0.1:8876`, click `配置文件`, and verify:
@@ -130,7 +130,7 @@ Open `http://127.0.0.1:8876`, click `配置文件`, and verify:
 - [ ] **Step 6: Commit**
 
 ```bash
-git add src/seed_agent/web/static/app.js tests/test_web_static.py
+git add src/media_agent/web/static/app.js tests/test_web_static.py
 git commit -m "fix: restore config file webui navigation"
 ```
 
@@ -139,9 +139,9 @@ git commit -m "fix: restore config file webui navigation"
 ### Task 2: Show Config And Runtime Provenance
 
 **Files:**
-- Modify: `src/seed_agent/web/app.py`
-- Modify: `src/seed_agent/web/static/app.js`
-- Modify: `src/seed_agent/web/static/styles.css`
+- Modify: `src/media_agent/web/app.py`
+- Modify: `src/media_agent/web/static/app.js`
+- Modify: `src/media_agent/web/static/styles.css`
 - Test: `tests/test_web_settings.py`
 - Test: `tests/test_web_static.py`
 
@@ -198,7 +198,7 @@ Expected: FAIL because payload and UI copy do not expose runtime provenance yet.
 
 - [ ] **Step 4: Add API provenance fields**
 
-In `src/seed_agent/web/app.py`, add helper functions:
+In `src/media_agent/web/app.py`, add helper functions:
 
 ```python
 def _heartbeat_path(root: Path) -> Path:
@@ -247,7 +247,7 @@ Update `_health_payload()` to use `_heartbeat_path(root)` and include provenance
 
 - [ ] **Step 5: Add frontend state fields**
 
-In `src/seed_agent/web/static/app.js`, extend `state`:
+In `src/media_agent/web/static/app.js`, extend `state`:
 
 ```javascript
   runtimeRoot: "",
@@ -315,7 +315,7 @@ In `renderOverviewPanel()`, insert provenance into the detail grid:
 
 - [ ] **Step 6: Add CSS**
 
-Append to `src/seed_agent/web/static/styles.css`:
+Append to `src/media_agent/web/static/styles.css`:
 
 ```css
 .runtime-provenance {
@@ -368,7 +368,7 @@ Expected: PASS.
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/seed_agent/web/app.py src/seed_agent/web/static/app.js src/seed_agent/web/static/styles.css tests/test_web_settings.py tests/test_web_static.py
+git add src/media_agent/web/app.py src/media_agent/web/static/app.js src/media_agent/web/static/styles.css tests/test_web_settings.py tests/test_web_static.py
 git commit -m "feat: show webui runtime provenance"
 ```
 
@@ -377,9 +377,9 @@ git commit -m "feat: show webui runtime provenance"
 ### Task 3: Make Want List Enqueue Preview-First
 
 **Files:**
-- Modify: `src/seed_agent/web/app.py`
-- Modify: `src/seed_agent/web/static/app.js`
-- Modify: `src/seed_agent/web/static/styles.css`
+- Modify: `src/media_agent/web/app.py`
+- Modify: `src/media_agent/web/static/app.js`
+- Modify: `src/media_agent/web/static/styles.css`
 - Test: `tests/test_web_settings.py`
 - Test: `tests/test_web_static.py`
 
@@ -420,7 +420,7 @@ def test_http_want_enqueue_execute_mutates_after_preview_confirmation(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     config_path = _write_minimal_config(tmp_path)
     store = StateStore(tmp_path / ".seed-agent" / "state.db")
@@ -490,7 +490,7 @@ def test_http_want_enqueue_execute_mutates_after_preview_confirmation(
         (
             "https://tracker.example/download?id=99",
             "seed",
-            ["seed-agent"],
+            ["media-agent"],
         )
     ]
     row = store.get_intent(intent.intent_id)
@@ -529,7 +529,7 @@ Expected: FAIL because the API ignores `execute: false` and UI only exposes dire
 
 - [ ] **Step 4: Honor execute flag in API**
 
-In `src/seed_agent/web/app.py`, change:
+In `src/media_agent/web/app.py`, change:
 
 ```python
     execute = True
@@ -570,7 +570,7 @@ Add one API test case that sends `"execute": "false"` and verifies it is treated
 
 - [ ] **Step 5: Add frontend copy**
 
-In `src/seed_agent/web/static/app.js`, add under `copy.CN.ui`:
+In `src/media_agent/web/static/app.js`, add under `copy.CN.ui`:
 
 ```javascript
       previewEnqueue: "预览入队",
@@ -651,7 +651,7 @@ Remove the old unconditional `window.confirm()` block.
 
 - [ ] **Step 8: Add CSS for two-button candidate actions**
 
-In `src/seed_agent/web/static/styles.css`, add:
+In `src/media_agent/web/static/styles.css`, add:
 
 ```css
 .candidate-actions {
@@ -686,7 +686,7 @@ Start WebUI and use a state DB with at least one Want List candidate. Verify:
 - [ ] **Step 11: Commit**
 
 ```bash
-git add src/seed_agent/web/app.py src/seed_agent/web/static/app.js src/seed_agent/web/static/styles.css tests/test_web_settings.py tests/test_web_static.py
+git add src/media_agent/web/app.py src/media_agent/web/static/app.js src/media_agent/web/static/styles.css tests/test_web_settings.py tests/test_web_static.py
 git commit -m "feat: make webui want enqueue preview-first"
 ```
 
@@ -695,8 +695,8 @@ git commit -m "feat: make webui want enqueue preview-first"
 ### Task 4: Add Strategy Summary And Release Preference Presets
 
 **Files:**
-- Modify: `src/seed_agent/web/static/app.js`
-- Modify: `src/seed_agent/web/static/styles.css`
+- Modify: `src/media_agent/web/static/app.js`
+- Modify: `src/media_agent/web/static/styles.css`
 - Test: `tests/test_web_static.py`
 
 - [ ] **Step 1: Write failing static test**
@@ -734,7 +734,7 @@ Expected: FAIL.
 
 - [ ] **Step 3: Add copy and preset definitions**
 
-In `src/seed_agent/web/static/app.js`, add under `copy.CN.ui`:
+In `src/media_agent/web/static/app.js`, add under `copy.CN.ui`:
 
 ```javascript
       strategySummary: "策略概要",
@@ -982,7 +982,7 @@ Open `资源匹配` and verify:
 - [ ] **Step 9: Commit**
 
 ```bash
-git add src/seed_agent/web/static/app.js src/seed_agent/web/static/styles.css tests/test_web_static.py
+git add src/media_agent/web/static/app.js src/media_agent/web/static/styles.css tests/test_web_static.py
 git commit -m "feat: add webui strategy summaries and presets"
 ```
 
@@ -991,9 +991,9 @@ git commit -m "feat: add webui strategy summaries and presets"
 ### Task 5: Tighten Mobile Header And Empty States
 
 **Files:**
-- Modify: `src/seed_agent/web/static/index.html`
-- Modify: `src/seed_agent/web/static/app.js`
-- Modify: `src/seed_agent/web/static/styles.css`
+- Modify: `src/media_agent/web/static/index.html`
+- Modify: `src/media_agent/web/static/app.js`
+- Modify: `src/media_agent/web/static/styles.css`
 - Test: `tests/test_web_static.py`
 
 - [ ] **Step 1: Write failing static test**
@@ -1050,13 +1050,13 @@ In `renderWantTable()`, replace the empty state with:
 
 - [ ] **Step 4: Add mobile config path duplicate**
 
-In `src/seed_agent/web/static/index.html`, under the existing `div.config-path`, add:
+In `src/media_agent/web/static/index.html`, under the existing `div.config-path`, add:
 
 ```html
             <div class="mobile-config-path" data-mobile-config-path>配置文件: 加载中</div>
 ```
 
-In `src/seed_agent/web/static/app.js`, add:
+In `src/media_agent/web/static/app.js`, add:
 
 ```javascript
 const mobileConfigPathLabel = document.querySelector("[data-mobile-config-path]");
@@ -1119,7 +1119,7 @@ Start WebUI and inspect a 390x844 viewport. Verify:
 - [ ] **Step 8: Commit**
 
 ```bash
-git add src/seed_agent/web/static/index.html src/seed_agent/web/static/app.js src/seed_agent/web/static/styles.css tests/test_web_static.py
+git add src/media_agent/web/static/index.html src/media_agent/web/static/app.js src/media_agent/web/static/styles.css tests/test_web_static.py
 git commit -m "fix: tighten mobile webui operator states"
 ```
 
@@ -1128,7 +1128,7 @@ git commit -m "fix: tighten mobile webui operator states"
 ### Task 6: Improve Web Command Port Conflict Message
 
 **Files:**
-- Modify: `src/seed_agent/cli.py`
+- Modify: `src/media_agent/cli.py`
 - Test: `tests/test_cli.py`
 
 - [ ] **Step 1: Write failing CLI test**
@@ -1137,8 +1137,8 @@ Append near `test_web_help_includes_local_server_options` in `tests/test_cli.py`
 
 ```python
 def test_web_reports_actionable_port_conflict(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from seed_agent.cli import app
-    from seed_agent.web import app as web_app
+    from media_agent.cli import app
+    from media_agent.web import app as web_app
 
     import errno
 
@@ -1177,7 +1177,7 @@ Expected: FAIL because the raw traceback is not converted to actionable output.
 
 - [ ] **Step 3: Implement actionable error**
 
-In `src/seed_agent/cli.py`, import `errno` at the top:
+In `src/media_agent/cli.py`, import `errno` at the top:
 
 ```python
 import errno
@@ -1218,7 +1218,7 @@ Expected: PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/seed_agent/cli.py tests/test_cli.py
+git add src/media_agent/cli.py tests/test_cli.py
 git commit -m "fix: explain webui port conflicts"
 ```
 
@@ -1240,7 +1240,7 @@ Create `docs/operations/web-ui-operator-guide.md`:
 ```markdown
 # Web UI Operator Guide
 
-`seed-agent web` is a local operator console for a Docker-first automation app.
+`media-agent web` is a local operator console for a Docker-first automation app.
 It does not replace the CLI, the mounted YAML config, or the audit log.
 
 ## Use The Web UI For
@@ -1367,7 +1367,7 @@ git commit -m "docs: add webui operator guide"
 - Modify: `pyproject.toml`
 - Modify: `uv.lock`
 - Modify: `VERSION`
-- Modify: `src/seed_agent/__init__.py`
+- Modify: `src/media_agent/__init__.py`
 - Modify: `tests/test_package_import.py`
 - Modify: `docs/operations/release-process.md`
 - Modify: `CHANGELOG.md`
@@ -1404,7 +1404,7 @@ Run:
 uv run python scripts/bump_version.py 0.11.2
 ```
 
-Expected: `VERSION`, `pyproject.toml`, `src/seed_agent/__init__.py`, `tests/test_package_import.py`, and release docs update to `0.11.2`.
+Expected: `VERSION`, `pyproject.toml`, `src/media_agent/__init__.py`, `tests/test_package_import.py`, and release docs update to `0.11.2`.
 
 - [ ] **Step 4: Update CHANGELOG**
 
@@ -1448,7 +1448,7 @@ Expected: both PASS.
 Run:
 
 ```bash
-uv run seed-agent web --config config/example.yaml --host 127.0.0.1 --port 8876
+uv run media-agent web --config config/example.yaml --host 127.0.0.1 --port 8876
 ```
 
 Verify:
@@ -1463,7 +1463,7 @@ Verify:
 - [ ] **Step 8: Commit release metadata**
 
 ```bash
-git add pyproject.toml uv.lock VERSION src/seed_agent/__init__.py tests/test_package_import.py docs/operations/release-process.md CHANGELOG.md
+git add pyproject.toml uv.lock VERSION src/media_agent/__init__.py tests/test_package_import.py docs/operations/release-process.md CHANGELOG.md
 git commit -m "chore: bump version to 0.11.2"
 ```
 

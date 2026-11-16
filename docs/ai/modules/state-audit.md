@@ -6,9 +6,9 @@ Persist local lifecycle knowledge and durable decision evidence.
 
 ## Primary Files
 
-- `src/seed_agent/state.py`
-- `src/seed_agent/audit.py`
-- `src/seed_agent/observability.py`
+- `src/media_agent/state.py`
+- `src/media_agent/audit.py`
+- `src/media_agent/observability.py`
 - `tests/test_state.py`
 - `tests/test_audit.py`
 

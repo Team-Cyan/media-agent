@@ -5,11 +5,11 @@ import yaml
 from test_media_import import media as media
 from test_media_runtime import media_config
 
-from seed_agent.config import atomic_write_text
-from seed_agent.media_import.commands import status, submit
-from seed_agent.media_import.maintenance import backup_media_database, restore_media_database
-from seed_agent.media_import.runtime import build_engine
-from seed_agent.media_import.worker import claim, process_one, recover_commands, worker_lease
+from media_agent.config import atomic_write_text
+from media_agent.media_import.commands import status, submit
+from media_agent.media_import.maintenance import backup_media_database, restore_media_database
+from media_agent.media_import.runtime import build_engine
+from media_agent.media_import.worker import claim, process_one, recover_commands, worker_lease
 
 
 def test_command_coalescing_mode_pin_queue_cap_and_restart(tmp_path, monkeypatch):
@@ -17,7 +17,7 @@ def test_command_coalescing_mode_pin_queue_cap_and_restart(tmp_path, monkeypatch
     first = submit(config, "scan")
     assert submit(config, "scan")["command_id"] == first["command_id"]
     assert submit(config, "scan", execute=True)["command_id"] != first["command_id"]
-    monkeypatch.setattr("seed_agent.media_import.commands.MAX_PENDING", 2)
+    monkeypatch.setattr("media_agent.media_import.commands.MAX_PENDING", 2)
     with pytest.raises(ValueError, match="full"):
         submit(config, "subtitles")
     command = claim(config)
@@ -87,7 +87,7 @@ def test_media_pagination_keeps_related_rows_on_source_page(media):
 
 
 def test_legacy_export_rejects_active_writer(media, tmp_path):
-    from seed_agent.media_import.migration import export_snapshot
+    from media_agent.media_import.migration import export_snapshot
 
     engine, *_ = media
     with engine.lease(), pytest.raises(TimeoutError):
@@ -102,8 +102,8 @@ def test_blocked_worker_does_not_delay_seed_cycle_or_capacity_deadlines(tmp_path
 
     from typer.testing import CliRunner
 
-    from seed_agent import cli
-    from seed_agent.media_import import worker
+    from media_agent import cli
+    from media_agent.media_import import worker
 
     config, _, _ = media_config(tmp_path)
     raw = yaml.safe_load(config.read_text())
@@ -118,7 +118,7 @@ def test_blocked_worker_does_not_delay_seed_cycle_or_capacity_deadlines(tmp_path
                 "budget_pool": "downloads",
                 "delete_enabled": True,
                 "over_budget_behavior": "add_paused",
-                "tags": ["seed-agent"],
+                "tags": ["media-agent"],
             }
         ],
         "budget_pools": [{"name": "downloads", "max_size_tib": 1}],
@@ -215,8 +215,8 @@ def test_queued_review_rejects_changed_plan_without_overwriting_new_decision(
 
 
 def test_preview_worker_scan_plans_without_link_then_explicit_execute_links(tmp_path, monkeypatch):
-    from seed_agent.media_import import worker
-    from seed_agent.media_import.metadata import Mapping
+    from media_agent.media_import import worker
+    from media_agent.media_import.metadata import Mapping
 
     config, source, target = media_config(tmp_path)
     raw = yaml.safe_load(config.read_text())
@@ -255,8 +255,8 @@ def test_preview_worker_scan_plans_without_link_then_explicit_execute_links(tmp_
 
 
 def test_serve_records_single_role_lifecycle_and_clean_stop(tmp_path):
-    from seed_agent.media_import.role_health import media_role_status
-    from seed_agent.media_import.worker import serve
+    from media_agent.media_import.role_health import media_role_status
+    from media_agent.media_import.worker import serve
 
     config, _, _ = media_config(tmp_path)
     raw = yaml.safe_load(config.read_text())
@@ -273,7 +273,7 @@ def test_serve_records_single_role_lifecycle_and_clean_stop(tmp_path):
 def test_media_role_cli_never_loads_seed_config(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from seed_agent import cli
+    from media_agent import cli
 
     config, _, _ = media_config(tmp_path)
     raw = yaml.safe_load(config.read_text())
@@ -295,7 +295,7 @@ def test_media_role_cli_never_loads_seed_config(tmp_path, monkeypatch):
 
 
 def test_idle_enrichment_clock_preserves_scan_deadline_and_command_priority(tmp_path, monkeypatch):
-    from seed_agent.media_import import worker
+    from media_agent.media_import import worker
 
     config, _, _ = media_config(tmp_path)
     raw = yaml.safe_load(config.read_text())

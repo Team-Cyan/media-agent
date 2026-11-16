@@ -1,7 +1,7 @@
 # Tracker Strategy Profile Examples
 
 These files are recommended configuration combinations, not runtime profile
-switches. `seed-agent` reads concrete knobs from the main config: discovery
+switches. `media-agent` reads concrete knobs from the main config: discovery
 thresholds, M-Team API filters, scoring weights, and downloader budget gates.
 
 Use these examples as copy/merge material when tuning a real config.
@@ -14,8 +14,8 @@ Use these examples as copy/merge material when tuning a real config.
 
 ## Workflow
 
-1. Run `seed-agent strategy-report --config <config>`.
+1. Run `media-agent strategy-report --config <config>`.
 2. Compare accepted/rejected buckets by leechers, seed/leecher ratio, size, and score.
 3. Copy selected knobs from one of these examples into the real config.
-4. Run `seed-agent run-once --config <config>` as a dry-run.
+4. Run `media-agent run-once --config <config>` as a dry-run.
 5. Execute only after reviewing accepted candidates and qB runtime gates.

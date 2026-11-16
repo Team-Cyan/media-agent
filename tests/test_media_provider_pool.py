@@ -4,13 +4,13 @@ import pytest
 from test_media_import import media as media
 from test_media_subtitles import PAYLOAD, FakeProvider, import_three
 
-from seed_agent.media_import.config import MediaImportConfig
-from seed_agent.media_import.subtitles.assrt import languages, source_release_bound
-from seed_agent.media_import.subtitles.jobs import SubtitleJobs
-from seed_agent.media_import.subtitles.languages import matches
-from seed_agent.media_import.subtitles.pool import ProviderPool
-from seed_agent.media_import.subtitles.provider import ProviderError
-from seed_agent.media_import.subtitles.subdl import script
+from media_agent.media_import.config import MediaImportConfig
+from media_agent.media_import.subtitles.assrt import languages, source_release_bound
+from media_agent.media_import.subtitles.jobs import SubtitleJobs
+from media_agent.media_import.subtitles.languages import matches
+from media_agent.media_import.subtitles.pool import ProviderPool
+from media_agent.media_import.subtitles.provider import ProviderError
+from media_agent.media_import.subtitles.subdl import script
 
 
 def test_explicit_generic_chinese_never_proves_script():
@@ -105,9 +105,9 @@ def test_invalid_payload_yields_to_next_candidate_next_cycle(media):
 def test_runtime_provider_config_keeps_missing_provider_local(tmp_path):
     import json
 
-    from seed_agent.media_import.runtime import build_subtitle_provider
-    from seed_agent.media_import.subtitles.pool import Unavailable
-    from seed_agent.media_import.subtitles.subdl import Subdl
+    from media_agent.media_import.runtime import build_subtitle_provider
+    from media_agent.media_import.subtitles.pool import Unavailable
+    from media_agent.media_import.subtitles.subdl import Subdl
 
     secrets = tmp_path / "local" / "secrets"
     secrets.mkdir(parents=True)

@@ -3,9 +3,9 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-from seed_agent.actions.intent import add_intent
-from seed_agent.models import IntentState
-from seed_agent.state import StateStore
+from media_agent.actions.intent import add_intent
+from media_agent.models import IntentState
+from media_agent.state import StateStore
 
 
 def _write_config(tmp_path: Path) -> Path:
@@ -44,7 +44,7 @@ download_client:
       budget_pool: downloads
       delete_enabled: true
       over_budget_behavior: add_paused
-      tags: ["seed-agent", "seed"]
+      tags: ["media-agent", "seed"]
   budget_pools:
     - name: downloads
       max_size_tib: 10
@@ -69,7 +69,7 @@ def _json_output(result) -> dict[str, object]:
 
 
 def test_intent_reject_updates_local_state_and_audit_only(tmp_path: Path, monkeypatch) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     monkeypatch.chdir(tmp_path)
     config_path = _write_config(tmp_path)

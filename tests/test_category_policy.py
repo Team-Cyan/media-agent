@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from seed_agent.config import BudgetPoolConfig, CategoryPolicyConfig
-from seed_agent.models import ManagedTorrent
-from seed_agent.policies.category_policy import usage_by_pool
+from media_agent.config import BudgetPoolConfig, CategoryPolicyConfig
+from media_agent.models import ManagedTorrent
+from media_agent.policies.category_policy import usage_by_pool
 
 
 def _torrent(*, category: str, size_bytes: int) -> ManagedTorrent:
@@ -12,7 +12,7 @@ def _torrent(*, category: str, size_bytes: int) -> ManagedTorrent:
         hash=f"{category}-{size_bytes}",
         name=f"{category}-{size_bytes}",
         category=category,
-        tags={"seed-agent", category},
+        tags={"media-agent", category},
         state="uploading",
         size_bytes=size_bytes,
         uploaded_bytes=0,
@@ -33,7 +33,7 @@ def test_usage_by_pool_aggregates_categories_sharing_a_budget_pool() -> None:
             budget_pool="media",
             delete_enabled=False,
             over_budget_behavior="add_paused",
-            tags=["seed-agent", "movie"],
+            tags=["media-agent", "movie"],
         ),
         CategoryPolicyConfig(
             name="tv",
@@ -41,7 +41,7 @@ def test_usage_by_pool_aggregates_categories_sharing_a_budget_pool() -> None:
             budget_pool="media",
             delete_enabled=False,
             over_budget_behavior="add_paused",
-            tags=["seed-agent", "tv"],
+            tags=["media-agent", "tv"],
         ),
     ]
     pools = [BudgetPoolConfig(name="media", max_size_tib=10)]

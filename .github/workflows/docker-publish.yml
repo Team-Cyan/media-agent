@@ -115,7 +115,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/team-cyan/seed-agent
+          images: ghcr.io/team-cyan/media-agent
           tags: |
             type=raw,value=latest,enable=${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/main' }}
             type=raw,value=main,enable=${{ github.event_name == 'workflow_run' || github.ref == 'refs/heads/main' }}
@@ -125,9 +125,9 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=sha-${{ steps.release.outputs.short_sha }}
           labels: |
-            org.opencontainers.image.title=seed-agent
+            org.opencontainers.image.title=media-agent
             org.opencontainers.image.description=Docker-first PT automation for NAS and homelab downloader operations
-            org.opencontainers.image.icon=https://raw.githubusercontent.com/Team-Cyan/seed-agent/main/docs/assets/icon.png
+            org.opencontainers.image.icon=https://raw.githubusercontent.com/Team-Cyan/media-agent/main/docs/assets/icon.png
             org.opencontainers.image.version=${{ steps.release.outputs.version }}
 
       - name: Build and push image

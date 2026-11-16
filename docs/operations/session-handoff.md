@@ -1,10 +1,14 @@
 # Session Handoff
 
-## Current Release Work (2026-11-15)
+## Current Release Work (2026-11-16)
 
-The fresh execution chat published v1.0.0 at `7c815ca` after exact-revision CI.
+The stable milestone published v1.0.0 at `7c815ca` after exact-revision CI.
 The archival branch is `release/1.0`; the original dirty work remains preserved.
 A documentation-only main follow-up records publication and historical CI receipts.
+The 1.0.1 subtitle fix was also published at `f5e2205`. The new 1.1 work renames
+media-agent and unifies the container while retaining state and legacy integration
+contracts. Consult the [rename contract](../specs/2026-11-16-single-container-rename.md)
+and current versioned review for publication/deployment verification.
 Use [closure plan](../plans/2026-11-15-v1-release-closure.md),
 [release contract](../specs/2026-11-15-v1-release-contract.md) and
 [review report](../reviews/2026-11-15-v1-release-review.md) for the current outcome.
@@ -14,8 +18,8 @@ must not be used to select current code or replay live actions.
 ## Product And Deployment Boundaries
 
 The shipped functions and verification levels live in the README support matrix;
-the versioned roadmap records remaining acceptance and proposed work. The last
-recorded production release is 0.29.2; publishing 1.0 does not upgrade that host.
+the versioned roadmap records remaining acceptance and proposed work. Production identity must be read from the typed controller; publishing a release
+does not upgrade that host.
 Its finite media cohort was reconciled with originals retained, explicit extra
 attachments and a retained alternate. Do not switch the selected source or replay
 scans/migration/recovery writers from old instructions. Corpus details and receipts

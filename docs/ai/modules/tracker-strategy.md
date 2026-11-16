@@ -42,7 +42,7 @@ These examples are copy/merge material, not standalone runtime profiles:
 
 ## Optimization Loop
 
-1. Run `seed-agent strategy-report --config <config>`.
+1. Run `media-agent strategy-report --config <config>`.
 2. Inspect candidate buckets:
    - accepted vs rejected by leechers,
    - seed/leecher ratio,
@@ -56,11 +56,11 @@ These examples are copy/merge material, not standalone runtime profiles:
 4. Inspect `site_history` in the same report. It should explain sample counts,
    productive/missing/no-upload counts, active backoffs, and whether the score
    is applied or still using the low-sample fallback.
-5. Run `seed-agent headroom-report --config <config>` to project accepted
+5. Run `media-agent headroom-report --config <config>` to project accepted
    candidate size against both the default budget pool and the downloader's
    reported free disk headroom before changing enqueue gates.
 6. Adjust concrete knobs, not a coarse runtime profile switch.
-7. Run `seed-agent run-once --config <config>` without `--execute`.
+7. Run `media-agent run-once --config <config>` without `--execute`.
 8. Execute only after accepted candidates and runtime pause gates look sane.
 9. Re-run after several cycles before making stronger strategy changes.
 

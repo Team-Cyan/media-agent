@@ -6,9 +6,9 @@ import yaml
 from test_web_settings import _running_server, _write_minimal_config
 from typer.testing import CliRunner
 
-from seed_agent import cli
-from seed_agent.config import load_config
-from seed_agent.media_import.runtime import build_engine
+from media_agent import cli
+from media_agent.config import load_config
+from media_agent.media_import.runtime import build_engine
 
 
 def media_config(tmp_path):
@@ -47,7 +47,7 @@ def test_media_cli_without_downloader_config(tmp_path):
         result = CliRunner().invoke(cli.app, ["media-scan", "--config", str(config)])
         assert result.exit_code == 0, result.output
         assert json.loads(result.output)["status"] == "queued"
-        from seed_agent.media_import.worker import process_one
+        from media_agent.media_import.worker import process_one
 
         assert process_one(config)["status"] == "complete"
     assert not list(target.rglob("*.mkv"))
@@ -87,7 +87,7 @@ def test_media_web_get_is_read_only_and_review_persists(tmp_path):
         assert response.status == 202, response.read()
         payload = json.loads(response.read())
         assert payload["status"] == "queued"
-        from seed_agent.media_import.worker import process_one
+        from media_agent.media_import.worker import process_one
 
         completed = process_one(config)
         assert "Example (2024)" in completed["result"]["new_target"]
@@ -122,8 +122,8 @@ def test_seed_scheduler_never_invokes_media_network(
 ):
     import httpx
 
-    from seed_agent.media_import import runtime
-    from seed_agent.state import StateStore
+    from media_agent.media_import import runtime
+    from media_agent.state import StateStore
 
     config_path = _write_minimal_config(tmp_path)
     config = yaml.safe_load(config_path.read_text())

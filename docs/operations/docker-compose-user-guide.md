@@ -1,6 +1,6 @@
 # Docker Compose User Guide
 
-This guide is the normal installation path for `seed-agent` 1.0.
+This guide is the normal installation path for `media-agent` 1.0.
 See [Upgrade And Recovery](upgrade-and-recovery.md) before replacing an existing install.
 The example enables scheduled execution: review execution/prune/media policy and
 set execute false for initial isolated evaluation before starting containers.
@@ -8,7 +8,7 @@ set execute false for initial isolated evaluation before starting containers.
 It assumes:
 
 - you want a long-lived Docker container,
-- the container runs `schedule-run`,
+- the container runs `app`, supervising the scheduler, Web UI and configured media worker,
 - config and state live on mounted storage,
 - qBittorrent and tracker secrets stay in local files.
 
@@ -17,7 +17,7 @@ It assumes:
 Recommended host layout:
 
 ```text
-seed-agent/
+media-agent/
 ├── config/
 │   ├── config.yaml
 │   └── example.yaml
@@ -27,13 +27,14 @@ seed-agent/
 │       ├── qbittorrent.yaml
 │       └── mt.api-key
 ├── .seed-agent/
+├── .media-import/
 └── state/
 ```
 
 Create missing directories:
 
 ```bash
-mkdir -p config local/secrets local/inbox .seed-agent state
+mkdir -p config local/secrets local/inbox .seed-agent .media-import state
 ```
 
 ## 2. Prepare `config/config.yaml`
@@ -99,21 +100,21 @@ as the starting point.
 If you want an explicit image override file, start with:
 
 ```bash
-cp deploy/seed-agent.env.example deploy/seed-agent.env
+cp deploy/media-agent.env.example deploy/media-agent.env
 ```
 
 Default model:
 
 - one container,
-- `schedule-run`,
+- `app` supervises the scheduler, enabled Web UI and media worker when media is configured,
 - execute mode enabled,
 - heartbeat file enabled,
-- Docker healthcheck enabled: it checks SQLite state and scheduler heartbeat,
-  plus the in-container Web endpoint when the Web UI is enabled.
+- `app-healthcheck` checks seed state and heartbeat, the Web endpoint when enabled,
+  and media health when configured.
 
 Main env vars:
 
-- `SEED_AGENT_MODE=schedule-run`
+- `SEED_AGENT_MODE=app`
 - `SEED_AGENT_CONFIG=/app/config/config.yaml`
 - `SEED_AGENT_EXECUTE=true`
 - `SEED_AGENT_HEARTBEAT_FILE=/state/schedule-heartbeat.json`
@@ -130,23 +131,42 @@ Do not duplicate interval, free-window, prune, or Intent execute settings in
 Compose environment variables.
 
 The example publishes host port `8765` to the container's Web UI port. That lets
-one long-running container serve the settings UI while `schedule-run` remains
-the foreground process.
+one long-running container serve the settings UI alongside the scheduler and configured media worker.
 
-The Compose file reads `SEED_AGENT_IMAGE` from `deploy/seed-agent.env`, so you can switch
+The Compose file reads `SEED_AGENT_IMAGE` from `deploy/media-agent.env`, so you can switch
 between GHCR, Docker Hub, and a private registry without editing YAML. It also
 passes optional `SEED_AGENT_WEB_TOKEN` from the same env file.
+
+Set `MEDIA_PARENT_DIR` in the env file to an existing common parent for source
+and library, and configure both paths below `/media`. Use one RW mount with no
+nested overlays; separate mounts can cause hardlink `EXDEV`. This mount does not
+provide kernel-enforced source read-only protection. Verify actual filesystem
+hardlinks and root identity before production use. The unified container has both
+downloader and media credentials: its child processes do not have the former
+separate-container security boundary. Keep secrets in local files.
+
+Before starting with media configured, initialize a new independent media state
+explicitly using the configured paths (for an existing state, preserve it and use
+the migration procedure in [Media Import](media-import.md)):
+
+```bash
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml run --rm --entrypoint media-agent media-agent media-state-init --config /app/config/config.yaml
+```
+
+Initialization does not replay scans. Stop and drain any legacy worker before
+starting the app; never run both writers together. See [Media Import](media-import.md)
+for migration and receipt handling.
 
 ## 5. Start The App
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml up -d
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml up -d
 ```
 
-If you want to build from local source:
+To build from local source, first uncomment the `build` section in the Compose example, then run:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml up -d --build
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml up -d --build
 ```
 
 That source build uses `uv.lock` inside the Docker image, so the container path
@@ -157,24 +177,21 @@ matches the repository's pinned Python dependency set.
 Check container status:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml ps
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml ps
 ```
 
 Watch logs:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml logs -f seed-agent
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml logs -f media-agent
 ```
 
-The first log line should be a redacted `runtime-status` JSON payload. It shows
-the installed version, config path, state/audit paths, heartbeat path, and
-whether configured credential files are present.
-
-You can print the same status on demand:
+Print the redacted runtime status on demand to inspect the version, config,
+state and credential-file visibility:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml exec seed-agent \
-  seed-agent runtime-status \
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml exec media-agent \
+  media-agent runtime-status \
     --config /app/config/config.yaml \
     --heartbeat-file /state/schedule-heartbeat.json
 ```
@@ -205,7 +222,7 @@ open http://127.0.0.1:8765
 If the page does not load, first confirm that the container has a published port:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml port seed-agent 8765
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml port media-agent 8765
 ```
 
 ## 7. Common Operations
@@ -213,19 +230,19 @@ docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example
 Restart:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml restart seed-agent
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml restart media-agent
 ```
 
 Stop:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml down
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml down
 ```
 
 Rebuild after local changes:
 
 ```bash
-docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example.yml up -d --build
+docker compose --env-file deploy/media-agent.env -f deploy/docker-compose.example.yml up -d --build
 ```
 
 ## 8. Safety Notes
@@ -241,8 +258,8 @@ docker compose --env-file deploy/seed-agent.env -f deploy/docker-compose.example
 If the container is unhealthy:
 
 1. check Compose logs,
-2. when the Web UI is enabled, run `seed-agent healthcheck --config /app/config/config.yaml --heartbeat-file /state/schedule-heartbeat.json --web-health-url http://127.0.0.1:8765/api/health` inside the container (otherwise omit `--web-health-url`),
-3. run `seed-agent runtime-status` inside the container,
+2. run `/app/docker/entrypoint.sh app-healthcheck` inside the container,
+3. run `media-agent runtime-status` inside the container,
 4. inspect `state/schedule-heartbeat.json`,
 5. confirm `config/config.yaml` is mounted where `SEED_AGENT_CONFIG` expects,
 6. confirm `local/secrets/` paths match the refs used in YAML,

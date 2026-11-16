@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 import pytest
 from defusedxml.common import EntitiesForbidden
 
-from seed_agent.models import IntentKind, IntentSource, IntentState, ResourceIntent
-from seed_agent.search.torznab import TorznabSearchProvider, parse_torznab_releases
+from media_agent.models import IntentKind, IntentSource, IntentState, ResourceIntent
+from media_agent.search.torznab import TorznabSearchProvider, parse_torznab_releases
 
 
 def _intent(**overrides: object) -> ResourceIntent:

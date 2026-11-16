@@ -8,7 +8,7 @@ import respx
 from test_media_import import import_three
 from test_media_import import media as media
 
-from seed_agent.media_import.artwork import PosterJobs, TmdbPosters
+from media_agent.media_import.artwork import PosterJobs, TmdbPosters
 
 PAYLOAD = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV1sAAAAASUVORK5CYII="
@@ -20,7 +20,7 @@ def image_probe(monkeypatch):
     # The host has no ffprobe; filesystem publication/receipts remain real. Image
     # inspection is the subprocess seam, exercised independently by API fixtures.
     monkeypatch.setattr(
-        "seed_agent.media_import.artwork.subprocess.run",
+        "media_agent.media_import.artwork.subprocess.run",
         lambda *a, **k: SimpleNamespace(
             stdout=b'{"streams":[{"codec_name":"png","width":1,"height":1}]}'
         ),
@@ -102,7 +102,7 @@ def test_source_replacement_during_poster_fetch_prevents_publication(media):
 @respx.mock
 def test_official_poster_fetch_limits_origins_and_credentials(monkeypatch):
     monkeypatch.setattr(
-        "seed_agent.media_import.artwork.subprocess.run",
+        "media_agent.media_import.artwork.subprocess.run",
         lambda *a, **k: SimpleNamespace(
             stdout=b'{"streams":[{"codec_name":"png","width":500,"height":750}]}'
         ),
@@ -431,7 +431,7 @@ def test_shared_show_across_independent_sources_keeps_last_support(media, tmp_pa
 
 
 def test_new_epoch_reclaims_restored_running_job_without_waiting(media):
-    from seed_agent.media_import.engine import Engine
+    from media_agent.media_import.engine import Engine
 
     import_three(media)
     engine, _, target, _ = media
@@ -534,7 +534,7 @@ def test_real_guarded_preview_and_pinned_command_modes_do_not_publish(
 ):
     import yaml
 
-    from seed_agent.config_views import MediaConfigGuard, load_view
+    from media_agent.config_views import MediaConfigGuard, load_view
 
     import_three(media)
     engine, source, target, _ = media
@@ -591,7 +591,7 @@ def test_real_guarded_preview_and_pinned_command_modes_do_not_publish(
 def test_real_guarded_execute_still_checks_configuration_before_publish(media, tmp_path, changed):
     import yaml
 
-    from seed_agent.config_views import MediaConfigGuard, load_view
+    from media_agent.config_views import MediaConfigGuard, load_view
 
     import_three(media)
     engine, _, target, _ = media
@@ -616,7 +616,7 @@ def test_real_guarded_execute_still_checks_configuration_before_publish(media, t
 def test_guarded_preview_cannot_replace_live_execute_claim(media, tmp_path):
     import yaml
 
-    from seed_agent.config_views import MediaConfigGuard, load_view
+    from media_agent.config_views import MediaConfigGuard, load_view
 
     import_three(media)
     engine, _, target, _ = media

@@ -1,7 +1,7 @@
 """Real Linux root-process tests; run in an existing cached image, no network.
 
 Mount this repository at /workspace and invoke this script as root using the
-Python interpreter. The image must contain seed-agent's existing dependencies,
+Python interpreter. The image must contain media-agent's existing dependencies,
 a prior unpatched installed CLI (baseline), and util-linux setpriv.
 """
 
@@ -59,8 +59,8 @@ text = next(
 setup = """
 import json,sys,yaml
 from pathlib import Path
-from seed_agent.media_import.runtime import build_engine
-from seed_agent.state import StateStore
+from media_agent.media_import.runtime import build_engine
+from media_agent.state import StateStore
 root=Path(sys.argv[1]);config=yaml.safe_load(sys.argv[2]);config.pop('download_client',None)
 config['deployment']={'source_id':'identity-linux-test'}
 for name in ['source','library']:
@@ -135,11 +135,11 @@ def run(
 
 for role in ["seed", "media"]:
     args = ["healthcheck", "--role", role, "--config", str(root / "config.yaml")]
-    run(f"old-root-bypass-{role}", ["seed-agent", *args], old=True, expected_sql=0)
-    run(f"new-root-bypass-{role}", ["seed-agent", *args], expected_exit=2)
+    run(f"old-root-bypass-{role}", ["media-agent", *args], old=True, expected_sql=0)
+    run(f"new-root-bypass-{role}", ["media-agent", *args], expected_exit=2)
     run(
         f"new-forged-marker-{role}",
-        ["seed-agent", *args],
+        ["media-agent", *args],
         {"SEED_AGENT_PRIVILEGES_DROPPED": "true"},
         expected_exit=2,
     )
@@ -158,15 +158,15 @@ for role in ["seed", "media"]:
     )
     run(
         f"new-owner-direct-{role}",
-        ["seed-agent", *args],
+        ["media-agent", *args],
         nonroot=1000,
         expected_sql=1000,
         expected_exit=0 if role == "seed" else 1,
     )
-    run(f"new-wrong-nonroot-{role}", ["seed-agent", *args], nonroot=1001, expected_exit=2)
+    run(f"new-wrong-nonroot-{role}", ["media-agent", *args], nonroot=1001, expected_exit=2)
     run(
         f"new-local-{role}",
-        ["seed-agent", *args],
+        ["media-agent", *args],
         {"PUID": None, "PGID": None},
         nonroot=1000,
         expected_sql=1000,
@@ -174,7 +174,7 @@ for role in ["seed", "media"]:
     )
     run(
         f"new-runtime-status-root-{role}",
-        ["seed-agent", "runtime-status", *args[1:]],
+        ["media-agent", "runtime-status", *args[1:]],
         expected_exit=2,
     )
 # Existing seed heartbeat failure and media role restrictions remain unhealthy.
@@ -218,8 +218,8 @@ run(
         """
 import os
 from pathlib import Path
-from seed_agent.media_import.store import MediaStore
-from seed_agent.runtime_identity import RuntimeIdentityError
+from media_agent.media_import.store import MediaStore
+from media_agent.runtime_identity import RuntimeIdentityError
 os.setresgid(100,100,100);os.setresuid(1000,1000,0)
 try:MediaStore(Path('/tmp/saved-root-must-not-exist/state.db'))
 except RuntimeIdentityError:pass
@@ -233,9 +233,9 @@ assert not Path('/tmp/saved-root-must-not-exist').exists()
 code = """
 import os,sys
 from pathlib import Path
-from seed_agent.state import StateStore
-from seed_agent.media_import.store import MediaStore
-from seed_agent.runtime_identity import RuntimeIdentityError
+from media_agent.state import StateStore
+from media_agent.media_import.store import MediaStore
+from media_agent.runtime_identity import RuntimeIdentityError
 r=Path(sys.argv[1]);existing=r/'unchanged';existing.write_bytes(b'unchanged');existing.chmod(0o664)
 before=existing.stat()
 for Store in [StateStore,MediaStore]:
@@ -257,9 +257,9 @@ for item in results:
         )
 baseline_env = {**env, "PYTHONPATH": f"{hook}:{os.environ.get('IDENTITY_BASELINE_SOURCE', '')}"}
 baseline_version = subprocess.check_output(
-    ["seed-agent", "--version"], env=baseline_env, text=True
+    ["media-agent", "--version"], env=baseline_env, text=True
 ).strip()
-current_version = subprocess.check_output(["seed-agent", "--version"], env=env, text=True).strip()
+current_version = subprocess.check_output(["media-agent", "--version"], env=env, text=True).strip()
 print(
     json.dumps(
         {

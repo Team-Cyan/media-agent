@@ -5,8 +5,8 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from seed_agent.metrics import render_prometheus_metrics
-from seed_agent.state import StateStore
+from media_agent.metrics import render_prometheus_metrics
+from media_agent.state import StateStore
 
 
 def test_prometheus_metrics_are_local_bounded_and_secret_free(tmp_path: Path) -> None:

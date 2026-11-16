@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Container version="2">
-  <Name>seed-agent-media-worker</Name>
-  <Repository>ghcr.io/team-cyan/seed-agent@sha256:REPLACE_WITH_VERIFIED_DIGEST</Repository>
-  <Registry>https://github.com/Team-Cyan/seed-agent/pkgs/container/seed-agent</Registry>
+  <Name>media-agent-media-worker</Name>
+  <Repository>ghcr.io/team-cyan/media-agent@sha256:REPLACE_WITH_VERIFIED_DIGEST</Repository>
+  <Registry>https://github.com/Team-Cyan/media-agent/pkgs/container/media-agent</Registry>
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/Team-Cyan/seed-agent/issues</Support>
-  <Project>https://github.com/Team-Cyan/seed-agent</Project>
-  <Overview>Independent media worker. Before deployment replace Repository with the same verified immutable image as seed, set its digest below, and align the one shared config directory and media state. No Web or downloader access. Mount source and library under ONE common RW parent; application source preservation is not kernel-enforced RO. See deploy/media-worker.md.</Overview>
+  <Support>https://github.com/Team-Cyan/media-agent/issues</Support>
+  <Project>https://github.com/Team-Cyan/media-agent</Project>
+  <Overview>Legacy independent media worker; never run alongside the unified app container. Before deployment replace Repository with the same verified immutable image as seed, set its digest below, and align the one shared config directory and media state. No Web or downloader access. Mount source and library under ONE common RW parent; application source preservation is not kernel-enforced RO. See deploy/media-worker.md.</Overview>
   <Category>Tools:Utilities</Category>
   <ExtraParams>--read-only --restart=on-failure:5 --cpus=1.0 --memory=1g --pids-limit=128 --stop-timeout=45 --security-opt=no-new-privileges:true --tmpfs=/tmp:rw,noexec,nosuid,size=128m --health-cmd='/app/docker/entrypoint.sh healthcheck --role media --config /workspace/runtime/config/config.yaml' --health-interval=30s --health-timeout=10s --health-retries=3 --health-start-period=1m</ExtraParams>
   <Config Name="Shared Config Directory" Target="/workspace/runtime/config" Default="" Mode="ro" Description="Existing shared config DIRECTORY; atomic replacements must remain visible. No independent config copy." Type="Path" Display="always" Required="true" Mask="false"></Config>

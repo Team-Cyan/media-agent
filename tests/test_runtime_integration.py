@@ -9,12 +9,12 @@ import yaml
 from support.fakes import RecordingDownloader, StaticSearchProvider
 from typer.testing import CliRunner
 
-from seed_agent.models import Discount, ManagedTorrent, ReleaseCandidate
-from seed_agent.state import StateStore
+from media_agent.models import Discount, ManagedTorrent, ReleaseCandidate
+from media_agent.state import StateStore
 
 
 def test_scheduler_lease_heartbeat_renews_during_long_cycle() -> None:
-    from seed_agent.cli import _SchedulerLeaseHeartbeat
+    from media_agent.cli import _SchedulerLeaseHeartbeat
 
     renewed = threading.Event()
 
@@ -49,7 +49,7 @@ def test_scheduler_cycle_uses_local_fakes_and_persists_all_phases(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     raw = yaml.safe_load(Path("config/example.yaml").read_text(encoding="utf-8"))
     raw["tracker_sites"] = []
@@ -84,7 +84,7 @@ def test_scheduler_cycle_uses_local_fakes_and_persists_all_phases(
         hash="integration-seed",
         name="Cold Seed",
         category="seed",
-        tags={"seed-agent", "seed"},
+        tags={"media-agent", "seed"},
         state="uploading",
         size_bytes=20 * 1024**3,
         uploaded_bytes=0,
@@ -157,7 +157,7 @@ def test_scheduler_cycle_uses_local_fakes_and_persists_all_phases(
 
 
 def test_scheduler_cli_rejects_second_owner_before_runtime_work(tmp_path: Path) -> None:
-    from seed_agent import cli
+    from media_agent import cli
 
     raw = yaml.safe_load(Path("config/example.yaml").read_text(encoding="utf-8"))
     raw["tracker_sites"] = []

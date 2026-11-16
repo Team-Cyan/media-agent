@@ -15,8 +15,8 @@ env = {**os.environ, "PYTHONPATH": "/workspace/src", "PUID": "1000", "PGID": "10
 setup = """
 from pathlib import Path
 import sys
-from seed_agent.state import StateStore
-from seed_agent.maintenance import verify_sqlite_database
+from media_agent.state import StateStore
+from media_agent.maintenance import verify_sqlite_database
 p=Path(sys.argv[1]);StateStore(p);assert verify_sqlite_database(p)['valid'];p.chmod(0o664)
 """
 subprocess.run(
@@ -37,9 +37,9 @@ subprocess.run(
 code = """
 import json,os,sqlite3,sys
 from pathlib import Path
-from seed_agent.maintenance import (backup_sqlite_database,restore_sqlite_database,
+from media_agent.maintenance import (backup_sqlite_database,restore_sqlite_database,
                                     verify_sqlite_database)
-from seed_agent.runtime_identity import RuntimeIdentityError
+from media_agent.runtime_identity import RuntimeIdentityError
 root=Path(sys.argv[1]);kind=sys.argv[2];case=Path(sys.argv[3]);source=root/'source.db'
 def snapshot():
  return {str(p.relative_to(root)):(p.stat().st_mode,p.stat().st_mtime_ns,

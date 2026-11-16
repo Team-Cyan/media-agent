@@ -11,6 +11,8 @@ FORBIDDEN_PATH_PATTERNS = (
     ".env",
     ".env.*",
     ".seed-agent/*",
+    ".media-import/*",
+    "deploy/*.env",
     "config/live-*.yaml",
     "config/live-*.yml",
     "local/inbox/*",

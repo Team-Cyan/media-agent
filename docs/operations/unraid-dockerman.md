@@ -1,11 +1,11 @@
 # Unraid DockerMan Install
 
-This guide is for operators who want `seed-agent` to look and behave like a
+This guide is for operators who want `media-agent` to look and behave like a
 normal Unraid-managed Docker app instead of a standalone Compose project.
 
 ## Why This Path Exists
 
-Docker Compose is enough to run `seed-agent`, but Unraid DockerMan gives you:
+Docker Compose is enough to run `media-agent`, but Unraid DockerMan gives you:
 
 - template-backed edit and rebuild actions,
 - container lifecycle controls in the main Docker page,
@@ -16,13 +16,13 @@ Docker Compose is enough to run `seed-agent`, but Unraid DockerMan gives you:
 
 DockerMan should point to:
 
-- `ghcr.io/team-cyan/seed-agent:latest`
+- `ghcr.io/team-cyan/media-agent:latest`
 
 That image is published from GitHub Actions on pushes to `main`.
 
 ## Single-Root Host Layout
 
-The Unraid template mounts one host folder:
+The Unraid template retains the existing appdata root:
 
 - `/mnt/user/appdata/seed-agent` -> `/workspace`
 
@@ -37,6 +37,7 @@ Inside that root, keep:
     │   ├── inbox/
     │   └── secrets/
     ├── .seed-agent/
+    ├── .media-import/
     └── state/
 ```
 
@@ -53,26 +54,25 @@ Keep secrets as local files under:
 - `/mnt/user/appdata/seed-agent/runtime/local/secrets/mteam-api-key.txt`
 - `/mnt/user/appdata/seed-agent/runtime/local/secrets/qbittorrent.yaml`
 
-That keeps credentials out of the template XML and still lets `schedule-run`
+That keeps credentials out of the template XML and still lets the app
 load them through the checked-in config file at:
 
 - `/workspace/runtime/config/config.yaml`
 
-In practice, DockerMan only needs to mount `/mnt/user/appdata/seed-agent` to
-`/workspace`; the runtime config then resolves `local/secrets/...` relative to
+DockerMan also mounts one common source and library parent at `/media`; the runtime config resolves `local/secrets/...` relative to
 that mounted root.
 
 ## Template
 
 Copy or import:
 
-- `deploy/unraid/seed-agent.xml`
+- `deploy/unraid/media-agent.xml`
 
 Recommended user-visible defaults:
 
 - `Network=bridge`
-- restart policy `unless-stopped`
-- `SEED_AGENT_MODE=schedule-run`
+- restart policy `on-failure:5`
+- `SEED_AGENT_MODE=app`
 - `SEED_AGENT_CONFIG=/workspace/runtime/config/config.yaml`
 - `SEED_AGENT_HEARTBEAT_FILE=/workspace/runtime/state/schedule-heartbeat.json`
 - `SEED_AGENT_EXECUTE=true`
@@ -85,43 +85,43 @@ Recommended user-visible defaults:
 - `SEED_AGENT_WEB_PORT=8765`
 - WebUI host port `8765` mapped to container port `8765/tcp`
 
+The app supervises scheduler, enabled Web UI and the media worker when configured.
+Set the common media parent to an existing host directory and configure source and
+library below `/media`. Avoid nested mounts: separate binds can cause hardlink
+`EXDEV`. This RW mount does not provide kernel-enforced source read-only protection;
+verify real hardlink and root identity behavior before production. The unified
+container can access downloader and media credentials, so separate process/container
+credential isolation is no longer provided. No Docker socket is required.
+
+Before starting with media configured, explicitly initialize new media state with
+`media-agent media-state-init --config /workspace/runtime/config/config.yaml` in a
+one-off container using the same mounts. Preserve existing state, stop and drain the
+legacy worker, and follow [Media Import](media-import.md) for migration; never run
+it alongside the unified app. Initialization does not replay scans.
+
 ## Runtime Visibility
 
-Every non-healthcheck container start prints one redacted `runtime-status` JSON
-line to Docker logs before the long-running command starts. Use that line to
-confirm:
+Inspect the redacted runtime status to confirm the version, configuration,
+credential-file visibility and state paths.
 
-- the installed `seed-agent` version,
-- the actual config path Docker passed to the container,
-- whether the config file loaded successfully,
-- whether the qB credential file path exists,
-- state, audit, and heartbeat file paths.
-
-You can also run the same check from the Unraid Docker console:
+Run this from the Unraid Docker console:
 
 ```sh
-seed-agent runtime-status \
+media-agent runtime-status \
   --config /workspace/runtime/config/config.yaml \
   --heartbeat-file /workspace/runtime/state/schedule-heartbeat.json \
   --max-staleness-minutes 90
 ```
 
-For the same complete health check used by DockerMan, run:
+For the same health check used by DockerMan, run:
 
 ```sh
-seed-agent healthcheck \
-  --config /workspace/runtime/config/config.yaml \
-  --heartbeat-file /workspace/runtime/state/schedule-heartbeat.json \
-  --max-staleness-minutes 90 \
-  --web-health-url http://127.0.0.1:8765/api/health
+/app/docker/entrypoint.sh app-healthcheck
 ```
 
-It verifies a short read-only SQLite query, the scheduler heartbeat, and the
-actual local Web endpoint. A healthy scheduler heartbeat alone is therefore
-not enough to mark the container healthy.
-
-If `SEED_AGENT_WEB_ENABLED=false`, omit `--web-health-url` for a manual probe;
-the DockerMan template does this automatically.
+It checks seed state and heartbeat, the enabled Web endpoint, and media health
+when media is configured. Docker health alone does not restart a container; the
+supervisor exits on a child failure so the bounded restart policy can apply.
 
 The heartbeat JSON now includes the package version and config path in addition
 to cycle, interval, execution mode, accepted/enqueued counts, and the last error
@@ -147,7 +147,7 @@ template rebuild/update script so the recreated container keeps the managed
 label:
 
 ```sh
-/usr/local/emhttp/plugins/dynamix.docker.manager/scripts/update_container seed-agent
+/usr/local/emhttp/plugins/dynamix.docker.manager/scripts/update_container media-agent
 ```
 
 Afterward, confirm the container still has:
@@ -159,22 +159,22 @@ net.unraid.docker.managed=dockerman
 Also confirm Docker kept the scheduler restart policy:
 
 ```sh
-docker inspect seed-agent --format '{{json .HostConfig.RestartPolicy}}'
+docker inspect media-agent --format '{{json .HostConfig.RestartPolicy}}'
 ```
 
 Expected:
 
 ```json
-{"Name":"unless-stopped","MaximumRetryCount":0}
+{"Name":"on-failure","MaximumRetryCount":5}
 ```
 
-If repeated `latest` pulls leave old `ghcr.io/team-cyan/seed-agent:<none>`
-images behind, remove only unused seed-agent dangling images. Avoid broad
+If repeated `latest` pulls leave old `ghcr.io/team-cyan/media-agent:<none>`
+images behind, remove only unused media-agent dangling images. Avoid broad
 `docker system prune` operations on a NAS host.
 
 ## WebUI Button
 
-`seed-agent` exposes the settings Web UI on container port `8765` when
+`media-agent` exposes the settings Web UI on container port `8765` when
 `SEED_AGENT_WEB_ENABLED=true`.
 
 The DockerMan template maps host port `8765` to container port `8765/tcp` and
@@ -196,11 +196,11 @@ If the Docker page shows the container as healthy but the WebUI button opens an
 unavailable page, check these live facts before changing application config:
 
 ```sh
-docker port seed-agent
-docker inspect seed-agent --format '{{json .NetworkSettings.Ports}}'
-docker inspect seed-agent --format '{{index .Config.Labels "net.unraid.docker.webui"}}'
-docker exec seed-agent seed-agent --version
-docker exec seed-agent seed-agent runtime-status \
+docker port media-agent
+docker inspect media-agent --format '{{json .NetworkSettings.Ports}}'
+docker inspect media-agent --format '{{index .Config.Labels "net.unraid.docker.webui"}}'
+docker exec media-agent media-agent --version
+docker exec media-agent media-agent runtime-status \
   --config /workspace/runtime/config/config.yaml \
   --heartbeat-file /workspace/runtime/state/schedule-heartbeat.json \
   --max-staleness-minutes 90
@@ -208,10 +208,10 @@ docker exec seed-agent seed-agent runtime-status \
 
 A healthy scheduler with `ports={}` means the image updated, but the installed
 DockerMan template did not publish the Web UI port. Update the template from
-`deploy/unraid/seed-agent.xml`, then use Unraid's **Apply Update** action or:
+`deploy/unraid/media-agent.xml`, then use Unraid's **Apply Update** action or:
 
 ```sh
-/usr/local/emhttp/plugins/dynamix.docker.manager/scripts/update_container seed-agent
+/usr/local/emhttp/plugins/dynamix.docker.manager/scripts/update_container media-agent
 ```
 
-After the rebuild, `docker port seed-agent` should show a `8765/tcp` mapping.
+After the rebuild, `docker port media-agent` should show a `8765/tcp` mapping.

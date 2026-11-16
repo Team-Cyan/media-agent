@@ -1,6 +1,6 @@
 # Web UI Operator Guide
 
-This guide explains how operators should use the local `seed-agent` Web UI and
+This guide explains how operators should use the local `media-agent` Web UI and
 when to switch back to the CLI. The Web UI is an operator console for safe
 configuration editing, preview/search workflows, status inspection, and
 deliberate Want List candidate enqueue. It is not the only control plane, and
@@ -190,7 +190,7 @@ process continues to update its heartbeat.
 The CLI `runtime-status` command gives a fuller provenance snapshot:
 
 ```bash
-uv run seed-agent runtime-status \
+uv run media-agent runtime-status \
   --config config/config.yaml \
   --heartbeat-file state/schedule-heartbeat.json
 ```
@@ -198,7 +198,7 @@ uv run seed-agent runtime-status \
 On Unraid, run the same command inside the container with the deployed paths:
 
 ```bash
-docker exec seed-agent seed-agent runtime-status \
+docker exec media-agent media-agent runtime-status \
   --config /workspace/runtime/config/config.yaml \
   --heartbeat-file /workspace/runtime/state/schedule-heartbeat.json \
   --max-staleness-minutes 90

@@ -9,7 +9,7 @@ from test_media_extras import setup_variant
 from test_web_settings import _request_json, _running_server, _write_minimal_config
 from typer.testing import CliRunner
 
-from seed_agent.web.media_actions import reviewed_request_status, variant_candidates
+from media_agent.web.media_actions import reviewed_request_status, variant_candidates
 
 
 def test_variant_candidates_use_identity_not_filename_or_page(setup_extra):
@@ -72,7 +72,7 @@ def test_lost_response_request_lookup_is_read_only_and_rejects_ambiguity(setup_e
 
 @pytest.mark.skipif(not shutil.which("node"), reason="Node is required for UI behavior fixture")
 def test_ui_holds_lost_submit_and_recovers_by_read_only_request_lookup():
-    source = Path("src/seed_agent/web/static/app.js").read_text()
+    source = Path("src/media_agent/web/static/app.js").read_text()
     functions = source[
         source.index("function mediaElement(") : source.index("async function loadMedia()")
     ]
@@ -164,7 +164,7 @@ async function apiFetch(path, options) {
     ],
 )
 def test_reviewed_http_actions_preserve_explicit_execution(monkeypatch, tmp_path, action):
-    import seed_agent.media_import.commands as commands
+    import media_agent.media_import.commands as commands
 
     received = []
 
@@ -199,8 +199,8 @@ def test_reviewed_http_actions_preserve_explicit_execution(monkeypatch, tmp_path
     ],
 )
 def test_reviewed_cli_does_not_execute_implicitly(monkeypatch, tmp_path, action):
-    import seed_agent.media_import.commands as commands
-    from seed_agent.cli import app
+    import media_agent.media_import.commands as commands
+    from media_agent.cli import app
 
     received = []
     monkeypatch.setattr(

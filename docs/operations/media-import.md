@@ -1,13 +1,13 @@
 # Media Library Operations
 
 The independent media worker scans configured folders without a downloader.
-`seed-agent media-scan --config config/config.yaml` submits a preview command and
+`media-agent media-scan --config config/config.yaml` submits a preview command and
 returns its durable ID; `--execute` permits only the policies already enabled in
 that configuration. Web actions also submit commands and show queued/completed or
 failed status. Neither interface runs providers inline. `media-command-status`
 reads command results; `media-status` reads a bounded media evidence page.
 
-Run `seed-agent media-worker --config config/config.yaml` as a separate process.
+Run `media-agent media-worker --config config/config.yaml` as a separate process.
 It owns its own clock and exclusive worker lease; the seed scheduler never enqueues,
 executes or waits for media. A missing worker leaves commands visibly queued.
 Set a stable `deployment.source_id` in the shared authoritative config directory.
@@ -295,7 +295,7 @@ matching, subtitle coverage and client playback acceptance.
 ### Inspect actual media duration offline
 
 Run `uv run python scripts/probe_media.py /absolute/path/video.mkv` or
-`uv run seed-agent media-probe /absolute/path/video.avi --json`. ffprobe is required
+`uv run media-agent media-probe /absolute/path/video.avi --json`. ffprobe is required
 and included in the published image. MP4/MKV/AVI and extensionless local files share
 the same content-based inspection; the script reports measured HH:MM:SS/seconds,
 container, FPS and basic streams. It reads no configuration/database/provider and

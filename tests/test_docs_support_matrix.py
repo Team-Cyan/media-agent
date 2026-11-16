@@ -12,10 +12,10 @@ def test_current_docs_match_implemented_extension_surface() -> None:
     combined = "\n".join(content_by_path.values())
 
     for path in (
-        Path("src/seed_agent/downloaders/transmission.py"),
-        Path("src/seed_agent/search/torznab.py"),
-        Path("src/seed_agent/sources/letterboxd.py"),
-        Path("src/seed_agent/sources/telegram.py"),
+        Path("src/media_agent/downloaders/transmission.py"),
+        Path("src/media_agent/search/torznab.py"),
+        Path("src/media_agent/sources/letterboxd.py"),
+        Path("src/media_agent/sources/telegram.py"),
     ):
         assert path.exists()
 

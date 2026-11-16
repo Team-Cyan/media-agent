@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from seed_agent.models import Discount, TorrentCandidate, safe_url_identity
+from media_agent.models import Discount, TorrentCandidate, safe_url_identity
 
 
 def test_candidate_normalizes_discount_and_stable_id() -> None:

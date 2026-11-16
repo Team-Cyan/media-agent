@@ -8,13 +8,13 @@ from test_media_import import import_three
 from test_media_import import media as media
 from test_media_runtime import media_config
 
-from seed_agent.config import atomic_write_text, load_config
-from seed_agent.config_views import MediaConfigGuard, load_view
-from seed_agent.maintenance import backup_sqlite_database, restore_sqlite_database
-from seed_agent.media_import.maintenance import backup_media_database, restore_media_database
-from seed_agent.media_import.migration import export_snapshot, import_snapshot
-from seed_agent.media_import.store import MediaStore, bounded_lock
-from seed_agent.state import StateStore
+from media_agent.config import atomic_write_text, load_config
+from media_agent.config_views import MediaConfigGuard, load_view
+from media_agent.maintenance import backup_sqlite_database, restore_sqlite_database
+from media_agent.media_import.maintenance import backup_media_database, restore_media_database
+from media_agent.media_import.migration import export_snapshot, import_snapshot
+from media_agent.media_import.store import MediaStore, bounded_lock
+from media_agent.state import StateStore
 
 
 def test_seed_ignores_invalid_media_and_media_ignores_invalid_seed(tmp_path):
@@ -162,8 +162,8 @@ def test_migration_rejects_changed_owned_receipts_and_bad_manifest(media, tmp_pa
 
 
 def test_export_import_legacy_shared_seed_database_without_mutating_it(media, tmp_path):
-    from seed_agent.media_import.migration import table_columns
-    from seed_agent.media_import.schema import SCHEMA
+    from media_agent.media_import.migration import table_columns
+    from media_agent.media_import.schema import SCHEMA
 
     import_three(media)
     engine, _, _, _ = media
@@ -242,8 +242,8 @@ def test_media_schema_inventory_matches_independent_store(tmp_path):
 
 
 def test_seed_backup_preserves_exact_legacy_media_tables_but_rejects_modified(tmp_path):
-    from seed_agent.maintenance import verify_sqlite_database
-    from seed_agent.media_import.schema import SCHEMA
+    from media_agent.maintenance import verify_sqlite_database
+    from media_agent.media_import.schema import SCHEMA
 
     seed = StateStore(tmp_path / "legacy.db")
     with seed._connect() as conn:
@@ -270,7 +270,7 @@ def test_applied_media_observation_contains_revision_and_restore_epoch(tmp_path)
 def test_legacy_output_config_roundtrips_web_and_fences_worker_writes(tmp_path):
     from test_media_source_routing import mixed_engine
 
-    from seed_agent.web.settings import (
+    from media_agent.web.settings import (
         ConfigSectionDraft,
         config_revision,
         config_sections_payload,
@@ -287,7 +287,7 @@ def test_legacy_output_config_roundtrips_web_and_fences_worker_writes(tmp_path):
     raw.update(deployment={"source_id": "Media"}, media_import=engine.config.model_dump())
     config.write_text(yaml.safe_dump(raw))
     before = load_view(config, "media", require_identity=True)
-    from seed_agent.media_import.runtime import build_engine
+    from media_agent.media_import.runtime import build_engine
 
     with pytest.raises(FileNotFoundError):
         build_engine(config)

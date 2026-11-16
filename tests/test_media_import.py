@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from seed_agent.media_import.config import MediaImportConfig, Profile
-from seed_agent.media_import.engine import Engine
-from seed_agent.media_import.metadata import Mapping
-from seed_agent.media_import.store import MediaStore
+from media_agent.media_import.config import MediaImportConfig, Profile
+from media_agent.media_import.engine import Engine
+from media_agent.media_import.metadata import Mapping
+from media_agent.media_import.store import MediaStore
 
 
 @pytest.fixture
@@ -233,7 +233,7 @@ def test_repair_preview_restart_execute_retires_published_output(media):
 
 @pytest.mark.parametrize("point", ["after_temporary_link", "after_receipt_commit"])
 def test_publication_crash_recovery_temp_is_accounted(media, monkeypatch, point):
-    from seed_agent.media_import import filesystem as fs
+    from media_agent.media_import import filesystem as fs
 
     engine, source, target, _ = media
     (source / "Episode1.mkv").write_bytes(b"fixture")
@@ -417,7 +417,7 @@ def test_mass_disappearance_pauses_and_root_replacement_cannot_count(media):
 def test_exdev_never_copies_or_symlinks(media, monkeypatch):
     import errno
 
-    from seed_agent.media_import import filesystem as fs
+    from media_agent.media_import import filesystem as fs
 
     engine, source, target, _ = media
     (source / "Episode1.mkv").write_bytes(b"fixture")
@@ -433,7 +433,7 @@ def test_exdev_never_copies_or_symlinks(media, monkeypatch):
 
 
 def test_retirement_unlink_then_crash_is_idempotent(media, monkeypatch):
-    from seed_agent.media_import import filesystem as fs
+    from media_agent.media_import import filesystem as fs
 
     import_three(media)
     engine, _, _, _ = media
@@ -507,7 +507,7 @@ def test_source_replacement_invalidates_override_and_preserves_until_corrected(m
 
 
 def test_populated_media_state_backup_restore_includes_all_receipts(media):
-    from seed_agent.media_import.maintenance import (
+    from media_agent.media_import.maintenance import (
         backup_media_database,
         restore_media_database,
         verify_media_database,
@@ -540,7 +540,7 @@ def test_partial_inventory_failure_never_publishes_missing(media, monkeypatch):
 
 
 def test_source_disappears_during_link_does_not_publish(media, monkeypatch):
-    from seed_agent.media_import import filesystem as fs
+    from media_agent.media_import import filesystem as fs
 
     engine, source, target, _ = media
     path = source / "Episode1.mkv"
@@ -562,7 +562,7 @@ def test_source_disappears_during_link_does_not_publish(media, monkeypatch):
 
 
 def test_cleanup_unlink_then_database_crash_recovers(media, monkeypatch):
-    from seed_agent.media_import import filesystem as fs
+    from media_agent.media_import import filesystem as fs
 
     import_three(media)
     engine, source, target, _ = media
@@ -687,8 +687,8 @@ def test_metadata_timeout_is_retryable_and_does_not_block_reconciliation(media):
     ],
 )
 def test_projected_review_stays_fenced_across_later_scans(media, drift, monkeypatch):
-    from seed_agent.media_import import filesystem as fs
-    from seed_agent.media_import.metadata import render
+    from media_agent.media_import import filesystem as fs
+    from media_agent.media_import.metadata import render
 
     engine, source, root, metadata = media
     profile = engine.profile("tv")
@@ -799,7 +799,7 @@ def test_projected_review_stays_fenced_across_later_scans(media, drift, monkeypa
 def test_projected_linux_link_uses_opened_inode_when_source_name_changes(tmp_path, monkeypatch):
     import sys
 
-    from seed_agent.media_import import filesystem as fs
+    from media_agent.media_import import filesystem as fs
 
     if sys.platform != "linux":
         pytest.skip("Linux procfs descriptor linking")
