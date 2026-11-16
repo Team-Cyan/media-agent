@@ -111,3 +111,30 @@ jobs:
             -v "${{ github.workspace }}/config:/app/config:ro" \
             -v "${state_dir}:/app/.seed-agent" \
             media-agent:ci healthcheck --config /app/config/example.yaml
+
+      - name: Unified application lifecycle smoke
+        run: |
+          name="media-agent-unified-ci"
+          trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
+          docker run -d --name "$name" \
+            -e PUID=1000 -e PGID=100 \
+            -v "${{ github.workspace }}/tests/linux/check_single_container_start.py:/checks/start.py:ro" \
+            -v "${{ github.workspace }}/config/example.yaml:/checks/example.yaml:ro" \
+            --entrypoint python media-agent:ci /checks/start.py
+          healthy=false
+          for attempt in $(seq 1 45); do
+            test "$(docker inspect "$name" --format '{{.State.Running}}')" = true
+            if docker exec "$name" env \
+              SEED_AGENT_CONFIG=/tmp/single-container-smoke/config.yaml \
+              SEED_AGENT_HEARTBEAT_FILE=/tmp/single-container-smoke/state/schedule-heartbeat.json \
+              SEED_AGENT_WEB_ENABLED=true \
+              /app/docker/entrypoint.sh app-healthcheck; then
+              healthy=true
+              break
+            fi
+            sleep 1
+          done
+          test "$healthy" = true
+          docker kill --signal=TERM "$name"
+          test "$(timeout 30s docker wait "$name")" = 0
+          docker logs "$name"
