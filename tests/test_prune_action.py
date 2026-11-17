@@ -113,6 +113,40 @@ class StatefulDownloader(DummyDownloader):
 
 
 @pytest.mark.asyncio
+async def test_billing_safety_only_does_not_apply_capacity_or_broken_cleanup() -> None:
+    from media_agent.actions.qb import prune_cold_torrents
+
+    expiring = _incomplete_torrent(hash="expiring", metadata={
+        "amount_left_bytes": 1,
+        "free_window_expires_at": (datetime.now(UTC) + timedelta(hours=6)).isoformat(),
+    })
+    broken = _incomplete_torrent(hash="broken", state="error")
+    completed = _torrent(hash="completed")
+    decisions = await prune_cold_torrents(
+        [expiring, broken, completed], DummyDownloader(), _cleanup(), _policy(), False,
+        free_window_min_remaining_minutes=24 * 60 + 1,
+        force_space_reclamation=True, billing_safety_only=True,
+    )
+    actions = {decision.target_id: decision.action for decision in decisions}
+    assert actions == {"expiring": "qb.cleanup.delete", "broken": "qb.cleanup.keep",
+                       "completed": "qb.cleanup.keep"}
+
+
+@pytest.mark.asyncio
+async def test_billing_safety_rechecks_current_category_before_delete() -> None:
+    from media_agent.actions.qb import prune_cold_torrents
+
+    torrent = _incomplete_torrent(metadata={"amount_left_bytes": 1, "discount": "normal"})
+    downloader = StatefulDownloader([torrent.model_copy(update={"category": "manual"})],
+                                   remove_on_delete=True)
+    decisions = await prune_cold_torrents(
+        [torrent], downloader, _cleanup(), _policy(), True, billing_safety_only=True,
+    )
+    assert decisions[0].action == "qb.cleanup.protect"
+    assert downloader.calls == []
+
+
+@pytest.mark.asyncio
 async def test_dry_run_prune_does_not_call_downloader() -> None:
     from media_agent.actions.qb import prune_cold_torrents
 

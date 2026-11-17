@@ -1,4 +1,7 @@
+const cronGuide = "五段式：分钟 小时 日期 月份 星期（0/7=周日）。支持 *、逗号列表、范围、/步长和 Jenkins H（固定散列时间，非每次随机）。日期和星期同时指定时取交集。\n每小时：0 * * * *\n每天03:00：0 3 * * *\n每周日03:00：0 3 * * 0\n每月1日03:00：0 3 1 * *\n分散到每小时某分钟：H * * * *\n无效表达式（如 -）关闭自动执行；不支持秒字段、@别名或多行。月份没有指定日期时跳过。";
 let mediaSnapshot = null;
+let mediaScheduleConfig = null;
+let mediaScheduleError = null;
 let mediaOffset = 0;
 let mediaFilter = "all";
 let mediaLoading = false;
@@ -158,7 +161,7 @@ const copy = {
       },
       scheduler: {
         title: "定时任务",
-        description: "统一配置扫描周期、清理、来源补全和想看搜索频率。",
+        description: "配置 PT、保种维护和想看任务的独立执行时间。",
       },
       metrics: {
         title: "监控指标",
@@ -829,7 +832,9 @@ const settingsPanelsByLanguage = {
     scheduler: {
       title: "定时任务",
       fields: [
-        ["扫描周期（分钟）", "interval_minutes", "number", "每轮 scheduled task 的间隔。"],
+        ["PT 发现与入队 Cron", "cron", "cron", "发现、评分、免费期保护及入队。无效表达式关闭自动执行；未配置时保留旧间隔。"],
+        ["常规保种维护 Cron", "maintenance_cron", "cron", "独立执行 Tracker 补全和常规保种清理；未配置时随 PT 周期，无效表达式关闭。"],
+        ["调度时区", "timezone", "text", "IANA 时区，例如 Asia/Shanghai。"],
         ["容量守卫（秒）", "capacity_guard_interval_seconds", "number", "完整扫描之间仅检查 qB 硬容量和错误任务的频率。"],
         ["候选免费窗口下限", "min_free_window_minutes", "optional-number", "执行入队时要求的剩余免费分钟数；留空表示不限制。"],
         ["要求已知免费窗口", "require_known_free_window", "boolean", "自动入队前必须能确认免费窗口。"],
@@ -838,8 +843,7 @@ const settingsPanelsByLanguage = {
         ["单项补全 API 预算", "tracker_backfill_max_api_requests", "number", "限制批量列表未覆盖时使用 detail/search 降级补全的次数；批量分页不消耗此预算，已有新鲜证据的任务六小时内不重复降级查询。"],
         ["启用想看同步", "intent_enabled", "boolean", "每轮同步配置的想看来源。"],
         ["想看自动入队", "intent_execute", "boolean", "允许 scheduled Want List 结果自动写入下载器。"],
-        ["想看搜索频率", "intent_search_mode", "select:daily|every_cycle", "每天在指定小时后执行一次，或每轮搜索。"],
-        ["每日搜索小时", "intent_search_hour", "number", "daily 模式下使用本地时区的 0-23 小时；错过后会在下一轮补跑。"],
+        ["想看搜索 Cron", "intent_search_cron", "cron", "独立同步想看来源并搜索；与 PT 任务串行执行，不依赖 PT Cron。"],
         ["Scheduler Lease 分钟", "lease_ttl_minutes", "number", "实例失联后允许其他 scheduler 接管前的等待时间。"],
       ],
     },
@@ -916,7 +920,9 @@ const settingsPanelsByLanguage = {
     scheduler: {
       title: "Scheduler",
       fields: [
-        ["Interval minutes", "interval_minutes", "number", "Delay between scheduled cycles."],
+        ["PT discovery and enqueue Cron", "cron", "cron", "Discovery, ranking, expiry protection and acquisition. Invalid disables automatic runs; absent retains legacy timing."],
+        ["Routine seed maintenance Cron", "maintenance_cron", "cron", "Independent tracker backfill and routine cleanup. Absent inherits PT cycles; invalid disables."],
+        ["Schedule timezone", "timezone", "text", "IANA timezone, for example Asia/Shanghai."],
         ["Capacity guard seconds", "capacity_guard_interval_seconds", "number", "qB-only hard-cap and error check frequency between full cycles."],
         ["Minimum free-window minutes", "min_free_window_minutes", "optional-number", "Required free-window headroom for execute-mode enqueue; empty disables it."],
         ["Require known free window", "require_known_free_window", "boolean", "Require verified free-window evidence before automatic enqueue."],
@@ -925,8 +931,7 @@ const settingsPanelsByLanguage = {
         ["Fallback API budget", "tracker_backfill_max_api_requests", "number", "Limit detail/search fallback calls when the batched user-torrent list does not cover a task; batch pagination does not consume this budget, and fresh evidence suppresses repeat fallback for six hours."],
         ["Enable Want sync", "intent_enabled", "boolean", "Sync configured Want List sources each cycle."],
         ["Execute Want enqueue", "intent_execute", "boolean", "Allow scheduled Want List matches to mutate the downloader."],
-        ["Want search frequency", "intent_search_mode", "select:daily|every_cycle", "Search once daily after a local hour, or on every cycle."],
-        ["Daily search hour", "intent_search_hour", "number", "Local hour from 0 through 23; a missed run is caught up on the next cycle."],
+        ["Want search Cron", "intent_search_cron", "cron", "Independently sync and search Want sources, serialized with PT work."],
         ["Scheduler lease minutes", "lease_ttl_minutes", "number", "Time before another scheduler can take over an abandoned lease."],
       ],
     },
@@ -1731,6 +1736,17 @@ function formatSchedulerNextCycle(ops) {
   }
   if (ops.scheduler_control?.phase === "running") {
     return uiText("schedulerRunning");
+  }
+  if (ops.task_schedules && !ops.legacy_pt_schedule) {
+    const names = state.language === "CN" ? {scheduler: "PT", maintenance: "保种维护", intent: "想看"} : {scheduler: "PT", maintenance: "Maintenance", intent: "Want"};
+    const next = Object.entries(ops.task_schedules)
+      .filter(([, schedule]) => schedule.enabled && schedule.next_runs.length)
+      .sort((a, b) => Date.parse(a[1].next_runs[0]) - Date.parse(b[1].next_runs[0]))[0];
+    return next ? `${names[next[0]]} · ${next[1].next_runs[0]}` : state.language === "CN" ? "自动执行已关闭" : "Automatic runs disabled";
+  }
+  if (ops.cron_schedule && !ops.task_schedules) {
+    if (!ops.cron_schedule.enabled) return state.language === "CN" ? "自动执行已关闭" : "Automatic runs disabled";
+    return ops.cron_schedule.next_runs[0] || uiText("schedulerUnavailable");
   }
   const latestRun = (ops.scheduler_runs || [])[0];
   const startedAt = Date.parse(latestRun?.started_at || "");
@@ -3929,6 +3945,24 @@ function renderSettingsPanel(section) {
       </div>
     </div>
   `;
+  if (section === "scheduler") {
+    const zone = page.querySelector('[data-setting-field="timezone"]');
+    if (!zone.value) zone.value = "UTC";
+    page.querySelectorAll('[data-setting-type="cron"]').forEach(input => {
+      input.dataset.originalNull = String(sectionData[input.dataset.settingField] == null);
+      const key = input.dataset.settingField;
+      page.querySelector(`[data-cron-guide="${key}"]`).append(cronHelp());
+      const output = page.querySelector(`[data-cron-preview="${key}"]`);
+      let timer;
+      const update = (markEdited = true) => {
+        if (markEdited) input.dataset.originalNull = "false";
+        clearTimeout(timer); timer = setTimeout(() => previewCron(input, zone, key === "cron" ? "scheduler" : key === "maintenance_cron" ? "maintenance" : "intent", output), 300);
+      };
+      input.addEventListener("input", () => update()); zone.addEventListener("input", () => update(false));
+      if (sectionData[key] != null) previewCron(input, zone, key === "cron" ? "scheduler" : key === "maintenance_cron" ? "maintenance" : "intent", output);
+      else output.textContent = "沿用原有调度；输入有效 Cron 切换，输入 - 关闭。";
+    });
+  }
   page.addEventListener("click", (event) => {
     const preset = event.target?.closest?.("[data-release-preset]")?.dataset?.releasePreset;
     if (preset && applyReleasePreferencePreset(page, preset)) {
@@ -4055,6 +4089,9 @@ function updateSettingsPanelStatus(page, section, action) {
 }
 
 function renderSettingInput(key, type, value) {
+  if (type === "cron") {
+    return `<input data-setting-field="${escapeAttribute(key)}" data-setting-type="cron" value="${escapeAttribute(value ?? "")}" maxlength="256" placeholder="${value == null ? "沿用原有调度；输入 - 可关闭" : "0 3 * * *"}" spellcheck="false" /><span data-cron-guide="${escapeAttribute(key)}"></span><span data-cron-preview="${escapeAttribute(key)}" role="status"></span>`;
+  }
   if (type.startsWith("select:")) {
     const options = type
       .slice("select:".length)
@@ -4098,7 +4135,8 @@ function readSettingsPanelData(page, section) {
     setSettingValue(
       data,
       field.dataset.settingField,
-      coerceSettingValue(field.value, field.dataset.settingType),
+      field.dataset.settingType === "cron" && field.dataset.originalNull === "true"
+        ? null : coerceSettingValue(field.value, field.dataset.settingType),
     );
   });
   if (section === "download_client") {
@@ -4518,13 +4556,93 @@ function mediaReviewedAction(source, kind) {
 async function loadMedia() {
   if (mediaLoading) return;
   mediaLoading = true;
-  try { mediaSnapshot = await mediaRequest(`/api/media?offset=${mediaOffset}`); }
+  try {
+    mediaSnapshot = await mediaRequest(`/api/media?offset=${mediaOffset}`);
+    try { mediaScheduleConfig = await mediaRequest("/api/config"); mediaScheduleError = null; }
+    catch (error) { mediaScheduleConfig = null; mediaScheduleError = String(error); }
+  }
   catch (error) { mediaSnapshot = {error: String(error), sources: []}; }
   finally { mediaLoading = false; if (state.currentSection === "media") renderSection(); }
 }
 function mediaJson(value) {
   try { return value ? JSON.parse(value) || {} : {}; }
   catch { return {}; }
+}
+
+function cronHelp() {
+  const help = mediaElement("span", null, {class: "cron-help"});
+  const button = mediaElement("button", "?", {type: "button", class: "help", "aria-label": "Cron 语法帮助", "aria-expanded": "false"});
+  const guide = mediaElement("span", cronGuide, {class: "cron-guide", role: "tooltip"});
+  guide.id = `cron-guide-${mediaRequestId()}`;
+  button.setAttribute("aria-describedby", guide.id);
+  button.addEventListener("click", () => {
+    const open = help.classList.toggle("is-open"); button.setAttribute("aria-expanded", String(open));
+  });
+  button.addEventListener("keydown", event => {
+    if (event.key === "Escape") {help.classList.remove("is-open"); button.setAttribute("aria-expanded", "false"); button.blur();}
+  });
+  help.append(button, guide); return help;
+}
+async function previewCron(input, timezone, kind, output, duration) {
+  const expression = input.value, zone = timezone.value;
+  try {
+    const minutes = duration ? Number(duration.value) : undefined;
+    const result = await mediaRequest("/api/schedules/preview", {kind, cron: expression, timezone: zone, ...(duration ? {window_minutes: minutes} : {})});
+    if (input.value !== expression || timezone.value !== zone || (duration && Number(duration.value) !== minutes)) return;
+    output.textContent = result.enabled
+      ? `下次：${result.next_runs[0] || "无"}${result.window_ends ? " 至 " + result.window_ends[0] : ""} · 第二次：${result.next_runs[1] || "无"}`
+      : "表达式无效，自动执行已关闭。手动执行仍可用。";
+  } catch (error) { output.textContent = `无法计算计划：${error}`; }
+}
+function renderMediaScanSchedule() {
+  return renderMediaSchedule("scan_schedule", "媒体扫描计划", "media");
+}
+function renderMediaBackgroundSchedule() {
+  return renderMediaSchedule("background_schedule", "媒体后台处理窗口", "background");
+}
+function renderMediaSchedule(key, heading, kind) {
+  const background = kind === "background";
+  const section = mediaElement("section", null, {class: "media-scan-schedule", "aria-label": heading});
+  section.append(mediaElement("h3", heading));
+  if (!mediaScheduleConfig) {
+    section.append(mediaElement("p", mediaScheduleError || "刷新后读取扫描计划。", {role: "status"})); return section;
+  }
+  const original = mediaScheduleConfig.sections.media_import || {};
+  const schedule = original[key];
+  const form = mediaElement("form", null, {class: "media-schedule-form"});
+  const label = mediaElement("label", "Cron ");
+  const input = mediaElement("input", null, {type: "text", maxlength: "256", value: schedule?.cron ?? "-", placeholder: "0 3 * * *", "aria-label": `${heading} Cron`, spellcheck: "false"});
+  label.append(cronHelp(), input);
+  const zoneLabel = mediaElement("label", "时区");
+  const timezone = mediaElement("input", null, {type: "text", value: schedule?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", required: "required", "aria-label": `${heading}时区`});
+  zoneLabel.append(timezone);
+  const durationLabel = mediaElement("label", "每次窗口（分钟）");
+  const duration = mediaElement("input", null, {type: "number", min: "1", max: "1440", step: "1", value: String(schedule?.window_minutes ?? 120), required: "required", "aria-label": "后台窗口分钟数"});
+  durationLabel.append(duration);
+  const preview = mediaElement("p", schedule ? "正在计算计划…" : background ? "当前沿用持续后台处理；保存后切换为此窗口。" : `当前仍使用原有间隔：${original.interval_seconds || 1800} 秒；保存后切换为此 Cron。`, {role: "status"});
+  let timer;
+  const update = () => {clearTimeout(timer); timer = setTimeout(() => previewCron(input, timezone, kind, preview, background ? duration : undefined), 300);};
+  input.addEventListener("input", update); timezone.addEventListener("input", update); duration.addEventListener("input", update);
+  if (schedule) previewCron(input, timezone, kind, preview, background ? duration : undefined);
+  const save = mediaElement("button", background ? "保存后台窗口" : "保存扫描计划", {type: "submit", class: "secondary-button"});
+  const feedback = mediaElement("p", "保存不会立即执行；新计划按后续计划时刻运行。", {role: "status"});
+  form.append(label, zoneLabel);
+  if (background) form.append(durationLabel);
+  form.append(save);
+  form.addEventListener("submit", async event => {
+    event.preventDefault(); if (!form.reportValidity()) return;
+    const data = structuredClone(original);
+    data[key] = {cron: input.value.trim(), timezone: timezone.value.trim(), ...(background ? {window_minutes: Number(duration.value)} : {})};
+    save.disabled = true;
+    try {
+      await mediaRequest("/api/config/sections", {section: "media_import", data, revision: mediaScheduleConfig.revision});
+      await loadConfig();
+      await loadMedia();
+    } catch (error) { feedback.textContent = `保存失败：${error}。如配置已变化，请刷新后重试。`; }
+    finally { save.disabled = false; }
+  });
+  section.append(form, preview, feedback, mediaElement("p", background ? "仅在窗口内自动整理已发现文件、恢复发布、处理字幕和海报；到时不再开始新操作，已开始的操作会安全完成。手动操作只覆盖自身任务。" : "只控制文件清单扫描。自动整理、字幕和海报由后台窗口控制；下载器和 Plex 独立运行。", {class: "media-notice"}));
+  return section;
 }
 function renderMediaPanel() {
   const panel = mediaElement("div", null, {class: "settings-panel media-library"});
@@ -4584,7 +4702,7 @@ function renderMediaPanel() {
   }
   filter.addEventListener("change", () => {mediaFilter = filter.value; renderSection();});
   toolbar.append(filter);
-  panel.append(toolbar);
+  panel.append(toolbar, renderMediaScanSchedule(), renderMediaBackgroundSchedule());
   for (const profile of mediaSnapshot?.profiles || []) {
     if (!Number.isInteger(profile.max_subtitles)) continue;
     const settings = mediaElement("div", null, {class: "panel-actions"});

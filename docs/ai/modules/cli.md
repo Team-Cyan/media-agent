@@ -252,3 +252,22 @@ guidance. Both languages, loading/error states and no-network clear behavior are
 covered by the accepted R4/R5 Node-backed tests. These are two state-display fixes,
 not a UI redesign. Server-delivered static assets retain Cache-Control no-cache;
 real deployed asset/conditional-state acceptance is separate from local tests.
+
+## Cron Task Scheduling (1.2 development)
+
+The serialized scheduler owns independent PT (`cron`), routine maintenance
+(`maintenance_cron`) and Want (`intent_search_cron`) clocks, with distinct stable
+H identities and `scheduler.timezone`. Omitted fields retain legacy behavior:
+maintenance inherits PT, Want keeps its old daily/every-cycle gate, and PT keeps
+its interval. Independent wakes cannot reset the legacy PT deadline. Explicit
+invalid Cron disables its task; manual full-cycle requests remain overrides.
+
+One lease serializes co-due jobs with task/phase outcome records. Independent
+errors do not swallow Want work, while an expiry failure fences PT acquisition.
+Heartbeat and capacity/error-guard deadlines continue across short independent
+wakes. Finite Cron PT admission checks the second future PT slot and the actual
+target category's current protection capability before token and every add.
+Calendar expiry-only protection covers the next real PT check, restricted to
+managed incomplete billing risk; routine maintenance never receives that calendar
+threshold. See [Cron scheduling](../../operations/cron-scheduling.md) for exact
+compatibility and the current automatic free-Want evidence limitation.

@@ -2,6 +2,7 @@
 
 from pathlib import Path
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 
@@ -73,6 +74,24 @@ class SubtitleProviderConfig(BaseModel):
     enabled: bool = True
 
 
+class ScanSchedule(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    cron: str | None = Field(default=None, max_length=256)
+    timezone: str = "UTC"
+
+    @model_validator(mode="after")
+    def valid_timezone(self):
+        try:
+            ZoneInfo(self.timezone)
+        except ZoneInfoNotFoundError, ValueError:
+            raise ValueError("timezone must be an available IANA timezone") from None
+        return self
+
+
+class BackgroundSchedule(ScanSchedule):
+    window_minutes: int = Field(default=120, ge=1, le=1440)
+
+
 class MediaImportConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     enabled: bool = False
@@ -84,6 +103,8 @@ class MediaImportConfig(BaseModel):
     sources: list[Source] = Field(default_factory=list, max_length=64)
     destinations: Destinations | None = None
     interval_seconds: int = Field(default=1800, ge=1)
+    scan_schedule: ScanSchedule | None = None
+    background_schedule: BackgroundSchedule | None = None
     import_policy: Literal["preview", "execute"] = "preview"
     subtitle_policy: Literal["preview", "execute"] = "preview"
     reconcile_policy: Literal["preview", "execute"] = "preview"

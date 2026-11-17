@@ -245,7 +245,7 @@ class Engine:
             )
         return observed
 
-    def scan(self, name, *, force=False, should_yield=None, on_item=None):
+    def scan(self, name, *, force=False, should_yield=None, on_item=None, inventory_only=False):
         p = self.profile(name)
         with self.lease():
             with self.store._connect() as conn:
@@ -278,6 +278,13 @@ class Engine:
                         (self.clock(), type(exc).__name__ + ": " + str(exc), run),
                     )
                 return {"profile": name, "status": "failed", "error": str(exc)}
+            if inventory_only:
+                return {
+                    "profile": name,
+                    "status": "complete",
+                    "count": len(inventory),
+                    "run_id": run,
+                }
             if should_yield and should_yield():
                 return {"profile": name, "status": "yielded", "run_id": run}
             if self.recover(p, should_yield=should_yield):

@@ -36,6 +36,7 @@ def classify_cleanup(
     *,
     space_reclamation_required: bool = False,
     completed_low_upload_requires_reclamation: bool = False,
+    billing_safety_only: bool = False,
 ) -> CleanupDecision:
     if not _is_managed(torrent, managed_category, managed_tags):
         return CleanupDecision(
@@ -51,6 +52,9 @@ def classify_cleanup(
     free_window_decision = _free_window_decision(torrent, cleanup, metadata)
     if free_window_decision is not None:
         return free_window_decision
+
+    if billing_safety_only:
+        return CleanupDecision(action="keep", reason="no incomplete billing risk", managed=True)
 
     if _is_broken_incomplete(torrent, metadata):
         return CleanupDecision(

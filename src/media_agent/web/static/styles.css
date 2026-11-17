@@ -2012,3 +2012,14 @@ button:focus-visible, summary:focus-visible, select:focus-visible, input:focus-v
 @media (max-width: 760px) { .media-enrichment { padding: 16px; } .media-enrichment-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 17px; } }
 
 @media (max-width: 900px) { .app-shell { grid-template-columns: minmax(0,1fr); } }
+
+/* Cron controls share the existing settings typography and keyboard focus. */
+.media-scan-schedule { border: 1px solid var(--line); border-radius: 8px; padding: 16px; background: var(--panel); }
+.media-schedule-form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.media-schedule-form label { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.media-schedule-form input { display: block; flex-basis: 100%; padding: 8px; max-width: 100%; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 5px; }
+.media-schedule-form button[type="submit"] { min-height: 36px; }
+.cron-help { position: relative; display: inline-block; }
+.cron-guide { display: none; position: absolute; z-index: 50; top: 100%; left: 0; width: min(420px, 75vw); padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); white-space: pre-line; font-size: 13px; font-weight: normal; line-height: 1.6; box-shadow: 0 6px 22px #0003; }
+.cron-help:hover .cron-guide, .cron-help:focus-within .cron-guide, .cron-help.is-open .cron-guide { display: block; }
+[data-cron-preview] { display: block; font-size: 12px; overflow-wrap: anywhere; }

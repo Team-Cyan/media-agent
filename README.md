@@ -6,7 +6,7 @@
 
 `media-agent` is a Docker-first self-hosted automation app for NAS and homelab deployments,
 spanning resource acquisition, PT seed strategy and media-library organization.
-The 1.0 product includes discovery/acquisition, category-bound seed operations,
+The current 1.1 product includes discovery/acquisition, category-bound seed operations,
 Want List and the operator Web UI, plus guarded media organization, reviewed extras,
 source variants and subtitle delivery. Verification levels and remaining limits are
 listed below; production rollout and client playback remain separate acceptance.
@@ -31,6 +31,30 @@ The primary operator experience is:
 
 The Web UI is the interactive operator console; scheduled and batch operations
 also use the CLI. Docker deployment is the primary distribution.
+
+## Current Milestone: Complete
+
+As of 2026-11-17, v1.1.0 is published and the controlled Unraid deployment is
+complete. The product and image are named `media-agent`; one container supervises
+Web, scheduler and the configured media worker. The stopped predecessor containers
+and unused legacy image have been removed, with recovery templates and backups
+preserved. This release is in maintenance; roadmap candidates are optional future
+work. Whole-library subtitle coverage, full-film timing and downstream client
+playback remain separate acceptance gaps. See the
+[release review](docs/reviews/2026-11-16-single-container-review.md).
+
+Legacy `seed-agent` commands, `seed_agent` imports, `SEED_AGENT_*` variables and
+`.seed-agent` state paths remain supported compatibility interfaces.
+
+## Local 1.2 Development
+
+The source tree adds [UI Cron scheduling](docs/operations/cron-scheduling.md) for
+PT discovery/acquisition, routine seed maintenance, independent Want workflows,
+media inventory and media background processing windows, with inline help and
+future matching-time previews. Invalid Cron disables automatic execution; example configs
+are disabled by default, while existing production schedules remain unchanged.
+Scheduled free-seed admission checks the second future PT protection cycle for
+one failed-cycle buffer; separate expiry-only work covers the next real check. This feature is local development; the published image above remains 1.1.0.
 
 ## What It Does
 
@@ -57,8 +81,8 @@ The shipped workflows are:
    - bounded optional subtitle providers and reviewed local SRT import,
    - independent worker supervision, backup and recovery controls.
 
-The default deployment shape for self-hosted use is a Docker container running
-`schedule-run`.
+The default deployment shape for self-hosted use is one Docker container running
+`app`, supervising Web, scheduler and the configured media worker.
 
 ## Current Support Matrix
 
@@ -76,7 +100,7 @@ The default deployment shape for self-hosted use is a Docker container running
 | Web Settings UI | Supported operator console | Local configuration UI exists for grouped safe settings edits with schema validation, diff previews, per-section YAML editing, visual downloader category/budget routing, sticky save actions, mobile navigation, read-only status, runtime provenance, and Want List. |
 | Read-only operations API | Partial | State summary, heartbeat health, scheduler/tracker backoff evidence, budget pools, and Want List are exposed; richer audit/cleanup dashboards remain planned. |
 
-## 1.0 Verification And Limits
+## Verification And Limits
 
 | Capability | Evidence level | Limit |
 | --- | --- | --- |
@@ -97,8 +121,8 @@ and an isolated runtime for evaluation.
 
 ## Roadmap Snapshot
 
-[Roadmap](docs/roadmap.md) separates shipped 1.0 capabilities from candidate
-1.1/1.2 improvements and potential 2.0 architecture changes. These are planning
+[Roadmap](docs/roadmap.md) separates shipped 1.0/1.1 capabilities from candidate
+1.2/1.3 improvements and potential 2.0 architecture changes. These are planning
 groups, without promised dates. Broader provider/archive support, client acceptance
 and richer operations reports remain future work.
 
@@ -156,9 +180,11 @@ State and audit files are written under `.seed-agent/` in the mounted workspace.
 
 Mount these paths into the container:
 
-- `./config:/app/config:ro`
-- `./local:/app/local:ro`
+- `./config:/app/config`
+- `./local:/app/local`
 - `./.seed-agent:/app/.seed-agent`
+- `./.media-import:/app/.media-import`
+- one common source/library parent mounted at `/media` for hardlinks
 - `./state:/state`
 
 That layout gives you:
@@ -170,11 +196,12 @@ That layout gives you:
 
 ## Docker Compose Install
 
-The included Compose example runs the app as a long-lived scheduler container.
+The included Compose example runs Web, scheduler and the configured media worker
+in one supervised container. It uses `app-healthcheck` for all enabled roles.
 
 Key environment variables:
 
-- `SEED_AGENT_MODE=schedule-run`
+- `SEED_AGENT_MODE=app`
 - `SEED_AGENT_CONFIG=/app/config/config.yaml`
 - `SEED_AGENT_EXECUTE=true`
 - `SEED_AGENT_HEARTBEAT_FILE=/state/schedule-heartbeat.json`
@@ -186,7 +213,7 @@ Key environment variables:
   POST protection beyond trusted-local deployments
 
 The example publishes `8765:8765`, so the same container can run the scheduler
-and the settings Web UI. Open `http://127.0.0.1:8765` for local Compose
+and the Web UI alongside the configured media worker. Open `http://127.0.0.1:8765` for local Compose
 installs, or use the DockerMan WebUI button for Unraid installs. Configure
 scheduler policy in the YAML/Web UI; the Compose example does not override
 scheduler fields through environment variables.

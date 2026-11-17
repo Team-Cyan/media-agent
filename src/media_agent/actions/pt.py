@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable, Mapping, Sequence
+import time
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -251,6 +252,7 @@ async def resolve_deferred_download_urls(
     *,
     min_free_window_minutes: int | None = None,
     require_known_free_window: bool = False,
+    cron_guard: Callable[[ScoreBreakdown], str | None] | None = None,
 ) -> list[ScoreBreakdown]:
     scored_list = list(scored)
     api_credentials = {
@@ -296,6 +298,7 @@ async def resolve_deferred_download_urls(
             continue
 
         try:
+            observed_at = time.time()
             refreshed_item = await _revalidate_mteam_candidate(
                 item,
                 config=config,
@@ -305,6 +308,16 @@ async def resolve_deferred_download_urls(
             if not refreshed_item.accepted:
                 resolved.append(refreshed_item)
                 continue
+            if cron_guard is not None:
+                refreshed_candidate = refreshed_item.candidate
+                refreshed_item = refreshed_item.model_copy(update={"candidate":
+                    refreshed_candidate.model_copy(update={"metadata": {
+                        **refreshed_candidate.metadata, "schedule_free_observed_at": observed_at,
+                    }})})
+                reason = cron_guard(refreshed_item)
+                if reason is not None:
+                    resolved.append(_reject_unresolved_download_url(refreshed_item, reason))
+                    continue
             refreshed_item = _apply_mteam_preflight_free_window(
                 refreshed_item,
                 min_free_window_minutes=min_free_window_minutes,

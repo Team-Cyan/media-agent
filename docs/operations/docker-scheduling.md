@@ -1,7 +1,18 @@
 # Docker Scheduling
 
-This guide covers the recommended server deployment shape for the Phase 1 PT
-strategy loop.
+This guide covers the unified media-agent app and explicit scheduler-only or
+one-shot alternatives.
+
+## Cron Controls (1.2 development)
+
+The Web Scheduler page exposes independent PT, routine seed maintenance and Want
+Cron inputs. The Media Library page has separate inventory and background-window
+controls. Inline help and future-time previews use the same parser as execution.
+Invalid expressions disable the automatic task. Checked-in examples use `-`;
+existing production settings without Cron retain their original timing. The free
+seed admission guard uses the second future PT protection slot for one failure
+buffer. See [Cron scheduling](cron-scheduling.md) for exact scope and compatibility.
+The interval examples below remain supported legacy modes.
 
 ## Deployment Modes
 
@@ -24,15 +35,16 @@ Legacy explicit Docker-friendly modes remain supported:
      Scripts, systemd timers, or Kubernetes CronJobs
 
 For this repository's Docker-first app shape, the normal installation path is
-the long-running scheduler container. External schedulers remain supported, but
+the unified long-running `app` container. External schedulers remain supported, but
 they are now an alternative deployment mode rather than the main one.
 
 Current project recommendation:
 
-- default to a long-running `schedule-run` container for Docker Compose users,
+- default to the supervised `app` container for Docker Compose users,
 - use the single-run job shape when your host already has stronger scheduling
   primitives and you want one-shot container execution,
-- use a heartbeat file plus `healthcheck` for the long-running shape.
+- use `app-healthcheck` for the unified app; explicit scheduler-only mode uses
+  its heartbeat file and `healthcheck`.
 
 The entrypoint drops root privileges before startup status, Web, scheduler, or
 one-off CLI commands run. Set numeric `PUID` and `PGID` to match the owner of

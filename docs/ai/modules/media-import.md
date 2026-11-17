@@ -544,3 +544,21 @@ Fewer than five safe/available unique candidates means fewer publications. Timin
 coverage is a compatibility heuristic, not proof of exact dialogue synchronization
 or an automatic retiming feature. Forced/SDH subtitles retain their explicit kind
 contract and conservative version-confirmation path when strong evidence is absent.
+
+## Cron Inventory And Background Window (1.2 development)
+
+`scan_schedule` controls inventory, while optional `background_schedule` adds
+`window_minutes` (1..1440, default 120) to the shared `{cron, timezone}` contract.
+Invalid explicit Cron disables its task. Absent inventory schedule retains the
+legacy interval; absent background schedule retains continuous automatic work.
+Activation and window checks use existing state event checkpoints, without a
+schema migration. End time is original slot plus duration, never restart time.
+
+Automatic inventory completes all profiles before background work; its pure
+inventory path bypasses recovery/import/reconcile. Background operations admit
+only within the window and retain bounded batches, quotas, source/config/epoch
+fences and leases. Pending and reconciliation checkpoints defer work rather than
+lose it. Already admitted work may safely finish at the boundary. Manual actions
+remain scoped: scan includes its existing import behavior, while subtitles do not
+run posters. See [Cron scheduling](../../operations/cron-scheduling.md) for the
+full contract and disk-sleep limits. Production 1.1.0 is not upgraded by this work.

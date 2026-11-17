@@ -1,14 +1,29 @@
 # Session Handoff
 
-## Current Release Work (2026-11-16)
+## Current Stage: 1.2 Local Cron Development (2026-11-17)
+
+The selected rename, release, deployment and cleanup scope is complete. No new
+feature work is implied by that closure. A subsequent authorized 1.2 milestone
+implements five UI business schedules and second-slot freeleech safety locally; production
+remains on 1.1.0 and its configuration is unchanged. See the Cron scheduling
+contract and roadmap. Independent plan/code reviews resolved expiry-threshold,
+multi-source inventory/window, legacy PT starvation and target-category hot-change
+findings. Full suite passed: 1513 tests, 1 skipped; local browser save/preview
+verification passed. Changes remain uncommitted/unpublished. Do not replay
+historical migration commands.
 
 The stable milestone published v1.0.0 at `7c815ca` after exact-revision CI.
 The archival branch is `release/1.0`; the original dirty work remains preserved.
 A documentation-only main follow-up records publication and historical CI receipts.
 The 1.0.1 subtitle fix was also published at `f5e2205`. The 1.1.0 release at `309f1af` renames media-agent and unifies the container while
 retaining state and legacy integration contracts. Exact-source CI, both platform
-publication and the controlled single-container rollout passed; the original pair
-is retained stopped for rollback. Package Write access was repaired with explicit
+publication and the controlled single-container rollout passed. On 2026-11-17,
+explicitly authorized cleanup removed the two stopped original containers and their
+unused legacy image. Their DockerMan templates were archived, with application
+state, media and recovery backups preserved. Recovery now requires recreating
+the old roles from saved templates and pinned digests; old container IDs cannot
+be restarted. The current target remained healthy and the template audit found
+zero issues. Package Write access was repaired with explicit
 approval and failed publication attempts remain retained. Consult the [rename contract](../specs/2026-11-16-single-container-rename.md)
 and current versioned review for publication/deployment verification.
 Use [closure plan](../plans/2026-11-15-v1-release-closure.md),

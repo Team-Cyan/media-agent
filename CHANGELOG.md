@@ -4,6 +4,25 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.2.0 - 2026-11-17
+
+### Added
+
+- Configure five independent business schedules: PT acquisition, routine seed
+  maintenance, Want synchronization/search, media inventory and media background
+  processing windows, using five-field Cron, stable `H` and IANA time zones.
+  Inline help and two future execution previews explain the configured schedule.
+- Invalid Cron expressions disable their automatic task. Repository examples
+  default to `-`; existing configurations without Cron retain interval behavior.
+- Require finite freeleech candidates to remain free through the second upcoming
+  PT protection slot, preserving one failed-cycle buffer and configured safety
+  floors. Narrow expiry-only protection covers the next real check and validates
+  the actual target category before token acquisition and each downloader add.
+- Keep automatic media publication, recovery, analysis, posters and subtitles
+  within configurable background windows while inventory remains independently
+  scheduled; existing manual actions and legacy omitted-field behavior remain.
+
+
 ## 1.1.0 - 2026-11-16
 
 ### Added

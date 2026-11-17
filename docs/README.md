@@ -1,6 +1,8 @@
 # Docs Index
 
 This repository keeps durable project knowledge under `docs/`.
+For local 1.2 task timing and freeleech safety, see
+[Cron scheduling](operations/cron-scheduling.md).
 
 ## Repository Layout
 

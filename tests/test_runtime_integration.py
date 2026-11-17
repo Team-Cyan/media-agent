@@ -56,6 +56,9 @@ def test_scheduler_cycle_uses_local_fakes_and_persists_all_phases(
     raw["download_client"]["secret_ref"] = None
     raw["scheduler"].update(
         {
+            "cron": None,
+            "maintenance_cron": None,
+            "intent_search_cron": None,
             "tracker_backfill_enabled": False,
             "intent_search_mode": "every_cycle",
             "intent_execute": False,

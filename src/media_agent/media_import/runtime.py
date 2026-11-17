@@ -65,10 +65,15 @@ def run_engine(
     subtitles=True,
     refresh=False,
     scan=True,
+    drain_pending=None,
     lifecycle=None,
     enrichment=True,
     enrichment_limit=None,
     should_yield=None,
+    inventory_should_yield=None,
+    inventory_only=False,
+    reconcile_pending=False,
+    posters=True,
 ):
     root = engine.config_view.workspace
     if not engine.config.enabled:
@@ -77,7 +82,29 @@ def run_engine(
         raise ValueError("unknown media profile")
     scans = []
     profiles = [p for p in engine.profiles() if profile is None or p.name == profile]
+    # Inventory is independent of the background window: finish its profiles
+    # before allowing the window deadline to stop pending/provider work.
+    if scan and inventory_only:
+        for index, p in enumerate(profiles):
+            if inventory_should_yield and inventory_should_yield():
+                return {"status": "yielded", "scans": scans}
+            if lifecycle:
+                lifecycle.phase(
+                    "inventory",
+                    deadline_seconds=engine.config.inventory_timeout_seconds + 120,
+                    completed=index,
+                    total=len(profiles),
+                )
+            result = engine.scan(p.name, force=force, inventory_only=True)
+            scans.append(result)
+            if result["status"] == "yielded":
+                return {"status": "yielded", "scans": scans}
+            if lifecycle:
+                lifecycle.progress(completed=index + 1, total=len(profiles))
+        scan = False
     for index, p in enumerate(profiles):
+        if not scan and should_yield and should_yield():
+            return {"status": "yielded", "scans": scans}
         if lifecycle:
             lifecycle.phase(
                 "inventory-import",
@@ -89,23 +116,57 @@ def run_engine(
                 completed=index,
                 total=len(profiles),
             )
+        options = {}
+        if should_yield:
+            options["should_yield"] = should_yield
+            if lifecycle:
+                options["on_item"] = lambda done, total: lifecycle.progress(
+                    completed=done, total=total
+                )
+        result = None
         if scan:
-            options = {}
-            if should_yield:
-                options["should_yield"] = should_yield
-                if lifecycle:
-                    options["on_item"] = lambda done, total: lifecycle.progress(
-                        completed=done, total=total
-                    )
+            if inventory_only:
+                options["inventory_only"] = True
             result = engine.scan(p.name, force=force, **options)
+            options.pop("inventory_only", None)
             scans.append(result)
             if result["status"] == "yielded":
                 return {"status": "yielded", "scans": scans}
-            if result["status"] == "not_due":
-                with engine.lease():
-                    yielded = engine.process_pending(p, **options)
-                if yielded:
+        # A scan already performs recovery and one pending batch. Between
+        # inventories the worker continues those jobs without a fresh scan.
+        pending_cycle = drain_pending is True and (
+            not scan or inventory_only or (result and result["status"] == "not_due")
+        )
+        legacy_pending = drain_pending is None and result and result["status"] == "not_due"
+        if pending_cycle or legacy_pending:
+            if should_yield and should_yield():
+                return {"status": "yielded", "scans": scans}
+            needs_reconcile = reconcile_pending and has_unreconciled_scan(engine, p)
+            if pending_cycle and not has_pending_work(engine, p) and not needs_reconcile:
+                continue
+            with engine.lease():
+                if should_yield and should_yield():
                     return {"status": "yielded", "scans": scans}
+                if pending_cycle:
+                    try:
+                        engine.health(p)
+                    except OSError, ValueError:
+                        continue
+                    if engine.recover(p, should_yield=should_yield):
+                        return {"status": "yielded", "scans": scans}
+                    from media_agent.media_import.extras import recover as recover_extras
+                    from media_agent.media_import.variants import recover as recover_variants
+
+                    if recover_extras(engine, p, should_yield=should_yield):
+                        return {"status": "yielded", "scans": scans}
+                    if recover_variants(engine, should_yield=should_yield):
+                        return {"status": "yielded", "scans": scans}
+                yielded = engine.process_pending(p, **options)
+                if not yielded and needs_reconcile and not (should_yield and should_yield()):
+                    engine.reconcile(p)
+                    mark_reconciled(engine, p)
+            if yielded:
+                return {"status": "yielded", "scans": scans}
         if lifecycle:
             lifecycle.progress(completed=index + 1, total=len(profiles))
     if should_yield and should_yield():
@@ -126,8 +187,10 @@ def run_engine(
     token = getattr(engine.metadata, "token", None)
     if lifecycle:
         lifecycle.phase("poster-batch", deadline_seconds=limit * 180 + 60)
-    poster_results = PosterJobs(engine, TmdbPosters(token) if token else None).run(
-        profile=profile, limit=limit
+    poster_results = (
+        PosterJobs(engine, TmdbPosters(token) if token else None).run(profile=profile, limit=limit)
+        if posters
+        else []
     )
     if should_yield and should_yield():
         return {"status": "yielded", "scans": scans, "posters": poster_results}
@@ -150,6 +213,76 @@ def run_engine(
         "posters": poster_results,
         "subtitles": subtitle_results,
     }
+
+
+def has_unreconciled_scan(engine, profile):
+    with engine.store._connect() as conn:
+        return bool(
+            conn.execute(
+                "SELECT 1 FROM media_scan_runs WHERE profile=? AND status='complete' "
+                "AND id>COALESCE((SELECT CAST(json_extract(payload_json,'$.run_id') AS INTEGER) "
+                "FROM media_events WHERE event='background_reconcile_checkpoint' "
+                "AND json_extract(payload_json,'$.profile')=? ORDER BY id DESC LIMIT 1),0) LIMIT 1",
+                (profile.name, profile.name),
+            ).fetchone()
+        )
+
+
+def mark_reconciled(engine, profile):
+    with engine.store._connect() as conn:
+        row = conn.execute(
+            "SELECT MAX(id) FROM media_scan_runs WHERE profile=? AND status='complete'",
+            (profile.name,),
+        ).fetchone()
+        if row[0] is not None:
+            conn.execute(
+                "INSERT INTO media_events(source_id,event,created,payload_json) "
+                "VALUES(NULL,'background_reconcile_checkpoint',?,?)",
+                (engine.clock(), json.dumps({"profile": profile.name, "run_id": row[0]})),
+            )
+
+
+def has_pending_work(engine, profile):
+    """Check durable state without touching source or library filesystems."""
+    execute = engine.config.import_policy == "execute"
+    with engine.store._connect() as conn:
+        source = conn.execute(
+            "SELECT 1 FROM media_source_files s "
+            "LEFT JOIN media_import_jobs j ON j.source_id=s.id "
+            "WHERE s.profile=? AND s.missing_count=0 AND s.status!='removed' "
+            "AND s.stable_count>=2 AND COALESCE(s.readiness,'')!='completion_unverified' "
+            "AND (s.status!='review_required' OR j.status IN ('reviewed','retrying')) "
+            "AND (j.source_id IS NULL OR j.status IN ('retrying','reviewed','blocked_destination') "
+            "OR (j.status='planned' AND ?)) "
+            "AND NOT EXISTS (SELECT 1 FROM media_extra_attachments e WHERE e.source_id=s.id) "
+            "LIMIT 1",
+            (profile.name, execute),
+        ).fetchone()
+        if source:
+            return True
+        publication = conn.execute(
+            "SELECT 1 FROM media_publications u JOIN media_artifacts a ON a.id=u.artifact_id "
+            "WHERE a.profile=? AND u.status='pending' AND "
+            "((a.kind IN ('video','poster') AND ?) OR "
+            "(a.kind NOT IN ('video','poster') AND ?)) LIMIT 1",
+            (profile.name, execute, engine.config.subtitle_policy == "execute"),
+        ).fetchone()
+        if publication:
+            return True
+        if not execute:
+            return False
+        return bool(
+            conn.execute(
+                "SELECT 1 FROM media_extra_attachments WHERE "
+                "status IN ('pending','temporary','linked','cleanup') "
+                "AND json_extract(baseline_json,'$.source_profile')=? LIMIT 1",
+                (profile.name,),
+            ).fetchone()
+            or conn.execute(
+                "SELECT 1 FROM media_variant_switches "
+                "WHERE status IN ('pending','temporary','linked','retire') LIMIT 1"
+            ).fetchone()
+        )
 
 
 def build_subtitle_provider(options, root):

@@ -3,6 +3,19 @@
 Version groups are planning targets, not dates or commitments. Code and tests own
 implementation facts; deployment, corpus coverage and client acceptance are separate.
 
+## Current Stage — 1.1 Maintenance / 1.2 Local Development (2026-11-17)
+
+The v1.1.0 rename, single-container publication, controlled Unraid deployment and
+explicitly authorized predecessor cleanup are complete. The current target stayed
+healthy; the post-cleanup DockerMan template audit reported zero issues. Recovery
+templates and backups remain; removed container IDs require recreation rather
+than restart. See the [release review](reviews/2026-11-16-single-container-review.md).
+The 1.1 release scope is closed. A newly authorized 1.2 milestone adds UI Cron
+controls and second-future-slot freeleech protection; local implementation and
+verification do not publish an image or upgrade production.
+The candidates below require a new scope decision; remaining corpus/client
+acceptance limits are not claimed complete.
+
 ## Shipped 1.0
 
 - Docker-first image, Compose and Unraid templates, configurable runtime identity,
@@ -42,6 +55,22 @@ configured media worker; legacy CLI/import names, environment keys, metrics and
 `.seed-agent` state paths remain compatible. Publication and controlled single-container deployment passed; verification and
 client acceptance limits remain separate in the versioned review.
 
+## 1.2 Local Implementation: Cron Controls
+
+- Shared Jenkins-style five-field Cron with stable H, timezone, inline UI help and
+  future execution previews for five business schedules: PT, routine maintenance,
+  independent Want, media inventory and media background windows.
+- Invalid expressions disable automatic tasks; checked-in defaults are disabled,
+  with existing production configurations and legacy schedules preserved.
+- Finite scheduled PT acquisitions cover the second future protection cycle;
+  fresh checks bind the actual target category before token and each add.
+  Expiry-only protection covers the next real check without broad cold-seed cleanup.
+- Media inventory is separate from window-bound processing and publication.
+- Plan and code review findings are resolved; full suite: 1513 passed, 1 skipped.
+- Existing health, queue, retry and capacity guards remain internal safety loops.
+- See [contract and limits](operations/cron-scheduling.md). Publication and live
+  deployment are not part of this local implementation claim.
+
 ## Candidate 1.2: Acceptance And Operations
 
 - Broader fake-provider/downloader scheduler-cycle and Web preview integration
@@ -79,7 +108,7 @@ outside this release.
 
 ## References
 
-- [Support matrix](../README.md#10-verification-and-limits)
+- [Support matrix](../README.md#verification-and-limits)
 - [Media contract](ai/modules/media-import.md)
 - [Provider kernel research](specs/2026-07-06-provider-kernel-roadmap.md)
 - [Historical integration plan](plans/2026-10-24-media-product-delivery.md)

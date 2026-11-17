@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 from media_agent.config import CategoryPolicyConfig, CleanupConfig
 from media_agent.downloaders.base import Downloader
@@ -31,6 +31,7 @@ async def enqueue_candidates(
     paused: bool = False,
     pool_usage: PoolUsage | None = None,
     pause_reasons: Sequence[str] | None = None,
+    cron_guard: Callable[[ScoreBreakdown], str | None] | None = None,
 ) -> list[Decision]:
     scored_items = list(scored)
     decisions: list[Decision] = []
@@ -70,6 +71,14 @@ async def enqueue_candidates(
             new_state["pause_reasons"] = pause_reasons_list
         new_state.update(_pool_usage_state(pool_usage))
 
+        safety_reason = cron_guard(item) if execute and cron_guard is not None else None
+        if safety_reason:
+            new_state.update({"rejected": True, "reasons": [*item.reasons, safety_reason]})
+            decisions.append(Decision(
+                action="qb.enqueue.rejected", target_id=item.candidate_id, execute=execute,
+                reason=safety_reason, new_state=new_state, rollback=None,
+            ))
+            continue
         if paused:
             new_state.update({"paused": False, "rejected": True})
             decisions.append(
@@ -238,6 +247,7 @@ async def prune_cold_torrents(
     completed_low_upload_requires_reclamation: bool = False,
     reclaim_target_bytes: int | None = None,
     capacity_delete_limit: int | None = None,
+    billing_safety_only: bool = False,
 ) -> list[Decision]:
     torrent_list = list(torrents)
     log_event(
@@ -315,6 +325,7 @@ async def prune_cold_torrents(
             tags,
             space_reclamation_required=reclamation_needed,
             completed_low_upload_requires_reclamation=(completed_low_upload_requires_reclamation),
+            billing_safety_only=billing_safety_only,
         )
         if (
             classification.action == "delete"
@@ -371,6 +382,7 @@ async def prune_cold_torrents(
                     completed_low_upload_requires_reclamation=(
                         completed_low_upload_requires_reclamation
                     ),
+                    billing_safety_only=billing_safety_only,
                 )
 
         decision = _decision_for_cleanup(

@@ -6213,3 +6213,128 @@ def test_run_once_invoke_with_execute_flag(monkeypatch: pytest.MonkeyPatch, tmp_
     payload = _json_output(result)
     assert payload["command"] == "run-once"
     assert events
+
+
+@pytest.mark.parametrize("task", ["intent", "maintenance"])
+def test_schedule_run_independent_cron_wakes_without_pt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, task: str,
+) -> None:
+    from media_agent import cli
+
+    config_path = _config_file(tmp_path)
+    data = yaml.safe_load(config_path.read_text())
+    data["scheduler"] = {"cron": "-", "intent_search_cron": "-", "maintenance_cron": "-"}
+    key = "intent_search_cron" if task == "intent" else "maintenance_cron"
+    data["scheduler"][key] = "* * * * *"
+    config_path.write_text(yaml.safe_dump(data))
+    now = [datetime(2026, 1, 1, 0, 0, 30, tzinfo=UTC).timestamp()]
+    monkeypatch.setattr(cli.time, "time", lambda: now[0])
+    def wait(*args, **kwargs):
+        now[0] += kwargs["interval_seconds"]
+        return None
+    monkeypatch.setattr(cli, "_wait_for_next_schedule_cycle", wait)
+    seen = []
+    monkeypatch.setattr(cli, "_run_once_payload", lambda *a, **k: pytest.fail("PT ran"))
+    monkeypatch.setattr(cli, "_tracker_source_backfill_payload",
+                        lambda *a, **k: seen.append("maintenance") or {})
+    monkeypatch.setattr(cli, "_intent_run_once_payload",
+                        lambda *a, **k: seen.append("intent") or {})
+    result = CliRunner().invoke(cli.app, ["schedule-run", "--config", str(config_path),
+                                        "--max-cycles", "1"])
+    assert result.exit_code == 0, result.output
+    assert seen == [task]
+
+
+def test_expiry_failure_fences_pt_but_not_other_due_tasks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from media_agent import cli
+
+    config_path = _config_file(tmp_path)
+    data = yaml.safe_load(config_path.read_text())
+    data["scheduler"] = {
+        "cron": "* * * * *", "maintenance_cron": "* * * * *",
+        "intent_search_cron": "* * * * *", "prune_enabled": True,
+    }
+    config_path.write_text(yaml.safe_dump(data))
+    now = [datetime(2026, 1, 1, 0, 0, 30, tzinfo=UTC).timestamp()]
+    monkeypatch.setattr(cli.time, "time", lambda: now[0])
+
+    def wait(*args, **kwargs):
+        now[0] += kwargs["interval_seconds"]
+        return None
+
+    monkeypatch.setattr(cli, "_wait_for_next_schedule_cycle", wait)
+    seen = []
+
+    def prune(*args, **kwargs):
+        if kwargs.get("billing_safety_only"):
+            return {"error": "expiry failed"}
+        seen.append("maintenance")
+        return {}
+
+    monkeypatch.setattr(cli, "_prune_payload", prune)
+    monkeypatch.setattr(cli, "_run_once_payload", lambda *a, **k: pytest.fail("PT ran"))
+    monkeypatch.setattr(cli, "_tracker_source_backfill_payload", lambda *a, **k: {})
+    monkeypatch.setattr(cli, "_intent_run_once_payload",
+                        lambda *a, **k: seen.append("intent") or {})
+    result = CliRunner().invoke(cli.app, ["schedule-run", "--config", str(config_path),
+                                        "--max-cycles", "1"])
+    assert result.exit_code == 1
+    assert seen == ["maintenance", "intent"]
+
+
+def test_legacy_start_does_not_run_explicitly_disabled_maintenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from media_agent import cli
+
+    config_path = _config_file(tmp_path)
+    data = yaml.safe_load(config_path.read_text())
+    data["scheduler"] = {"maintenance_cron": "-", "intent_enabled": False}
+    config_path.write_text(yaml.safe_dump(data))
+    seen = []
+    monkeypatch.setattr(cli, "_tracker_source_backfill_payload",
+                        lambda *a, **k: pytest.fail("maintenance ran"))
+    monkeypatch.setattr(cli, "_run_once_payload", lambda *a, **k: seen.append("pt") or {})
+    result = CliRunner().invoke(cli.app, ["schedule-run", "--config", str(config_path),
+                                        "--max-cycles", "1"])
+    assert result.exit_code == 0, result.output
+    assert seen == ["pt"]
+
+
+def test_independent_wakes_do_not_postpone_legacy_pt_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+
+    from media_agent import cli
+    from media_agent.config import SchedulerConfig
+    from media_agent.task_schedule import TaskSchedule
+
+    scheduler = SchedulerConfig(interval_minutes=60, intent_search_cron="* * * * *")
+    now = [datetime(2026, 1, 1, 0, 0, tzinfo=UTC).timestamp()]
+    elapsed = [0.0]
+    clock = TaskSchedule(legacy_due_at=3600.0)
+    clock.observe(scheduler, now[0])
+    monkeypatch.setattr(cli.time, "time", lambda: now[0])
+    monkeypatch.setattr(cli.time, "monotonic", lambda: elapsed[0])
+    monkeypatch.setattr(cli, "load_config", lambda _: SimpleNamespace(scheduler=scheduler))
+    monkeypatch.setattr(cli, "_capacity_guard_payload", lambda *a, **k: {})
+
+    def wait(*args, **kwargs):
+        seconds = kwargs["interval_seconds"]
+        now[0] += seconds
+        elapsed[0] += seconds
+        return None
+
+    monkeypatch.setattr(cli, "_wait_for_next_schedule_cycle", wait)
+    lease = SimpleNamespace(ensure_owned=lambda: None)
+    for minute in range(1, 61):
+        due, trigger = cli._wait_for_task_schedule_cycle(
+            Path("config"), scheduler, {}, clock, execute=False,
+            lease_heartbeat=lease, trigger_store=None, heartbeat_file=None, cycle=minute,
+        )
+        assert trigger is None
+        assert ("pt" in due) == (minute == 60)
+        assert "intent" in due

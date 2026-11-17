@@ -7,6 +7,7 @@ import binascii
 import errno
 import json
 import logging
+import math
 import os
 import re
 import signal
@@ -59,6 +60,7 @@ from media_agent.config import (
     load_downloader_secret,
     write_config_mapping,
 )
+from media_agent.cron_schedule import latest_cron_slot, next_cron_slot, next_cron_slots
 from media_agent.downloaders.base import Downloader, DownloaderStatus, DownloaderStatusProvider
 from media_agent.downloaders.qbittorrent import QbittorrentClient
 from media_agent.downloaders.transmission import TransmissionClient
@@ -72,6 +74,7 @@ from media_agent.maintenance import (
 )
 from media_agent.models import (
     Decision,
+    Discount,
     IntentKind,
     IntentSource,
     LifecycleState,
@@ -124,6 +127,7 @@ from media_agent.sources.imdb import fetch_imdb_watchlist, read_imdb_watchlist_c
 from media_agent.sources.letterboxd import read_letterboxd_watchlist_csv
 from media_agent.sources.telegram import poll_telegram_update_batch
 from media_agent.state import STATE_PRIORITY, StateStore
+from media_agent.task_schedule import TaskSchedule
 
 ReleaseDownloadResolver = Callable[[ReleaseCandidate], Awaitable[ReleaseCandidate | None]]
 
@@ -1592,10 +1596,24 @@ def schedule_run(
 
     cycle = 0
     manual_trigger: dict[str, Any] | None = None
+    task_clock = TaskSchedule()
+    task_clock.observe(initial_scheduler, time.time())
+    due_tasks = {"pt"} if initial_scheduler.cron is None else set()
+    if "pt" in due_tasks and initial_scheduler.maintenance_cron is None:
+        due_tasks.add("maintenance")
+    if initial_scheduler.cron is not None:
+        lease_store.mark_scheduler_waiting()
+        due_tasks, manual_trigger = _wait_for_task_schedule_cycle(
+            config, initial_scheduler, scheduler_option_overrides, task_clock,
+            execute=execute, lease_heartbeat=lease_heartbeat, trigger_store=lease_store,
+            heartbeat_file=heartbeat_file, cycle=cycle,
+        )
     while True:
         cycle_started_monotonic = time.monotonic()
         if manual_trigger is None:
             manual_trigger = lease_store.begin_scheduler_cycle()
+        if manual_trigger is not None:
+            due_tasks = {"pt", "maintenance", "intent"}
         cycle += 1
         run_id = _new_schedule_run_id()
         loaded_for_run = load_config(config)
@@ -1618,9 +1636,12 @@ def schedule_run(
             raise typer.Exit(code=1)
         lease_heartbeat.ensure_owned()
         interval_minutes = scheduler.interval_minutes
+        prune_free_window_minutes = _schedule_free_window_safety_minutes(
+            interval_minutes=interval_minutes, configured_minutes=scheduler.min_free_window_minutes,
+        )
         min_free_window_minutes = _schedule_free_window_safety_minutes(
-            interval_minutes=interval_minutes,
-            configured_minutes=scheduler.min_free_window_minutes,
+            interval_minutes=interval_minutes, configured_minutes=scheduler.min_free_window_minutes,
+            cron=scheduler.cron, timezone=scheduler.timezone,
         )
         require_known_free_window = scheduler.require_known_free_window
         prune = scheduler.prune_enabled and loaded_for_run.download_client is not None
@@ -1643,8 +1664,16 @@ def schedule_run(
             intent_execute=intent_execute,
             backoff_active=bool(backoff.get("active")),
             backoff_until=str(backoff.get("until")) if backoff.get("until") else None,
-            summary={"cycle": cycle, "manual_trigger": manual_trigger},
+            summary={"cycle": cycle, "manual_trigger": manual_trigger,
+                     "claimed_tasks": sorted(due_tasks)},
         )
+        independent_evidence = any(value is not None for value in (
+            scheduler.cron, scheduler.maintenance_cron, scheduler.intent_search_cron,
+        ))
+        if independent_evidence:
+            for task in sorted(due_tasks):
+                _record_schedule_phase(store_for_run, run_id=run_id,
+                                       phase=f"task_{task}", event="claimed")
         log_event(
             logger,
             logging.INFO,
@@ -1683,6 +1712,35 @@ def schedule_run(
         if loaded_for_run.media_configured:
             media_payload={"status":"worker_required","message":"media runs in an independent role"}
 
+        expiry_payload: dict[str, Any] | None = None
+        expiry_failed = False
+        pt_error = False
+        if ("pt" in due_tasks and prune and
+                (scheduler.cron is not None or scheduler.maintenance_cron is not None)):
+            _record_schedule_phase(store_for_run, run_id=run_id, phase="expiry_protection",
+                                   event="start")
+            try:
+                horizon = _schedule_expiry_protection_minutes(
+                    interval_minutes=interval_minutes,
+                    configured_minutes=scheduler.min_free_window_minutes,
+                    cron=None if manual_trigger is not None else scheduler.cron,
+                    timezone=scheduler.timezone,
+                )
+                if horizon is None:
+                    raise ValueError("next expiry protection slot unavailable")
+                expiry_payload = _prune_payload(
+                    config, execute=execute, free_window_min_remaining_minutes=horizon,
+                    billing_safety_only=True,
+                )
+                expiry_failed = "error" in expiry_payload
+            except Exception as exc:
+                expiry_payload = {"error": str(exc)}
+                expiry_failed = True
+            _record_schedule_phase(
+                store_for_run, run_id=run_id, phase="expiry_protection",
+                event="warning" if expiry_failed else "end", payload=expiry_payload,
+            )
+
         if backoff.get("active"):
             _record_schedule_phase(
                 store_for_run,
@@ -1700,7 +1758,7 @@ def schedule_run(
                 backoff=backoff,
                 run_id=run_id,
             )
-            if prune:
+            if prune and "maintenance" in due_tasks:
                 lease_heartbeat.ensure_owned()
                 _record_schedule_phase(
                     store_for_run,
@@ -1709,10 +1767,10 @@ def schedule_run(
                     event="start",
                     payload={"schedule_backoff_active": True},
                 )
-                prune_payload = _prune_payload(
+                prune_payload = _schedule_phase_call(_prune_payload,
                     config,
                     execute=execute,
-                    free_window_min_remaining_minutes=min_free_window_minutes,
+                    free_window_min_remaining_minutes=prune_free_window_minutes,
                     completed_low_upload_requires_reclamation=True,
                     fail_closed_unknown_incomplete=True,
                 )
@@ -1729,7 +1787,7 @@ def schedule_run(
         else:
             tracker_backfill_payload: dict[str, Any] | None = None
             payload: dict[str, Any] = {}
-            if tracker_backfill:
+            if tracker_backfill and "maintenance" in due_tasks:
                 lease_heartbeat.ensure_owned()
                 _record_schedule_phase(
                     store_for_run,
@@ -1742,7 +1800,7 @@ def schedule_run(
                         "max_api_requests": scheduler.tracker_backfill_max_api_requests,
                     },
                 )
-                tracker_backfill_payload = _tracker_source_backfill_payload(
+                tracker_backfill_payload = _schedule_phase_call(_tracker_source_backfill_payload,
                     loaded_for_run,
                     execute=execute,
                     limit=None,
@@ -1753,7 +1811,7 @@ def schedule_run(
                     store_for_run,
                     run_id=run_id,
                     phase="tracker_source_backfill",
-                    event="end",
+                    event="warning" if "error" in tracker_backfill_payload else "end",
                     payload=_tracker_source_backfill_payload_summary(tracker_backfill_payload),
                 )
                 payload["tracker_source_backfill"] = tracker_backfill_payload
@@ -1814,7 +1872,7 @@ def schedule_run(
                     )
 
             prune_payload: dict[str, Any] | None = None
-            if prune and "error" not in payload:
+            if prune and "maintenance" in due_tasks:
                 lease_heartbeat.ensure_owned()
                 unresolved_risk_hashes = (
                     _tracker_source_backfill_unresolved_risk_hashes(tracker_backfill_payload)
@@ -1827,10 +1885,10 @@ def schedule_run(
                     phase="prune",
                     event="start",
                 )
-                prune_payload = _prune_payload(
+                prune_payload = _schedule_phase_call(_prune_payload,
                     config,
                     execute=execute,
-                    free_window_min_remaining_minutes=min_free_window_minutes,
+                    free_window_min_remaining_minutes=prune_free_window_minutes,
                     completed_low_upload_requires_reclamation=True,
                     **(
                         {"fail_closed_unknown_incomplete": True}
@@ -1865,7 +1923,8 @@ def schedule_run(
                     payload.setdefault("prune", prune_payload)
 
             if (
-                "error" not in payload
+                "pt" in due_tasks
+                and not expiry_failed
                 and "schedule_backoff" not in payload
                 and loaded_for_run.download_client is not None
             ):
@@ -1876,21 +1935,28 @@ def schedule_run(
                     phase="pt_discovery",
                     event="start",
                 )
-                payload = _run_once_payload(
+                pt_payload = _schedule_phase_call(_run_once_payload,
                     config,
                     execute=execute,
                     min_free_window_minutes=min_free_window_minutes,
                     require_known_free_window=require_known_free_window if execute else False,
                     prune=False,
                     capacity_prune=prune,
+                    **({"scheduler_prune_override": scheduler_option_overrides["prune_enabled"]}
+                       if scheduler.cron is not None and manual_trigger is None and
+                       scheduler_option_overrides["prune_enabled"] is not None else {}),
+                    **({"cron_guard": True} if scheduler.cron is not None
+                       and manual_trigger is None else {}),
                 )
+                payload.update(pt_payload)
+                pt_error = "error" in pt_payload
                 if tracker_backfill_payload is not None:
                     payload["tracker_source_backfill"] = tracker_backfill_payload
                 _record_schedule_phase(
                     store_for_run,
                     run_id=run_id,
                     phase="pt_enqueue",
-                    event="end",
+                    event="warning" if "error" in pt_payload else "end",
                     payload={
                         "discovered": payload.get("discovered"),
                         "scored": payload.get("scored"),
@@ -1946,6 +2012,10 @@ def schedule_run(
 
         if media_payload is not None:
             payload["media_import"] = media_payload
+        if expiry_payload is not None:
+            payload["expiry_protection"] = expiry_payload
+        if expiry_failed:
+            payload.setdefault("error", "expiry protection failed")
 
         payload["command"] = "schedule-run"
         payload["run_id"] = run_id
@@ -1968,7 +2038,8 @@ def schedule_run(
         payload["scheduler_cli_overrides"] = scheduler_cli_overrides
         payload["scheduler_lease"] = lease
         payload["manual_trigger"] = manual_trigger
-        if intent and "error" not in payload:
+        if intent and ("intent" in due_tasks or
+                       ("pt" in due_tasks and scheduler.intent_search_cron is None)):
             intent_refresh = _scheduled_intent_search_due(
                 mode=scheduler.intent_search_mode,
                 hour=scheduler.intent_search_hour,
@@ -1982,6 +2053,8 @@ def schedule_run(
             intent_search = intent_search or _pending_intent_search_due(
                 store_for_run, mode=scheduler.intent_search_mode, hour=scheduler.intent_search_hour,
             )
+            if scheduler.intent_search_cron is not None or manual_trigger is not None:
+                intent_refresh = intent_search = "intent" in due_tasks
             active_backoff = payload.get("schedule_backoff", {}).get("active") is True
             if active_backoff:
                 intent_search = False
@@ -2016,6 +2089,7 @@ def schedule_run(
                         refresh_sources=intent_refresh,
                         search_limit=SCHEDULED_INTENT_SEARCH_BATCH_SIZE,
                         run_id=run_id,
+                        **({"manual_override": True} if manual_trigger is not None else {}),
                         **retry_options,
                     )
                 except Exception as exc:
@@ -2074,6 +2148,25 @@ def schedule_run(
                 payload=payload,
             )
             payload["heartbeat_file"] = str(heartbeat_file)
+        if independent_evidence:
+            for task in sorted(due_tasks):
+                task_error = (
+                    expiry_failed or pt_error
+                    if task == "pt" else
+                    bool((payload.get("prune") or {}).get("error") or
+                         (payload.get("tracker_source_backfill") or {}).get("error"))
+                    if task == "maintenance" else
+                    bool((payload.get("intent") or {}).get("error"))
+                )
+                task_skipped = (
+                    (bool(backoff.get("active")) or loaded_for_run.download_client is None)
+                    if task == "pt" else
+                    not (prune or tracker_backfill) if task == "maintenance" else
+                    "intent" not in payload
+                )
+                _record_schedule_phase(store_for_run, run_id=run_id, phase=f"task_{task}",
+                                       event="failed" if task_error else
+                                       "skipped" if task_skipped else "completed")
         summary = _schedule_log_summary(payload)
         lease_heartbeat.ensure_owned()
         store_for_run.finish_scheduler_run(
@@ -2110,17 +2203,141 @@ def schedule_run(
             signal.signal(signal.SIGTERM, previous_sigterm_handler)
             return
         lease_store.mark_scheduler_waiting()
-        manual_trigger = _wait_for_next_schedule_cycle(
-            config,
-            execute=execute and prune,
-            interval_seconds=_remaining_schedule_interval_seconds(
-                interval_minutes=interval_minutes,
-                cycle_started_monotonic=cycle_started_monotonic,
-            ),
-            guard_interval_seconds=scheduler.capacity_guard_interval_seconds,
-            lease_heartbeat=lease_heartbeat,
-            trigger_store=lease_store,
+        if scheduler.cron is None and "pt" in due_tasks:
+            task_clock.legacy_due_at = cycle_started_monotonic + interval_minutes * 60
+        due_tasks, manual_trigger = _wait_for_task_schedule_cycle(
+            config, scheduler, scheduler_option_overrides, task_clock, execute=execute,
+            lease_heartbeat=lease_heartbeat, trigger_store=lease_store,
+            heartbeat_file=heartbeat_file, cycle=cycle,
+            last_error=payload.get("error"),
         )
+
+
+def _schedule_phase_call(function: Callable[..., dict[str, Any]], *args: Any,
+                         **kwargs: Any) -> dict[str, Any]:
+    try:
+        return function(*args, **kwargs)
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
+def _wait_for_task_schedule_cycle(
+    config_path: Path, scheduler: Any, overrides: dict[str, Any], clock: TaskSchedule,
+    *, execute: bool, lease_heartbeat: _SchedulerLeaseHeartbeat, trigger_store: StateStore,
+    heartbeat_file: Path | None, cycle: int,
+    last_error: str | None = None,
+) -> tuple[set[str], dict[str, Any] | None]:
+    """Wait under the scheduler lease, claiming co-due jobs in one serialized run."""
+    while True:
+        lease_heartbeat.ensure_owned()
+        monotonic_now = time.monotonic()
+        if clock.guard_due is None:
+            clock.guard_due = monotonic_now + scheduler.capacity_guard_interval_seconds
+        if monotonic_now >= clock.guard_due:
+            try:
+                guard_payload = _capacity_guard_payload(
+                    config_path, execute=execute and scheduler.prune_enabled,
+                )
+            except Exception as exc:
+                guard_payload = {"command": "capacity-guard", "triggered": False,
+                                 "error": _runtime_error_summary(exc)}
+            _print_json(_capacity_guard_payload_summary(guard_payload))
+            clock.guard_due = monotonic_now + scheduler.capacity_guard_interval_seconds
+        if heartbeat_file is not None:
+            _write_heartbeat(
+                heartbeat_file, cycle=cycle, interval_minutes=scheduler.interval_minutes,
+                payload={"command": "schedule-run", "config": str(config_path),
+                         "execute": execute, "phase": "waiting", "error": last_error},
+            )
+        now = time.time()
+        previous_pt_key = clock.keys.get("pt")
+        due = clock.observe(scheduler, now)
+        if previous_pt_key != clock.keys["pt"]:
+            clock.legacy_due_at = None
+        if scheduler.cron is None and clock.legacy_due_at is None:
+            clock.legacy_due_at = monotonic_now + scheduler.interval_minutes * 60
+        if (scheduler.cron is None and clock.legacy_due_at is not None
+                and monotonic_now >= clock.legacy_due_at):
+            due.add("pt")
+            if scheduler.maintenance_cron is None:
+                due.add("maintenance")
+        if due:
+            return due, None
+        slot = clock.next_slot(scheduler, now)
+        wait = scheduler.capacity_guard_interval_seconds + 1
+        wait = min(wait, max(1, math.ceil(clock.guard_due - monotonic_now)))
+        if slot is not None:
+            wait = min(wait, max(1, math.ceil(slot - now)))
+        if scheduler.cron is None and clock.legacy_due_at is not None:
+            wait = min(wait, max(1, math.ceil(clock.legacy_due_at - monotonic_now)))
+        trigger = _wait_for_next_schedule_cycle(
+            config_path, execute=execute and scheduler.prune_enabled,
+            interval_seconds=wait, guard_interval_seconds=scheduler.capacity_guard_interval_seconds,
+            lease_heartbeat=lease_heartbeat, trigger_store=trigger_store,
+            schedule_change_check=lambda current=scheduler: (
+                load_config(config_path).scheduler.with_overrides(overrides) != current
+            ),
+            waiting_heartbeat=lambda current=scheduler: _write_heartbeat(
+                heartbeat_file, cycle=cycle, interval_minutes=current.interval_minutes,
+                payload={"command": "schedule-run", "config": str(config_path),
+                         "execute": execute, "phase": "waiting", "error": last_error},
+            ) if heartbeat_file is not None else None,
+        )
+        if trigger is not None and trigger != {"schedule_changed": True}:
+            return {"pt", "maintenance", "intent"}, trigger
+        scheduler = load_config(config_path).scheduler.with_overrides(overrides)
+
+
+def _wait_for_cron_schedule_cycle(
+    config_path: Path,
+    scheduler: Any,
+    overrides: dict[str, Any],
+    *,
+    execute: bool,
+    lease_heartbeat: _SchedulerLeaseHeartbeat,
+    trigger_store: StateStore,
+    heartbeat_file: Path | None = None,
+    cycle: int = 0,
+) -> dict[str, Any] | None:
+    """Wait for a future slot; configuration changes activate when observed."""
+    def heartbeat() -> None:
+        lease_heartbeat.ensure_owned()
+        if heartbeat_file is not None:
+            _write_heartbeat(
+                heartbeat_file, cycle=cycle, interval_minutes=scheduler.interval_minutes,
+                payload={"command": "schedule-run", "config": str(config_path),
+                         "execute": execute, "phase": "waiting"},
+            )
+
+    heartbeat()
+    key = (scheduler.cron, scheduler.timezone)
+    since = time.time()
+    while scheduler.cron is not None:
+        heartbeat()
+        now = time.time()
+        slot = latest_cron_slot(scheduler.cron, scheduler.timezone, now, hash_id=b"scheduler-cycle")
+        if slot is not None and slot > since:
+            return None
+        next_slot = next_cron_slot(
+            scheduler.cron, scheduler.timezone, now, hash_id=b"scheduler-cycle"
+        )
+        wait = scheduler.capacity_guard_interval_seconds + 1
+        if next_slot is not None:
+            wait = min(wait, max(1, int(next_slot - now + 0.999)))
+        trigger = _wait_for_next_schedule_cycle(
+            config_path, execute=execute and scheduler.prune_enabled,
+            interval_seconds=wait, guard_interval_seconds=scheduler.capacity_guard_interval_seconds,
+            lease_heartbeat=lease_heartbeat, trigger_store=trigger_store,
+            waiting_heartbeat=heartbeat,
+        )
+        if trigger is not None:
+            return trigger
+        scheduler = load_config(config_path).scheduler.with_overrides(overrides)
+        new_key = (scheduler.cron, scheduler.timezone)
+        if new_key != key:
+            key = new_key
+            since = time.time()
+    return None
 
 
 def _remaining_schedule_interval_seconds(
@@ -2142,10 +2359,14 @@ def _wait_for_next_schedule_cycle(
     guard_interval_seconds: int,
     lease_heartbeat: _SchedulerLeaseHeartbeat,
     trigger_store: StateStore | None = None,
+    schedule_change_check: Callable[[], bool] | None = None,
+    waiting_heartbeat: Callable[[], None] | None = None,
 ) -> dict[str, Any] | None:
     remaining_seconds = max(int(interval_seconds), 0)
     guard_interval_seconds = max(int(guard_interval_seconds), 10)
     seconds_until_guard = guard_interval_seconds
+    seconds_until_config_check = 10
+    seconds_until_heartbeat = 30
     while remaining_seconds > 0:
         if trigger_store is not None:
             trigger = trigger_store.consume_scheduler_trigger()
@@ -2158,6 +2379,15 @@ def _wait_for_next_schedule_cycle(
         time.sleep(sleep_seconds)
         remaining_seconds -= sleep_seconds
         seconds_until_guard -= sleep_seconds
+        seconds_until_config_check -= sleep_seconds
+        seconds_until_heartbeat -= sleep_seconds
+        if waiting_heartbeat is not None and seconds_until_heartbeat <= 0:
+            waiting_heartbeat()
+            seconds_until_heartbeat = 30
+        if schedule_change_check is not None and seconds_until_config_check <= 0:
+            seconds_until_config_check = 10
+            if schedule_change_check():
+                return {"schedule_changed": True}
         if remaining_seconds <= 0:
             return None
         if seconds_until_guard > 0:
@@ -2894,6 +3124,7 @@ def _prune_payload(
     reclaim_targets_by_pool: dict[str, int] | None = None,
     unknown_free_risk_hashes: set[str] | None = None,
     fail_closed_unknown_incomplete: bool = False,
+    billing_safety_only: bool = False,
 ) -> dict[str, Any]:
     loaded = load_config(config_path)
     store = StateStore(_state_path(loaded))
@@ -2976,6 +3207,7 @@ def _prune_payload(
                     ),
                     reclaim_target_bytes=remaining_reclaim_target,
                     capacity_delete_limit=remaining_capacity_deletes,
+                    billing_safety_only=billing_safety_only,
                 )
             )
             decisions.extend(policy_decisions)
@@ -3123,12 +3355,18 @@ def _run_once_payload(
     prune: bool,
     prune_free_window_min_remaining_minutes: int | None = None,
     capacity_prune: bool = False,
+    cron_guard: bool = False,
+    scheduler_prune_override: bool | None = None,
 ) -> dict[str, Any]:
     loaded = load_config(config_path)
     store = StateStore(_state_path(loaded))
     default_policy = _default_category_policy(loaded)
 
+    discovery_observed_at = time.time()
     candidates = _discover_candidates(loaded)
+    if cron_guard:
+        candidates = [_with_free_window_observed_at(candidate, discovery_observed_at)
+                      for candidate in candidates]
     for candidate in candidates:
         store.upsert_candidate(
             candidate.stable_id,
@@ -3154,6 +3392,11 @@ def _run_once_payload(
                 loaded,
                 min_free_window_minutes=min_free_window_minutes,
                 require_known_free_window=require_known_free_window,
+                **({"cron_guard": lambda item: _scheduled_pt_free_rejection(
+                    item, config_path, prune_enabled=capacity_prune,
+                    minimum=min_free_window_minutes, prune_override=scheduler_prune_override,
+                    target_category=default_policy.name,
+                )} if cron_guard else {}),
             )
         )
     scored_by_id = {item.candidate_id: item for item in scored}
@@ -3250,6 +3493,11 @@ def _run_once_payload(
                     default_policy,
                     execute,
                     pool_usage=pool_usage,
+                    **({"cron_guard": lambda item: _scheduled_pt_free_rejection(
+                        item, config_path, prune_enabled=capacity_prune,
+                        minimum=min_free_window_minutes, prune_override=scheduler_prune_override,
+                        target_category=default_policy.name,
+                    )} if cron_guard and execute else {}),
                 )
             )
         except MutationBatchError as exc:
@@ -3320,6 +3568,7 @@ def _intent_run_once_payload(
     search_limit: int | None = None,
     run_id: str | None = None,
     retry_ready: bool = False,
+    manual_override: bool = False,
 ) -> dict[str, Any]:
     loaded = load_config(config_path)
     store = StateStore(_state_path(loaded))
@@ -3422,9 +3671,14 @@ def _intent_run_once_payload(
                 search_limit=search_limit,
                 search_source="intent-run-once",
                 run_id=run_id,
-                search_mode=loaded.scheduler.intent_search_mode if run_id else "manual",
+                search_mode=("every_cycle" if loaded.scheduler.intent_search_cron is not None else
+                             loaded.scheduler.intent_search_mode) if run_id else "manual",
                 search_hour=loaded.scheduler.intent_search_hour,
                 retry_ready=retry_ready,
+                **({"cron_guard": _scheduled_intent_cron_guard}
+                   if run_id and not manual_override and
+                   (loaded.scheduler.cron is not None or
+                    loaded.scheduler.intent_search_cron is not None) else {}),
             )
         )
         for source, cursor in pending_source_cursors.items():
@@ -3737,9 +3991,95 @@ def _schedule_free_window_safety_minutes(
     *,
     interval_minutes: int,
     configured_minutes: int | None,
-) -> int:
+    cron: str | None = None,
+    timezone: str = "UTC",
+    now: float | None = None,
+) -> int | None:
     """Keep enough freeleech time to survive one delayed scheduler cycle."""
-    return max(configured_minutes or 0, interval_minutes * 2)
+    if cron is None:
+        return max(configured_minutes or 0, interval_minutes * 2)
+    current = time.time() if now is None else now
+    slots = next_cron_slots(cron, timezone, current, count=2, hash_id=b"scheduler-cycle")
+    if len(slots) != 2:
+        return None
+    return max(configured_minutes or 0, math.ceil((slots[1] - current + 1) / 60))
+
+
+def _schedule_expiry_protection_minutes(
+    *, interval_minutes: int, configured_minutes: int | None,
+    cron: str | None = None, timezone: str = "UTC", now: float | None = None,
+) -> int | None:
+    """Cover the next real protection check, including its boundary."""
+    if cron is None:
+        return max(configured_minutes or 0, interval_minutes * 2)
+    current = time.time() if now is None else now
+    slot = next_cron_slot(cron, timezone, current, hash_id=b"scheduler-cycle")
+    if slot is None:
+        return None
+    return max(configured_minutes or 0, interval_minutes * 2,
+               math.ceil((slot - current + 1) / 60))
+
+
+def _with_free_window_observed_at(
+    candidate: TorrentCandidate, observed_at: float,
+) -> TorrentCandidate:
+    return candidate.model_copy(update={"metadata": {
+        **candidate.metadata, "schedule_free_observed_at": observed_at,
+    }})
+
+
+def _scheduled_intent_cron_guard(item: ScoreBreakdown) -> str | None:
+    if item.candidate.discount in {Discount.FREE, Discount.TWO_X_FREE}:
+        return "cron intent acquisition requires fresh free-window evidence"
+    return None
+
+
+def _cron_free_window_rejection(
+    item: ScoreBreakdown, scheduler: Any, *, minimum: int | None = None,
+) -> str | None:
+    candidate = item.candidate
+    if candidate.left_time_minutes is None:
+        if candidate.metadata.get("left_time_source") == "mteam_api_unlimited":
+            return None
+        return "cron execute safety requires known free window"
+    now = time.time()
+    required = _schedule_free_window_safety_minutes(
+        interval_minutes=scheduler.interval_minutes,
+        configured_minutes=scheduler.min_free_window_minutes,
+        cron=scheduler.cron,
+        timezone=scheduler.timezone, now=now,
+    )
+    if required is None:
+        return "cron execute safety unavailable: no second future scheduler slot"
+    required = max(required, minimum or 0)
+    observed = candidate.metadata.get("schedule_free_observed_at")
+    if not isinstance(observed, (int, float)):
+        return "cron execute safety unavailable: free window observation time missing"
+    remaining = candidate.left_time_minutes * 60 - max(0, now - observed)
+    if remaining < required * 60:
+        return f"cron execute safety requires {required} minutes of remaining free window"
+    return None
+
+
+def _scheduled_pt_free_rejection(
+    item: ScoreBreakdown, config_path: Path, *, prune_enabled: bool, minimum: int | None,
+    prune_override: bool | None = None,
+    target_category: str,
+) -> str | None:
+    loaded = load_config(config_path)
+    candidate = item.candidate
+    unlimited = (candidate.left_time_minutes is None and
+                 candidate.metadata.get("left_time_source") == "mteam_api_unlimited")
+    if not unlimited:
+        policy = _default_category_policy(loaded)
+        if policy.name != target_category:
+            return "cron execute safety unavailable: target category changed"
+        current_prune = (loaded.scheduler.prune_enabled if prune_override is None
+                         else prune_override)
+        if (not prune_enabled or not current_prune or
+                policy.mode != "mutable" or not policy.delete_enabled):
+            return "cron execute safety unavailable: expiry protection cannot delete"
+    return _cron_free_window_rejection(item, loaded.scheduler, minimum=minimum)
 
 
 def _heartbeat_status(
@@ -5746,6 +6086,7 @@ async def _enqueue_candidate_batches_action(
     execute: bool,
     *,
     pool_usage: PoolUsage | None,
+    cron_guard: Callable[[ScoreBreakdown], str | None] | None = None,
 ) -> list[Decision]:
     decisions: list[Decision] = []
     for batch, paused, pause_reasons in batches:
@@ -5760,6 +6101,7 @@ async def _enqueue_candidate_batches_action(
                 paused=paused,
                 pool_usage=pool_usage,
                 pause_reasons=pause_reasons,
+                **({"cron_guard": cron_guard} if cron_guard else {}),
             )
         except MutationBatchError as exc:
             raise MutationBatchError(
@@ -6927,7 +7269,10 @@ def _candidate_free_window_expires_at(candidate: TorrentCandidate) -> str | None
         if candidate.metadata.get("left_time_source") == "mteam_api_unlimited":
             return "9999-12-31T23:59:59+00:00"
         return None
-    return (datetime.now(UTC) + timedelta(minutes=candidate.left_time_minutes)).isoformat()
+    observed = candidate.metadata.get("schedule_free_observed_at")
+    start = (datetime.fromtimestamp(observed, UTC) if isinstance(observed, (int, float))
+             else datetime.now(UTC))
+    return (start + timedelta(minutes=candidate.left_time_minutes)).isoformat()
 
 
 def _persist_prune_state(store: StateStore, decisions: list[Decision]) -> None:

@@ -9,6 +9,7 @@ from pathlib import Path
 from media_agent.config_views import MediaConfigGuard, load_view
 from media_agent.media_import.commands import baseline, command_store
 from media_agent.media_import.runtime import build_engine, run_engine
+from media_agent.media_import.schedule import background_window_open, claim_slot
 from media_agent.media_import.store import bounded_lock
 from media_agent.media_import.subtitles.jobs import SubtitleJobs
 
@@ -78,6 +79,7 @@ def execute_command(path, command, *, lifecycle=None):
             lifecycle=lifecycle,
             enrichment=action != "scan",
             enrichment_limit=1,
+            posters=False,
         )
     if action == "completion-confirm":
         from media_agent.media_import.completion import confirm
@@ -211,6 +213,7 @@ def process_one(path, *, lifecycle=None):
 def serve(path, *, max_cycles=None, poll_seconds=2, stop=None):
     cycles = 0
     next_scan = 0
+    next_drain = 0
     from media_agent.media_import.role_health import MediaWorkerLifecycle
 
     with worker_lease(path):
@@ -247,7 +250,13 @@ def serve(path, *, max_cycles=None, poll_seconds=2, stop=None):
                         # Inventory and enrichment have independent clocks. Drain
                         # video commands first; every idle quantum admits at most
                         # one poster/subtitle job under its existing provider gates.
-                        scan_due = time.monotonic() >= next_scan
+                        schedule = engine.config.scan_schedule
+                        calendar_due = claim_slot(
+                            store, schedule, [p.name for p in engine.profiles()], time.time()
+                        )
+                        scan_due = (
+                            time.monotonic() >= next_scan if schedule is None else calendar_due
+                        )
 
                         def queued_command():
                             with store._connect() as conn:
@@ -257,13 +266,32 @@ def serve(path, *, max_cycles=None, poll_seconds=2, stop=None):
                                     ).fetchone()
                                 )
 
+                        background_schedule = engine.config.background_schedule
+                        background_open = background_window_open(
+                            store, background_schedule, time.time()
+                        )
+
+                        def yield_automatic(background_schedule=background_schedule):
+                            return queued_command() or not background_window_open(
+                                store, background_schedule, time.time()
+                            )
+
+                        drain_due = time.monotonic() >= next_drain
+                        if drain_due:
+                            next_drain = time.monotonic() + 30
                         result = run_engine(
                             engine,
                             path,
                             lifecycle=lifecycle,
                             scan=scan_due,
+                            drain_pending=drain_due and background_open,
+                            force=bool(schedule is not None and scan_due),
                             enrichment_limit=1,
-                            should_yield=queued_command,
+                            enrichment=background_open,
+                            inventory_only=background_schedule is not None,
+                            reconcile_pending=background_schedule is not None,
+                            should_yield=yield_automatic if background_open else queued_command,
+                            inventory_should_yield=queued_command,
                         )
                         yielded = result.get("status") == "yielded"
                         lifecycle.progress(completed=1, total=1)

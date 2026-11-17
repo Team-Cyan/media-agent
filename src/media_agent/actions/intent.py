@@ -338,6 +338,7 @@ async def enqueue_intent(
     policy_resolver: IntentPolicyResolver | None = None,
     enqueue_context_resolver: IntentEnqueueContextResolver | None = None,
     release_id: str | None = None,
+    cron_guard: Callable[[ScoreBreakdown], str | None] | None = None,
 ) -> tuple[ResourceIntent, RankedRelease, list[Decision]]:
     intent, selected_release_id = _load_intent_with_selected(store, intent_id)
     selected_policy = policy_resolver(intent) if policy_resolver is not None else policy
@@ -403,8 +404,9 @@ async def enqueue_intent(
             intent.intent_id, claim_owner_id,
         ):
             raise ValueError("intent enqueue ownership expired or state changed")
+        safety_reason = cron_guard(score_breakdown) if execute and cron_guard is not None else None
         if execute and (
-            not paused
+            not safety_reason and not paused
             and (release_resolver is not None or _requires_download_resolution(ranked.release))
         ):
             if release_resolver is None:
@@ -427,6 +429,7 @@ async def enqueue_intent(
             paused=paused,
             pool_usage=pool_usage,
             pause_reasons=pause_reasons,
+            **({"cron_guard": cron_guard} if cron_guard else {}),
         )
     except Exception:
         if claim_owner_id is not None:
@@ -476,6 +479,7 @@ async def run_intent_once(
     search_hour: int = 0,
     search_now: datetime | None = None,
     retry_ready: bool = False,
+    cron_guard: Callable[[ScoreBreakdown], str | None] | None = None,
 ) -> IntentRunResult:
     ingested_pairs = ingest_inbox(inbox_path, store) if inbox_path is not None else []
     ingested_pairs.extend(ingest_events(source_events, store))
@@ -520,6 +524,7 @@ async def run_intent_once(
                 release_resolver=release_resolver,
                 policy_resolver=policy_resolver,
                 enqueue_context_resolver=enqueue_context_resolver,
+                **({"cron_guard": cron_guard} if cron_guard else {}),
             )
             enqueue_selected.append(selected)
             decisions.extend(enqueue_decisions)
@@ -549,6 +554,7 @@ async def run_intent_once(
                 paused=paused, pool_usage=pool_usage, pause_reasons=pause_reasons,
                 release_resolver=release_resolver, policy_resolver=policy_resolver,
                 enqueue_context_resolver=enqueue_context_resolver,
+                **({"cron_guard": cron_guard} if cron_guard else {}),
             )
             enqueue_selected.append(selected)
             decisions.extend(enqueue_decisions)

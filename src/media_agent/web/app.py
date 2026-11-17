@@ -62,6 +62,7 @@ from media_agent.quality_tags import matching_quality_tag_groups
 from media_agent.runtime_identity import verify_runtime_identity
 from media_agent.search.base import SearchProvider
 from media_agent.state import StateStore
+from media_agent.web.schedules import preview_schedule
 from media_agent.web.settings import (
     ConfigRevisionConflict,
     ConfigSectionDraft,
@@ -286,7 +287,7 @@ def make_handler(config_path: Path) -> type[BaseHTTPRequestHandler]:
                 return
             if request_path == "/api/ops":
                 try:
-                    self._send_json(_ops_payload(root))
+                    self._send_json(_ops_payload(root, config_path=resolved_config_path))
                 except Exception as exc:
                     self._send_json(
                         {
@@ -417,6 +418,9 @@ def make_handler(config_path: Path) -> type[BaseHTTPRequestHandler]:
             if self.path == "/api/trackers/validate":
                 draft = TrackerDraft.model_validate(self._read_json())
                 self._send_json({"status": build_tracker_status(draft, root)})
+                return
+            if self.path == "/api/schedules/preview":
+                self._send_json(preview_schedule(self._read_json()))
                 return
             if self.path == "/api/config/sections":
                 draft = ConfigSectionDraft.model_validate(self._read_json())
@@ -2148,7 +2152,7 @@ def _health_payload(root: Path) -> dict[str, Any]:
     return payload
 
 
-def _ops_payload(root: Path) -> dict[str, Any]:
+def _ops_payload(root: Path, *, config_path: Path | None = None) -> dict[str, Any]:
     state_path = _state_db_path(root)
     payload: dict[str, Any] = {
         **_runtime_provenance(root),
@@ -2164,6 +2168,28 @@ def _ops_payload(root: Path) -> dict[str, Any]:
         "scheduler_trigger": None,
         "scheduler_control": None,
     }
+    if config_path is not None:
+        scheduler = load_config(config_path).scheduler.with_overrides(
+            _scheduler_environment_overrides()
+        )
+        payload["legacy_pt_schedule"] = scheduler.cron is None
+        payload["task_schedules"] = {}
+        for kind, expression in (
+            ("scheduler", scheduler.cron),
+            ("maintenance", scheduler.maintenance_cron
+             if scheduler.maintenance_cron is not None else scheduler.cron),
+            ("intent", scheduler.intent_search_cron),
+        ):
+            if expression is not None:
+                preview_kind = (
+                    "scheduler" if kind == "maintenance" and scheduler.maintenance_cron is None
+                    else kind
+                )
+                payload["task_schedules"][kind] = preview_schedule({
+                    "kind": preview_kind, "cron": expression, "timezone": scheduler.timezone,
+                })
+        if scheduler.cron is not None:
+            payload["cron_schedule"] = payload["task_schedules"]["scheduler"]
     if not state_path.exists():
         return payload
     store = StateStore(state_path, initialize=False, read_only=True)

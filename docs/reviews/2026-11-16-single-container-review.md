@@ -133,3 +133,24 @@ performed. Both failed jobs were rerun as attempt 2 and succeeded:
 The failed attempts remain available. No tests, security gates or failure
 notifications were weakened. Earlier CI causes and expired-log limitations remain
 in the [1.0 investigation](2026-11-15-ci-failure-investigation.md).
+
+## Milestone Closure And Authorized Cleanup (2026-11-17)
+
+The release, rename, supervised deployment and predecessor cleanup milestone is
+complete. The typed high-risk cleanup removed the two exact stopped source
+containers and their unused legacy image, archived both DockerMan templates and
+preserved application state, media and recovery backups. Current target health
+and boundary checks passed; the template audit reported zero issues, superseding
+the four historical warnings on the old worker template. Post-block backup and
+model refresh completed. Recovery of old roles now requires recreation from saved
+templates and pinned digests; the removed container IDs cannot be restarted.
+
+Local Apple Container cleanup removed five old containers and fifteen old image
+references. Durable bind-file hashes remained unchanged; the current published
+image and shared tooling were retained. Cleanup controller verification passed
+65 targeted tests, including isolated Linux/PHP fault fixtures. Private identities
+and receipts remain in ignored local evidence.
+
+This closes the selected delivery phase and moves the release into maintenance.
+It does not complete the separate whole-library subtitle, full-film timing or
+client playback acceptance described above, or select a new feature milestone.

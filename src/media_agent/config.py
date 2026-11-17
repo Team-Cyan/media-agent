@@ -4,6 +4,7 @@ import os
 import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any, ClassVar, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, field_validator, model_validator
@@ -610,6 +611,10 @@ class SchedulerConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     interval_minutes: int = 60
+    cron: str | None = None
+    maintenance_cron: str | None = None
+    timezone: str = "UTC"
+    intent_search_cron: str | None = None
     capacity_guard_interval_seconds: int = 60
     min_free_window_minutes: int | None = None
     require_known_free_window: bool = True
@@ -628,6 +633,10 @@ class SchedulerConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_scheduler(self) -> SchedulerConfig:
+        try:
+            ZoneInfo(self.timezone)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("scheduler.timezone must be a valid IANA timezone") from None
         if self.interval_minutes < 1:
             raise ValueError("scheduler.interval_minutes must be >= 1")
         if self.capacity_guard_interval_seconds < 10:

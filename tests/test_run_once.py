@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from media_agent.config import DiscoveryConfig, ScoringConfig, SeedAgentConfig
@@ -1549,3 +1550,119 @@ def test_run_once_dry_run_counts_stalled_downloads_for_runtime_gate(
     assert payload["enqueue_paused_by_pool_policy"] is False
     assert payload["enqueue_blocked_by_runtime_gate"] is True
     assert payload["enqueue_blocked_reasons"] == ["active downloads 1 >= max 1"]
+
+
+def test_cron_guard_reloads_schedule_between_token_and_enqueue(tmp_path, monkeypatch):
+    from media_agent import cli
+    from media_agent.config import SchedulerConfig
+
+    monkeypatch.chdir(tmp_path)
+    hourly = _config().model_copy(update={"scheduler": SchedulerConfig(
+        cron="0 * * * *", prune_enabled=True
+    )})
+    daily = hourly.model_copy(update={"scheduler": SchedulerConfig(
+        cron="0 0 * * *", prune_enabled=True
+    )})
+    current = [hourly]
+    now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC).timestamp()
+    candidate = _candidate(left_time_minutes=240)
+    observed = []
+    monkeypatch.setattr(cli.time, "time", lambda: now)
+    monkeypatch.setattr(cli, "load_config", lambda _: current[0])
+    monkeypatch.setattr(cli, "_discover_candidates", lambda _: [candidate])
+    monkeypatch.setattr(cli, "score_candidates", lambda candidates, *_: [
+        _scored(candidate=candidates[0])
+    ])
+
+    async def resolve(scored, _config, *, cron_guard, **kwargs):
+        observed.append(cron_guard(scored[0]))
+        current[0] = daily
+        return scored
+
+    async def enqueue(batches, *args, cron_guard, **kwargs):
+        observed.append(cron_guard(batches[0][0][0]))
+        current[0] = hourly.model_copy(update={"scheduler": SchedulerConfig(
+            cron="-", prune_enabled=True
+        )})
+        observed.append(cron_guard(batches[0][0][0]))
+        return []
+
+    monkeypatch.setattr(cli, "resolve_deferred_download_urls", resolve)
+    monkeypatch.setattr(cli, "_enqueue_runtime_context", lambda *a, **k: (
+        object(), [], None, False, None, 0
+    ))
+    monkeypatch.setattr(cli, "_enqueue_candidate_batches", lambda scored, *a: [
+        (scored, False, [])
+    ])
+    monkeypatch.setattr(cli, "_enqueue_candidate_batches_action", enqueue)
+    cli._run_once_payload(
+        tmp_path / "config.yaml", execute=True, min_free_window_minutes=121,
+        require_known_free_window=True, prune=False, capacity_prune=True, cron_guard=True,
+    )
+    assert observed[0] is None
+    assert "requires 2881 minutes" in observed[1]
+    assert "no second future" in observed[2]
+
+
+@pytest.mark.parametrize("change_before", ["token", "add"])
+def test_cron_guard_rejects_changed_target_category_before_token_or_add(
+    tmp_path, monkeypatch, change_before
+):
+    from media_agent import cli
+    from media_agent.config import CategoryPolicyConfig, SchedulerConfig
+
+    monkeypatch.chdir(tmp_path)
+    original = _config().model_copy(update={
+        "scheduler": SchedulerConfig(cron="0 * * * *", prune_enabled=True),
+    })
+    old_policy = original.download_client.category_policies[0]
+    new_policy = CategoryPolicyConfig(
+        name="other", mode="mutable", budget_pool=old_policy.budget_pool,
+        delete_enabled=True, over_budget_behavior="add_paused", tags=[],
+    )
+    changed_client = original.download_client.model_copy(update={
+        "default_category": "other",
+        "category_policies": [old_policy.model_copy(update={
+            "mode": "add_only", "delete_enabled": False,
+        }), new_policy],
+    })
+    changed = original.model_copy(update={"download_client": changed_client})
+    current = [original]
+    now = datetime(2026, 1, 1, 0, 0, tzinfo=UTC).timestamp()
+    observed = []
+    monkeypatch.setattr(cli.time, "time", lambda: now)
+    monkeypatch.setattr(cli, "load_config", lambda _: current[0])
+    monkeypatch.setattr(cli, "_discover_candidates", lambda _: [_candidate(left_time_minutes=240)])
+    monkeypatch.setattr(cli, "score_candidates", lambda candidates, *_: [
+        _scored(candidate=candidates[0])
+    ])
+
+    async def resolve(scored, _config, *, cron_guard, **kwargs):
+        if change_before == "token":
+            current[0] = changed
+        observed.append(cron_guard(scored[0]))
+        if change_before == "add":
+            current[0] = changed
+        return scored
+
+    async def enqueue(batches, *args, cron_guard, **kwargs):
+        observed.append(cron_guard(batches[0][0][0]))
+        return []
+
+    monkeypatch.setattr(cli, "resolve_deferred_download_urls", resolve)
+    monkeypatch.setattr(cli, "_enqueue_runtime_context", lambda *a, **k: (
+        object(), [], None, False, None, 0
+    ))
+    monkeypatch.setattr(cli, "_enqueue_candidate_batches", lambda scored, *a: [
+        (scored, False, [])
+    ])
+    monkeypatch.setattr(cli, "_enqueue_candidate_batches_action", enqueue)
+    cli._run_once_payload(
+        tmp_path / "config.yaml", execute=True, min_free_window_minutes=121,
+        require_known_free_window=True, prune=False, capacity_prune=True, cron_guard=True,
+    )
+    if change_before == "token":
+        assert all("target category changed" in reason for reason in observed)
+    else:
+        assert observed[0] is None
+        assert "target category changed" in observed[1]

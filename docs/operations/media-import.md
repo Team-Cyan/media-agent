@@ -85,7 +85,10 @@ deployment:
 media_import:
   state_path: .media-import/state.db
   enabled: true
-  interval_seconds: 1800
+  interval_seconds: 1800  # Legacy fallback when scan_schedule is absent.
+  scan_schedule:
+    cron: "-"  # Opt in with e.g. "0 3 * * *".
+    timezone: Asia/Shanghai
   import_policy: preview
   subtitle_policy: preview
   reconcile_policy: preview

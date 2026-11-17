@@ -2,7 +2,7 @@
 
 ## What `media-agent` Is
 
-`media-agent` is a Docker-first PT automation app for personal NAS and homelab
+`media-agent` is a Docker-first acquisition, PT seed strategy and media-library automation app for personal NAS and homelab
 deployments.
 
 It is:
@@ -18,6 +18,19 @@ It is not:
 - a full MoviePilot clone,
 - a general media server,
 - a browser-login automation project.
+
+## Current Stage
+
+v1.1.0 is released and deployed as one supervised container. The rename and
+predecessor-resource cleanup milestone closed on 2026-11-17; the project is in
+maintenance for 1.1. A subsequent authorized 1.2 milestone implements five UI business
+schedules, media background windows and second-slot freeleech safety locally; it is not published or deployed.
+Templates and recovery
+backups remain preserved. Future work and unaccepted whole-library subtitle,
+full-film timing and client playback claims remain explicit in the roadmap.
+Legacy CLI/import/environment/state names are intentional compatibility contracts,
+not unfinished rename work. Use the session handoff and versioned review for the
+completed release; do not resume historical migration commands.
 
 ## Product Shape
 

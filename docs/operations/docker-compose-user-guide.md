@@ -1,6 +1,6 @@
 # Docker Compose User Guide
 
-This guide is the normal installation path for `media-agent` 1.0.
+This guide is the normal installation path for `media-agent` 1.1.
 See [Upgrade And Recovery](upgrade-and-recovery.md) before replacing an existing install.
 The example enables scheduled execution: review execution/prune/media policy and
 set execute false for initial isolated evaluation before starting containers.

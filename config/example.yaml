@@ -187,6 +187,11 @@ release_preferences:
     truehd: -12
     dts_hd_ma: -12
 scheduler:
+  # Invalid Cron disables automatic full cycles. Existing live config is not migrated.
+  cron: "-"
+  timezone: Asia/Shanghai
+  intent_search_cron: "-"
+  maintenance_cron: "-"
   interval_minutes: 60
   # qB-only hard-cap and broken-download check between full tracker cycles.
   capacity_guard_interval_seconds: 60
@@ -254,6 +259,14 @@ want_sources:
 # Independent directory-based media lane; see docs/operations/media-import.md.
 media_import:
   enabled: false
+  # Invalid Cron disables automatic scans; existing live config is not migrated.
+  scan_schedule:
+    cron: "-"
+    timezone: Asia/Shanghai
+  background_schedule:
+    cron: "-"
+    timezone: Asia/Shanghai
+    window_minutes: 120
   state_path: .media-import/state.db
   import_policy: preview
   subtitle_policy: preview
