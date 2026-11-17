@@ -11,6 +11,13 @@ uses the exclusive access fence and exclusive first creation; existing files use
 no-follow metadata operations. Sidecar disappearance alone is tolerated. Failed
 worker observations retain optional SQLite extended error codes without messages.
 
+The default 1.1 `app` supervisor runs media, scheduler and optional Web as separate
+child processes in one container. Configured media is a required child: a validation
+or runtime exit fails the container and stops its siblings. Independent role loaders,
+state and leases remain logical boundaries, not per-process credential or filesystem
+isolation. Explicit legacy role modes remain supported; never run a second worker
+beside the app against the same state. See the single-container rename contract.
+
 The dedicated CLI worker may explicitly opt into `--sqlite-io-diagnostics` to
 capture rare SQLite I/O failures. This audited single-threaded startup owns the
 process-wide LOG slot; SQLite has no public getter to discover an existing owner.
@@ -223,7 +230,8 @@ Historical migration, remote artwork, server refresh, ASR, upgrades and deployme
 
 One YAML document is authoritative; role loaders validate common deployment identity
 and their own sections. Invalid media configuration does not prevent valid seed
-execution. Full/effective revisions use public configuration structure and credential
+loading in an explicit seed-only mode; unified app mode fails when any enabled
+required role cannot start. Full/effective revisions use public configuration structure and credential
 references, never credential file contents. Each publication revalidates its initial
 configuration revision, policy and restore epoch. A preview command cannot gain
 execution permission after a reload. Source identity is explicit for worker deployment.
@@ -241,8 +249,10 @@ commands pinned to policy, source/plan baseline, config revision and restore epo
 Restart interrupts manual commands; restore supersedes them. Neither path replays
 uncertain completed side effects. Inventory count/time and enrichment batches are
 bounded; observations stage in 250-row transactions before authoritative completion.
-This intermediate R2 checkpoint still requires R3 container health/mount verification. Applied media observations include source/full/effective revision,
-application/image/schema and epoch; role health/UI integration follows with the worker.
+Applied media observations include source/full/effective revision,
+application/image/schema and epoch. Role health/UI and common-parent mount checks
+are implemented, with controlled deployment evidence in the versioned review;
+fixture health does not establish corpus-wide provider or client acceptance.
 
 OpenSubtitles anonymous search and payload download work with API key only; username
 and password are optional. A bounded real key-only acceptance saved one validated
@@ -267,8 +277,9 @@ from destination availability; one offline target blocks that publication withou
 making the source absent or blocking other routes. UI pages expose type, animation
 evidence, historical route and manual classification/target previews.
 
-Mixed routing is locally implemented and awaiting independent checkpoint review;
-R3 roles/mount-health and Phase1 multi-provider acceptance remain outstanding.
+Mixed routing and role health/mount boundaries are implemented and independently
+reviewed. Bounded deployed cohorts have separate receipts; provider coverage and
+client acceptance must never be inferred for the entire library from those checks.
 
 
 Destination validation failures are scoped domain health states. `prune_dirs` retains

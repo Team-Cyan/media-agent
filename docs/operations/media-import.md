@@ -245,11 +245,13 @@ Daily quota waiting never expires through the general retry horizon. Each file g
 one new compatible subtitle per cycle before subsequent alternatives. Anonymous and
 account allowances may differ; 100/day is not assumed without provider evidence.
 
-The R2 worker/queue slice is locally implemented; container supervision/health/mount
-verification (R3), remote posters, final independent review and production acceptance
-remain outstanding. The user has authorized a scoped feature release, controlled
-DockerMan deployment and full real movie/TV organization after those gates. Tests
-alone do not establish production library coverage or client playback acceptance.
+Worker/queue, poster and role-health/mount behavior is implemented and reviewed.
+The 1.1 default `app` supervises scheduler, optional Web and the enabled media worker
+in one container; a required child exit fails the whole container. Roles share the
+container's credentials and mounts while retaining independent state and leases.
+The controlled single-container rollout is recorded in the versioned review.
+Tests and bounded deployment receipts do not establish whole-library provider,
+full-film subtitle timing or client playback acceptance.
 
 
 ## Destination Faults And Mixed-State Maintenance

@@ -133,7 +133,7 @@ Use docs in layers:
 - `docs/plans/` for implementation sequencing
 - `docs/operations/` for operator procedures
 - `docs/roadmap.md` for current state and next work
-- `docs/ai/icon-design.md` for the shared `media-agent` / legacy `media-agent` /
+- `docs/ai/icon-design.md` for the shared `media-agent` /
   `material-agent` icon geometry, palette, export, and validation standard
 
 ## Session Guidance
