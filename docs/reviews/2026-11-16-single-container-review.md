@@ -64,3 +64,72 @@ Full-library subtitle coverage, full-film timing and downstream playback remain
 unaccepted beyond the bounded evidence recorded in prior reports. Historical CI
 causes and expired-log limitations remain in the 1.0 CI investigation; a later
 passing workflow does not explain an old failure.
+
+
+## Publication And Controlled Rollout (2026-11-17)
+
+The immutable `v1.1.0` and archival `release/1.1` point to
+`309f1af2141beec994f1bab8f3d1bd9d665aa15f`. The archival `release/1.0` pointer was
+advanced to its last published patch, `f5e2205`; no published tag was moved.
+[Exact-source CI](https://github.com/Team-Cyan/media-agent/actions/runs/43970243185),
+[Pages](https://github.com/Team-Cyan/media-agent/actions/runs/43970238922) and
+[GitHub Release](https://github.com/Team-Cyan/media-agent/actions/runs/43971483102)
+passed. The [release](https://github.com/Team-Cyan/media-agent/releases/tag/v1.1.0)
+is published and its temporary image-publication warning has been removed after
+registry and published-image checks passed.
+
+Registry tags `v1.1.0`, `1.1.0` and `1.1` resolve to:
+`sha256:da25e39efdab93f65a57d938c7b83c05ee6ff5752ba819355bd3f69403efcf4b`.
+Both linux/amd64 and linux/arm64 configs report version `1.1.0` and the exact
+release revision above, with the canonical media-agent source label. Manifests:
+
+- amd64: `sha256:69eb2a80bfe258433a4b660d218b05fa1f0a3358974ac04150dccd92b3d6b554`
+- arm64: `sha256:f9cc632c656494fc04ff3cee4e0735e73878307f08cd981dc0b378d2aafa9104`
+
+The published arm64 image passed descriptor-hardlink checks under UID/GID
+1000:100 and all-role/Web health, then exited 0 on SIGTERM. The controlled amd64
+production rollout used the same immutable index digest through homelab-agent.
+The controller extension passed 75 related tests with three platform-specific
+skips, including 13 focused migration/wiring checks and isolated Linux PHP fault
+cases. Independent review resolved partial-prepare recovery, pull failure,
+lost-start response, queued-command and process-identity blockers before apply.
+
+The production prepare plan verified durable config/state/audit/template and
+legacy-template backups, disabled conflicting autostart entries, stopped the
+original pair, and created the new container stopped. A separate approved start
+plan checked queue/config/epoch fences, started the target, verified its PID1
+supervisor and three configured role children under the runtime owner, and only
+then activated autostart. Post-block backup and model refresh completed. Final
+readback confirmed healthy target, stopped original containers, matching phase
+receipts, unchanged config/schema/epoch and unchanged source/import/artifact/job/
+command/review counts. No scan, migration, import or subtitle command was submitted
+for validation. Original containers, media and durable state remain retained;
+rollback uses receipts rather than a blind database restore.
+
+DockerMan audit found no target-container drift. Four existing unmasked media
+credential-reference path warnings remain on the retained stopped worker template;
+its metadata was preserved for recovery rather than changed under this rollout.
+The homelab controller extension remains local with that repository's unrelated
+working changes; this application release does not include or publish them.
+Private receipts and exact deployment details remain in ignored evidence.
+Client library visibility, full-film subtitle timing and downstream playback are
+still separate acceptance gaps; server health does not establish them.
+
+## Rename Publication Failure Diagnosis
+
+Both the [main publication](https://github.com/Team-Cyan/media-agent/actions/runs/43970920650/attempts/1)
+and [tag publication](https://github.com/Team-Cyan/media-agent/actions/runs/43971483094/attempts/1)
+first attempts built both platforms successfully but failed on GHCR upload with
+`permission_denied: write_package`. The existing package remained associated with
+the archived legacy repository, whose Actions access did not authorize the newly
+renamed source repository. This was package access, not a test/build failure.
+
+After explicit user approval, only the new repository's Actions received Write
+access to this package; existing legacy access and image versions were retained.
+No new Admin grant, credential rotation, history rewrite or artifact deletion was
+performed. Both failed jobs were rerun as attempt 2 and succeeded:
+[main](https://github.com/Team-Cyan/media-agent/actions/runs/43970920650/attempts/2),
+[tag](https://github.com/Team-Cyan/media-agent/actions/runs/43971483094/attempts/2).
+The failed attempts remain available. No tests, security gates or failure
+notifications were weakened. Earlier CI causes and expired-log limitations remain
+in the [1.0 investigation](2026-11-15-ci-failure-investigation.md).

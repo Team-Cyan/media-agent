@@ -35,14 +35,14 @@ release filenames; real cue timing and text checks gate automatic publication.
 Five is a hard automatic cap, with quotas, deduplication and existing identity
 fences retained. The immutable 1.0.0 release remains unchanged.
 
-## 1.1 Single-Container Rename
+## Shipped 1.1: Single-Container Rename
 
 The product is now `media-agent`. One supervisor runs Web, scheduler and the
 configured media worker; legacy CLI/import names, environment keys, metrics and
-`.seed-agent` state paths remain compatible. Publication and controlled deployment
-verification are tracked separately in the versioned review.
+`.seed-agent` state paths remain compatible. Publication and controlled single-container deployment passed; verification and
+client acceptance limits remain separate in the versioned review.
 
-## Candidate Later 1.x: Acceptance And Operations
+## Candidate 1.2: Acceptance And Operations
 
 - Broader fake-provider/downloader scheduler-cycle and Web preview integration
   coverage beyond the existing phase-order, run-ID and state-transaction tests.
@@ -54,7 +54,7 @@ verification are tracked separately in the versioned review.
   focused mobile/accessibility improvements.
 - Read-only joined upload/headroom analysis before tuning retention or eviction.
 
-## Candidate Later 1.x: Provider And Media Robustness
+## Candidate 1.3: Provider And Media Robustness
 
 - Additional subtitle archive/format support, numbering/sync/retiming review and
   provider failure/quota handling after measured corpus evidence.

@@ -75,3 +75,12 @@ at the tested source. Production was not upgraded.
 Published platform images were also pulled by immutable manifest and both passed
 hardlink/health smoke checks. Final image-layer/privacy evidence is recorded in the
 [release review](2026-11-15-v1-release-review.md#published-image-readback).
+
+
+## Subsequent Rename Publication Incident
+
+The 1.1 rename encountered a separate confirmed GHCR package Actions-permission
+failure after successful platform builds. The explicit Write-access repair,
+retained failed attempts and successful reruns are documented in the
+[1.1 rollout review](2026-11-16-single-container-review.md#rename-publication-failure-diagnosis).
+This later incident does not change the root-cause limits of the older expired logs.
