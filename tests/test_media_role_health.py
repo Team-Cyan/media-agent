@@ -292,3 +292,35 @@ def test_persistent_lock_failure_stops_heartbeats_after_bounded_horizon(
         life.heartbeat()
     # Teardown records the final failure after lock release; no hidden retry.
     life.failed(TimeoutError())
+
+
+def test_automatic_observation_time_follows_slow_state_snapshot(lifecycle_fixture, monkeypatch):
+    import media_agent.media_import.role_health as role_health
+
+    config, view, store = lifecycle_fixture
+    clock = [1000.0]
+    with MediaWorkerLifecycle(store, view, clock=lambda: clock[0]) as life:
+        life.phase("idle", deadline_seconds=60)
+        original_load = role_health.load_view
+        original_read = role_health._read_state
+
+        def slow_load(*args, **kwargs):
+            clock[0] += 4
+            return original_load(*args, **kwargs)
+
+        def slow_read(path):
+            clock[0] += 4
+            life.heartbeat()
+            return original_read(path)
+
+        monkeypatch.setattr(role_health.time, "time", lambda: clock[0])
+        monkeypatch.setattr(role_health, "load_view", slow_load)
+        monkeypatch.setattr(role_health, "_read_state", slow_read)
+        report = media_role_status(config)
+        assert report["healthy"]
+        assert report["heartbeat_age_seconds"] == 0
+
+        # An explicitly supplied observation time still rejects a future heartbeat.
+        report = media_role_status(config, now=1000.0)
+        assert not report["healthy"]
+        assert report["error"] == {"code": "invalid_media_state", "type": "ValueError"}

@@ -311,7 +311,6 @@ def media_role_status(config_path: Path, *, max_staleness_seconds=60.0, now=None
     This does not prove provider success, hardlink compatibility or client playback.
     """
     maximum = _seconds(max_staleness_seconds)
-    now = time.time() if now is None else now
     result = {
         "role": "media",
         "healthy": False,
@@ -332,6 +331,7 @@ def media_role_status(config_path: Path, *, max_staleness_seconds=60.0, now=None
         return result
     try:
         epoch, observations, queue = _read_state(media_state_path(view))
+        now = time.time() if now is None else now
         result["process_identity"] = runtime_identity_observation()
         result["state_epoch"] = epoch
         result["media_schema_version"] = MediaStore.schema_version

@@ -4,6 +4,15 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.2.1 - 2026-11-18
+
+### Fixed
+
+- Sample automatic media-health observation time after the read-only state
+  snapshot, so a heartbeat updated during slow configuration/state reads is not
+  misclassified as a future timestamp. Explicit observation-time and real future
+  timestamp checks remain strict.
+
 ## 1.2.0 - 2026-11-17
 
 ### Added
