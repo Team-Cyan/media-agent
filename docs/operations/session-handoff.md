@@ -1,16 +1,19 @@
 # Session Handoff
 
-## Current Stage: 1.2 Local Cron Development (2026-11-17)
+## Current Stage: 1.2.1 Published, Upgrade Pending
 
 The selected rename, release, deployment and cleanup scope is complete. No new
 feature work is implied by that closure. A subsequent authorized 1.2 milestone
-implements five UI business schedules and second-slot freeleech safety locally; production
-remains on 1.1.0 and its configuration is unchanged. See the Cron scheduling
+implements five UI business schedules and second-slot freeleech safety in published
+v1.2.1; production remains on 1.1.0 and its configuration is unchanged. See the Cron scheduling
 contract and roadmap. Independent plan/code reviews resolved expiry-threshold,
 multi-source inventory/window, legacy PT starvation and target-category hot-change
-findings. Full suite passed: 1513 tests, 1 skipped; local browser save/preview
-verification passed. Changes remain uncommitted/unpublished. Do not replay
-historical migration commands.
+findings. Exact-source CI passed: 1514 tests, 1 skipped; local browser save/preview
+verification passed. A later deployment attempt produced a validated backup.
+DockerMan created the candidate, but the runtime boundary check prevented startup.
+The original pinned image and template were restored. Before another deployment,
+identify why DockerMan recreation differs from the original runtime boundary.
+Do not replay historical migration commands.
 
 The stable milestone published v1.0.0 at `7c815ca` after exact-revision CI.
 The archival branch is `release/1.0`; the original dirty work remains preserved.

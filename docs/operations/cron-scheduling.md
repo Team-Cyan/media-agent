@@ -1,7 +1,7 @@
 # Cron Scheduling
 
-The 1.2 development line adds one-line Jenkins-style Cron controls. This feature
-is not part of the deployed 1.1.0 image until a separate publication and upgrade.
+The published 1.2.1 release includes one-line Jenkins-style Cron controls.
+Production remains on 1.1.0 pending upgrade.
 
 ## Five Business Schedules
 

@@ -11,8 +11,8 @@ Keep these files on the same version before tagging a release:
 - `pyproject.toml`
 - `src/media_agent/__init__.py`
 
-The current release line is `1.2.1`. This is local development; the latest
-published/deployed release recorded here remains `1.1.0` until the next explicit release.
+The current published release is `1.2.1`; production remains on `1.1.0`
+pending upgrade.
 
 ## Version Bump Policy
 

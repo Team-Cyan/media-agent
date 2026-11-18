@@ -21,10 +21,10 @@ It is not:
 
 ## Current Stage
 
-v1.1.0 is released and deployed as one supervised container. The rename and
-predecessor-resource cleanup milestone closed on 2026-11-17; the project is in
-maintenance for 1.1. A subsequent authorized 1.2 milestone implements five UI business
-schedules, media background windows and second-slot freeleech safety locally; it is not published or deployed.
+v1.2.1 is published with five UI business schedules, media background windows
+and second-slot freeleech safety. Production remains on v1.1.0 in one supervised
+container pending upgrade. The rename and predecessor-resource cleanup milestone
+closed on 2026-11-17.
 Templates and recovery
 backups remain preserved. Future work and unaccepted whole-library subtitle,
 full-film timing and client playback claims remain explicit in the roadmap.

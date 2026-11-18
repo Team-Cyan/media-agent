@@ -32,10 +32,17 @@ hygiene and documentation links passed. Local browser checks verified independen
 controls, persistence and window start/end previews. Dependency audit found no
 known vulnerabilities at execution; Compose validation passed in the Linux CLI.
 
-Exact-source CI, immutable multi-platform publication and live DockerMan upgrade
-are additional gates and are recorded separately after completion. Production
-upgrade must bind current container/template/config and exact candidate identity,
-retain durable backup and rollback evidence, and preserve production Cron settings.
+The published [v1.2.1 release](https://github.com/Team-Cyan/media-agent/releases/tag/v1.2.1)
+points to `4814503898d1f7fbd884569ad4ef4d2addac3ccc`.
+[Exact-source CI](https://github.com/Team-Cyan/media-agent/actions/runs/44166000044)
+passed with 1514 tests and 1 skipped; [multi-platform publication](https://github.com/Team-Cyan/media-agent/actions/runs/44167293327)
+succeeded and the registry digest was verified as
+`sha256:a7025273fe9358ff260d53be4b98ce6d36f49d9229aa190629282734fc9286bd`.
+The patch captures the health observation clock after the state snapshot and retains
+the genuine-future timestamp guard. Production remains on 1.1.0 pending upgrade.
+A controlled deployment validated durable backups before candidate creation.
+The runtime boundary check prevented candidate startup. Recovery restored the
+prior pinned image and DockerMan template. Production Cron settings were preserved.
 No historical migration or scan/queue command is replayed for release validation.
 
 ## Limits

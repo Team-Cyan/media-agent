@@ -3,16 +3,16 @@
 Version groups are planning targets, not dates or commitments. Code and tests own
 implementation facts; deployment, corpus coverage and client acceptance are separate.
 
-## Current Stage — 1.1 Maintenance / 1.2 Local Development (2026-11-17)
+## Current Stage — 1.2.1 Published, Production Upgrade Pending
 
 The v1.1.0 rename, single-container publication, controlled Unraid deployment and
 explicitly authorized predecessor cleanup are complete. The current target stayed
 healthy; the post-cleanup DockerMan template audit reported zero issues. Recovery
 templates and backups remain; removed container IDs require recreation rather
 than restart. See the [release review](reviews/2026-11-16-single-container-review.md).
-The 1.1 release scope is closed. A newly authorized 1.2 milestone adds UI Cron
-controls and second-future-slot freeleech protection; local implementation and
-verification do not publish an image or upgrade production.
+The 1.1 release scope is closed. The published 1.2.1 release adds UI Cron
+controls and second-future-slot freeleech protection; production remains on 1.1.0
+pending upgrade.
 The candidates below require a new scope decision; remaining corpus/client
 acceptance limits are not claimed complete.
 
@@ -55,7 +55,7 @@ configured media worker; legacy CLI/import names, environment keys, metrics and
 `.seed-agent` state paths remain compatible. Publication and controlled single-container deployment passed; verification and
 client acceptance limits remain separate in the versioned review.
 
-## 1.2 Local Implementation: Cron Controls
+## Shipped 1.2.1: Cron Controls
 
 - Shared Jenkins-style five-field Cron with stable H, timezone, inline UI help and
   future execution previews for five business schedules: PT, routine maintenance,
@@ -66,12 +66,14 @@ client acceptance limits remain separate in the versioned review.
   fresh checks bind the actual target category before token and each add.
   Expiry-only protection covers the next real check without broad cold-seed cleanup.
 - Media inventory is separate from window-bound processing and publication.
-- Plan and code review findings are resolved; full suite: 1513 passed, 1 skipped.
+- Plan and code review findings are resolved; exact-source CI: 1514 passed, 1 skipped.
 - Existing health, queue, retry and capacity guards remain internal safety loops.
-- See [contract and limits](operations/cron-scheduling.md). Publication and live
-  deployment are not part of this local implementation claim.
+- Health observation captures the clock after the state snapshot while retaining
+  rejection of genuinely future timestamps.
+- See [contract and limits](operations/cron-scheduling.md). Production deployment
+  remains pending.
 
-## Candidate 1.2: Acceptance And Operations
+## Candidate Acceptance And Operations
 
 - Broader fake-provider/downloader scheduler-cycle and Web preview integration
   coverage beyond the existing phase-order, run-ID and state-transaction tests.
