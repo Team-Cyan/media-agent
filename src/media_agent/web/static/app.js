@@ -3910,7 +3910,7 @@ function renderSettingsPanel(section) {
     .map(
       ([label, key, type, description]) => `
         <label class="field">
-          <span>${escapeHtml(label)} ${help(description)}</span>
+          <span>${escapeHtml(label)} ${type === "cron" ? `<span data-cron-guide="${escapeAttribute(key)}" data-description="${escapeAttribute(description)}"></span>` : help(description)}</span>
           ${renderSettingInput(key, type, getSettingValue(sectionData, key))}
         </label>
       `,
@@ -3951,7 +3951,8 @@ function renderSettingsPanel(section) {
     page.querySelectorAll('[data-setting-type="cron"]').forEach(input => {
       input.dataset.originalNull = String(sectionData[input.dataset.settingField] == null);
       const key = input.dataset.settingField;
-      page.querySelector(`[data-cron-guide="${key}"]`).append(cronHelp());
+      const guide = page.querySelector(`[data-cron-guide="${key}"]`);
+      guide.append(cronHelp(guide.dataset.description));
       const output = page.querySelector(`[data-cron-preview="${key}"]`);
       let timer;
       const update = (markEdited = true) => {
@@ -4090,7 +4091,7 @@ function updateSettingsPanelStatus(page, section, action) {
 
 function renderSettingInput(key, type, value) {
   if (type === "cron") {
-    return `<input data-setting-field="${escapeAttribute(key)}" data-setting-type="cron" value="${escapeAttribute(value ?? "")}" maxlength="256" placeholder="${value == null ? "沿用原有调度；输入 - 可关闭" : "0 3 * * *"}" spellcheck="false" /><span data-cron-guide="${escapeAttribute(key)}"></span><span data-cron-preview="${escapeAttribute(key)}" role="status"></span>`;
+    return `<input data-setting-field="${escapeAttribute(key)}" data-setting-type="cron" value="${escapeAttribute(value ?? "")}" maxlength="256" placeholder="${value == null ? "沿用原有调度；输入 - 可关闭" : "0 3 * * *"}" spellcheck="false" /><span data-cron-preview="${escapeAttribute(key)}" role="status"></span>`;
   }
   if (type.startsWith("select:")) {
     const options = type
@@ -4569,10 +4570,10 @@ function mediaJson(value) {
   catch { return {}; }
 }
 
-function cronHelp() {
+function cronHelp(description = "") {
   const help = mediaElement("span", null, {class: "cron-help"});
   const button = mediaElement("button", "?", {type: "button", class: "help", "aria-label": "Cron 语法帮助", "aria-expanded": "false"});
-  const guide = mediaElement("span", cronGuide, {class: "cron-guide", role: "tooltip"});
+  const guide = mediaElement("span", [description, cronGuide].filter(Boolean).join("\n\n"), {class: "cron-guide", role: "tooltip"});
   guide.id = `cron-guide-${mediaRequestId()}`;
   button.setAttribute("aria-describedby", guide.id);
   button.addEventListener("click", () => {

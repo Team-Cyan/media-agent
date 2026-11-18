@@ -5,7 +5,7 @@ from media_agent import __version__
 
 
 def test_package_imports() -> None:
-    assert __version__ == "1.2.1"
+    assert __version__ == "1.2.2"
 
 
 def test_release_version_sources_match() -> None:

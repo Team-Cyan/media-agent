@@ -4,6 +4,14 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.2.2 - 2026-11-18
+
+### Fixed
+
+- Align Cron fields on the Scheduler and Media Library pages, consolidate
+  Scheduler help icons, and keep the help text within narrow viewports.
+- Restore the release metadata marker used by the version bump script.
+
 ## 1.2.1 - 2026-11-18
 
 ### Fixed
