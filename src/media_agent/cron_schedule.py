@@ -1,14 +1,29 @@
 """Shared Jenkins-style five-field cron validation and calendar evaluation."""
 
+import os
 import re
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from croniter import CroniterBadCronError, CroniterBadDateError, croniter
 
 DEFAULT_HASH_ID = b"media-agent-schedule"
 # Jenkins core: numeric values, lists, ranges, steps and stable hashed fields.
 _PART = re.compile(r"(?:\*|[0-9]+(?:-[0-9]+)?|H(?:\([0-9]+-[0-9]+\))?)(?:/[0-9]+)?\Z")
+
+
+def runtime_timezone() -> str:
+    """Resolve the timezone supplied by the host to this process."""
+    configured = os.environ.get("TZ", "").removeprefix(":")
+    localtime = Path("/etc/localtime").resolve().as_posix().partition("/zoneinfo/")[2]
+    for candidate in (configured, localtime, "UTC"):
+        try:
+            ZoneInfo(candidate)
+        except (ValueError, ZoneInfoNotFoundError):
+            continue
+        return candidate
+    return "UTC"
 
 
 def validate_cron(expression, *, hash_id=DEFAULT_HASH_ID):

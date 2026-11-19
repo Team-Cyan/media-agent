@@ -189,7 +189,6 @@ release_preferences:
 scheduler:
   # Invalid Cron disables automatic full cycles. Existing live config is not migrated.
   cron: "-"
-  timezone: Asia/Shanghai
   intent_search_cron: "-"
   maintenance_cron: "-"
   interval_minutes: 60
@@ -262,10 +261,8 @@ media_import:
   # Invalid Cron disables automatic scans; existing live config is not migrated.
   scan_schedule:
     cron: "-"
-    timezone: Asia/Shanghai
   background_schedule:
     cron: "-"
-    timezone: Asia/Shanghai
     window_minutes: 120
   state_path: .media-import/state.db
   import_policy: preview

@@ -38,6 +38,7 @@ from media_agent.config import (
     load_config,
     resolve_runtime_secret_path,
 )
+from media_agent.cron_schedule import runtime_timezone
 from media_agent.intent.workflow import next_search_at, want_searchable
 from media_agent.metrics import render_prometheus_metrics
 from media_agent.models import (
@@ -420,7 +421,7 @@ def make_handler(config_path: Path) -> type[BaseHTTPRequestHandler]:
                 self._send_json({"status": build_tracker_status(draft, root)})
                 return
             if self.path == "/api/schedules/preview":
-                self._send_json(preview_schedule(self._read_json()))
+                self._send_json(preview_schedule(self._read_json(), inherit_timezone=True))
                 return
             if self.path == "/api/config/sections":
                 draft = ConfigSectionDraft.model_validate(self._read_json())
@@ -2186,7 +2187,7 @@ def _ops_payload(root: Path, *, config_path: Path | None = None) -> dict[str, An
                     else kind
                 )
                 payload["task_schedules"][kind] = preview_schedule({
-                    "kind": preview_kind, "cron": expression, "timezone": scheduler.timezone,
+                    "kind": preview_kind, "cron": expression, "timezone": runtime_timezone(),
                 })
         if scheduler.cron is not None:
             payload["cron_schedule"] = payload["task_schedules"]["scheduler"]

@@ -4,6 +4,13 @@ All notable project changes are tracked here.
 
 ## Unreleased
 
+## 1.2.3 - 2026-11-19
+
+### Fixed
+
+- Use the container timezone for all five Cron schedules, PT expiry protection
+  and Web previews. Legacy per-schedule timezone fields remain readable.
+
 ## 1.2.2 - 2026-11-18
 
 ### Fixed

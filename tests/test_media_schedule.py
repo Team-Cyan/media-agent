@@ -13,16 +13,18 @@ def ts(value):
     return datetime.fromisoformat(value).replace(tzinfo=UTC).timestamp()
 
 
-def test_calendar_boundaries_and_dst():
+def test_calendar_boundaries_and_dst(monkeypatch):
+    monkeypatch.setenv("TZ", "UTC")
     assert latest_slot(ScanSchedule(cron="0 9 * * 1"), ts("2026-11-17T00:00")) == ts(
         "2026-11-16T09:00"
     )
     assert latest_slot(ScanSchedule(cron="0 0 31 * *"), ts("2026-03-01T00:00")) == ts(
         "2026-01-31T00:00"
     )
-    spring = ScanSchedule(cron="30 2 * * *", timezone="America/New_York")
+    monkeypatch.setenv("TZ", "America/New_York")
+    spring = ScanSchedule(cron="30 2 * * *")
     assert latest_slot(spring, ts("2026-03-08T12:00")) == ts("2026-03-07T07:30")
-    fall = ScanSchedule(cron="30 1 * * *", timezone="America/New_York")
+    fall = ScanSchedule(cron="30 1 * * *")
     assert latest_slot(fall, ts("2026-11-01T07:00")) == ts("2026-11-01T05:30")
 
 
@@ -116,14 +118,16 @@ def test_invalid_cron_is_disabled(expression):
         validate_cron(expression)
 
 
-def test_cron_hash_and_conjunctive_days_and_second_fold():
+def test_cron_hash_and_conjunctive_days_and_second_fold(monkeypatch):
+    monkeypatch.setenv("TZ", "UTC")
     hashed = ScanSchedule(cron="H(0-30)/5 H * * *")
     assert latest_slot(hashed, ts("2026-11-17T00:00")) == latest_slot(
         hashed, ts("2026-11-17T00:00")
     )
     both = ScanSchedule(cron="0 0 1 * 1")
     assert latest_slot(both, ts("2026-06-02T00:00")) == ts("2026-06-01T00:00")
-    repeated = ScanSchedule(cron="30 1 * * *", timezone="America/New_York")
+    monkeypatch.setenv("TZ", "America/New_York")
+    repeated = ScanSchedule(cron="30 1 * * *")
     assert latest_slot(repeated, ts("2026-11-01T06:15")) == ts("2026-11-01T05:30")
     assert ScanSchedule().cron is None
 

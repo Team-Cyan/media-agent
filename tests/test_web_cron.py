@@ -22,7 +22,8 @@ def test_preview_two_dates_timezone_and_disabled():
         preview_schedule({"cron": "* * * * *", "timezone": "Mars/Local"})
 
 
-def test_preview_endpoint_does_not_modify_config(tmp_path):
+def test_preview_endpoint_inherits_timezone_without_modifying_config(tmp_path, monkeypatch):
+    monkeypatch.setenv("TZ", "Asia/Shanghai")
     config = _write_minimal_config(tmp_path)
     before = config.read_bytes()
     with _running_server(config) as url:
@@ -30,9 +31,11 @@ def test_preview_endpoint_does_not_modify_config(tmp_path):
             url,
             "POST",
             "/api/schedules/preview",
-            body={"kind": "media", "cron": "H 3 * * *", "timezone": "Asia/Shanghai"},
+            body={"kind": "media", "cron": "H 3 * * *", "timezone": "UTC"},
         )
     assert len(result["next_runs"]) == 2
+    assert result["timezone"] == "Asia/Shanghai"
+    assert all(slot.endswith("+08:00") for slot in result["next_runs"])
     assert config.read_bytes() == before
 
 

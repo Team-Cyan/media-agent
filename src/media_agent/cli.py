@@ -60,7 +60,12 @@ from media_agent.config import (
     load_downloader_secret,
     write_config_mapping,
 )
-from media_agent.cron_schedule import latest_cron_slot, next_cron_slot, next_cron_slots
+from media_agent.cron_schedule import (
+    latest_cron_slot,
+    next_cron_slot,
+    next_cron_slots,
+    runtime_timezone,
+)
 from media_agent.downloaders.base import Downloader, DownloaderStatus, DownloaderStatusProvider
 from media_agent.downloaders.qbittorrent import QbittorrentClient
 from media_agent.downloaders.transmission import TransmissionClient
@@ -1641,7 +1646,7 @@ def schedule_run(
         )
         min_free_window_minutes = _schedule_free_window_safety_minutes(
             interval_minutes=interval_minutes, configured_minutes=scheduler.min_free_window_minutes,
-            cron=scheduler.cron, timezone=scheduler.timezone,
+            cron=scheduler.cron, timezone=runtime_timezone(),
         )
         require_known_free_window = scheduler.require_known_free_window
         prune = scheduler.prune_enabled and loaded_for_run.download_client is not None
@@ -1724,7 +1729,7 @@ def schedule_run(
                     interval_minutes=interval_minutes,
                     configured_minutes=scheduler.min_free_window_minutes,
                     cron=None if manual_trigger is not None else scheduler.cron,
-                    timezone=scheduler.timezone,
+                    timezone=runtime_timezone(),
                 )
                 if horizon is None:
                     raise ValueError("next expiry protection slot unavailable")
@@ -2310,16 +2315,16 @@ def _wait_for_cron_schedule_cycle(
             )
 
     heartbeat()
-    key = (scheduler.cron, scheduler.timezone)
+    key = (scheduler.cron, runtime_timezone())
     since = time.time()
     while scheduler.cron is not None:
         heartbeat()
         now = time.time()
-        slot = latest_cron_slot(scheduler.cron, scheduler.timezone, now, hash_id=b"scheduler-cycle")
+        slot = latest_cron_slot(scheduler.cron, runtime_timezone(), now, hash_id=b"scheduler-cycle")
         if slot is not None and slot > since:
             return None
         next_slot = next_cron_slot(
-            scheduler.cron, scheduler.timezone, now, hash_id=b"scheduler-cycle"
+            scheduler.cron, runtime_timezone(), now, hash_id=b"scheduler-cycle"
         )
         wait = scheduler.capacity_guard_interval_seconds + 1
         if next_slot is not None:
@@ -2333,7 +2338,7 @@ def _wait_for_cron_schedule_cycle(
         if trigger is not None:
             return trigger
         scheduler = load_config(config_path).scheduler.with_overrides(overrides)
-        new_key = (scheduler.cron, scheduler.timezone)
+        new_key = (scheduler.cron, runtime_timezone())
         if new_key != key:
             key = new_key
             since = time.time()
@@ -4047,7 +4052,7 @@ def _cron_free_window_rejection(
         interval_minutes=scheduler.interval_minutes,
         configured_minutes=scheduler.min_free_window_minutes,
         cron=scheduler.cron,
-        timezone=scheduler.timezone, now=now,
+        timezone=runtime_timezone(), now=now,
     )
     if required is None:
         return "cron execute safety unavailable: no second future scheduler slot"

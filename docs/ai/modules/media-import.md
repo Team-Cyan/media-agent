@@ -548,7 +548,8 @@ contract and conservative version-confirmation path when strong evidence is abse
 ## Cron Inventory And Background Window (1.2 development)
 
 `scan_schedule` controls inventory, while optional `background_schedule` adds
-`window_minutes` (1..1440, default 120) to the shared `{cron, timezone}` contract.
+`window_minutes` (1..1440, default 120) to the Cron expression. Both use the
+runtime timezone inherited from the container environment.
 Invalid explicit Cron disables its task. Absent inventory schedule retains the
 legacy interval; absent background schedule retains continuous automatic work.
 Activation and window checks use existing state event checkpoints, without a

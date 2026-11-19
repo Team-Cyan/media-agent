@@ -834,7 +834,6 @@ const settingsPanelsByLanguage = {
       fields: [
         ["PT 发现与入队 Cron", "cron", "cron", "发现、评分、免费期保护及入队。无效表达式关闭自动执行；未配置时保留旧间隔。"],
         ["常规保种维护 Cron", "maintenance_cron", "cron", "独立执行 Tracker 补全和常规保种清理；未配置时随 PT 周期，无效表达式关闭。"],
-        ["调度时区", "timezone", "text", "IANA 时区，例如 Asia/Shanghai。"],
         ["容量守卫（秒）", "capacity_guard_interval_seconds", "number", "完整扫描之间仅检查 qB 硬容量和错误任务的频率。"],
         ["候选免费窗口下限", "min_free_window_minutes", "optional-number", "执行入队时要求的剩余免费分钟数；留空表示不限制。"],
         ["要求已知免费窗口", "require_known_free_window", "boolean", "自动入队前必须能确认免费窗口。"],
@@ -922,7 +921,6 @@ const settingsPanelsByLanguage = {
       fields: [
         ["PT discovery and enqueue Cron", "cron", "cron", "Discovery, ranking, expiry protection and acquisition. Invalid disables automatic runs; absent retains legacy timing."],
         ["Routine seed maintenance Cron", "maintenance_cron", "cron", "Independent tracker backfill and routine cleanup. Absent inherits PT cycles; invalid disables."],
-        ["Schedule timezone", "timezone", "text", "IANA timezone, for example Asia/Shanghai."],
         ["Capacity guard seconds", "capacity_guard_interval_seconds", "number", "qB-only hard-cap and error check frequency between full cycles."],
         ["Minimum free-window minutes", "min_free_window_minutes", "optional-number", "Required free-window headroom for execute-mode enqueue; empty disables it."],
         ["Require known free window", "require_known_free_window", "boolean", "Require verified free-window evidence before automatic enqueue."],
@@ -3946,8 +3944,6 @@ function renderSettingsPanel(section) {
     </div>
   `;
   if (section === "scheduler") {
-    const zone = page.querySelector('[data-setting-field="timezone"]');
-    if (!zone.value) zone.value = "UTC";
     page.querySelectorAll('[data-setting-type="cron"]').forEach(input => {
       input.dataset.originalNull = String(sectionData[input.dataset.settingField] == null);
       const key = input.dataset.settingField;
@@ -3957,10 +3953,10 @@ function renderSettingsPanel(section) {
       let timer;
       const update = (markEdited = true) => {
         if (markEdited) input.dataset.originalNull = "false";
-        clearTimeout(timer); timer = setTimeout(() => previewCron(input, zone, key === "cron" ? "scheduler" : key === "maintenance_cron" ? "maintenance" : "intent", output), 300);
+        clearTimeout(timer); timer = setTimeout(() => previewCron(input, key === "cron" ? "scheduler" : key === "maintenance_cron" ? "maintenance" : "intent", output), 300);
       };
-      input.addEventListener("input", () => update()); zone.addEventListener("input", () => update(false));
-      if (sectionData[key] != null) previewCron(input, zone, key === "cron" ? "scheduler" : key === "maintenance_cron" ? "maintenance" : "intent", output);
+      input.addEventListener("input", () => update());
+      if (sectionData[key] != null) previewCron(input, key === "cron" ? "scheduler" : key === "maintenance_cron" ? "maintenance" : "intent", output);
       else output.textContent = "沿用原有调度；输入有效 Cron 切换，输入 - 关闭。";
     });
   }
@@ -4584,14 +4580,14 @@ function cronHelp(description = "") {
   });
   help.append(button, guide); return help;
 }
-async function previewCron(input, timezone, kind, output, duration) {
-  const expression = input.value, zone = timezone.value;
+async function previewCron(input, kind, output, duration) {
+  const expression = input.value;
   try {
     const minutes = duration ? Number(duration.value) : undefined;
-    const result = await mediaRequest("/api/schedules/preview", {kind, cron: expression, timezone: zone, ...(duration ? {window_minutes: minutes} : {})});
-    if (input.value !== expression || timezone.value !== zone || (duration && Number(duration.value) !== minutes)) return;
+    const result = await mediaRequest("/api/schedules/preview", {kind, cron: expression, ...(duration ? {window_minutes: minutes} : {})});
+    if (input.value !== expression || (duration && Number(duration.value) !== minutes)) return;
     output.textContent = result.enabled
-      ? `下次：${result.next_runs[0] || "无"}${result.window_ends ? " 至 " + result.window_ends[0] : ""} · 第二次：${result.next_runs[1] || "无"}`
+      ? `${result.timezone} · 下次：${result.next_runs[0] || "无"}${result.window_ends ? " 至 " + result.window_ends[0] : ""} · 第二次：${result.next_runs[1] || "无"}`
       : "表达式无效，自动执行已关闭。手动执行仍可用。";
   } catch (error) { output.textContent = `无法计算计划：${error}`; }
 }
@@ -4614,26 +4610,23 @@ function renderMediaSchedule(key, heading, kind) {
   const label = mediaElement("label", "Cron ");
   const input = mediaElement("input", null, {type: "text", maxlength: "256", value: schedule?.cron ?? "-", placeholder: "0 3 * * *", "aria-label": `${heading} Cron`, spellcheck: "false"});
   label.append(cronHelp(), input);
-  const zoneLabel = mediaElement("label", "时区");
-  const timezone = mediaElement("input", null, {type: "text", value: schedule?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC", required: "required", "aria-label": `${heading}时区`});
-  zoneLabel.append(timezone);
   const durationLabel = mediaElement("label", "每次窗口（分钟）");
   const duration = mediaElement("input", null, {type: "number", min: "1", max: "1440", step: "1", value: String(schedule?.window_minutes ?? 120), required: "required", "aria-label": "后台窗口分钟数"});
   durationLabel.append(duration);
   const preview = mediaElement("p", schedule ? "正在计算计划…" : background ? "当前沿用持续后台处理；保存后切换为此窗口。" : `当前仍使用原有间隔：${original.interval_seconds || 1800} 秒；保存后切换为此 Cron。`, {role: "status"});
   let timer;
-  const update = () => {clearTimeout(timer); timer = setTimeout(() => previewCron(input, timezone, kind, preview, background ? duration : undefined), 300);};
-  input.addEventListener("input", update); timezone.addEventListener("input", update); duration.addEventListener("input", update);
-  if (schedule) previewCron(input, timezone, kind, preview, background ? duration : undefined);
+  const update = () => {clearTimeout(timer); timer = setTimeout(() => previewCron(input, kind, preview, background ? duration : undefined), 300);};
+  input.addEventListener("input", update); duration.addEventListener("input", update);
+  if (schedule) previewCron(input, kind, preview, background ? duration : undefined);
   const save = mediaElement("button", background ? "保存后台窗口" : "保存扫描计划", {type: "submit", class: "secondary-button"});
   const feedback = mediaElement("p", "保存不会立即执行；新计划按后续计划时刻运行。", {role: "status"});
-  form.append(label, zoneLabel);
+  form.append(label);
   if (background) form.append(durationLabel);
   form.append(save);
   form.addEventListener("submit", async event => {
     event.preventDefault(); if (!form.reportValidity()) return;
     const data = structuredClone(original);
-    data[key] = {cron: input.value.trim(), timezone: timezone.value.trim(), ...(background ? {window_minutes: Number(duration.value)} : {})};
+    data[key] = {cron: input.value.trim(), ...(background ? {window_minutes: Number(duration.value)} : {})};
     save.disabled = true;
     try {
       await mediaRequest("/api/config/sections", {section: "media_import", data, revision: mediaScheduleConfig.revision});

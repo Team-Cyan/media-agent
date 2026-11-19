@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from media_agent.cron_schedule import latest_cron_slot, next_cron_slot
+from media_agent.cron_schedule import latest_cron_slot, next_cron_slot, runtime_timezone
 
 _HASHES = {
     "pt": b"scheduler-cycle",
@@ -27,15 +27,16 @@ class TaskSchedule:
             "intent": scheduler.intent_search_cron,
         }
         due: set[str] = set()
+        zone = runtime_timezone()
         for task, expression in expressions.items():
-            key = (expression, scheduler.timezone)
+            key = (expression, zone)
             if self.keys.get(task) != key:
                 self.keys[task] = key
                 self.since[task] = now
                 continue
             if expression is None:
                 continue
-            slot = latest_cron_slot(expression, scheduler.timezone, now, hash_id=_HASHES[task])
+            slot = latest_cron_slot(expression, zone, now, hash_id=_HASHES[task])
             if slot is not None and slot > self.since[task]:
                 due.add(task)
                 self.since[task] = slot
@@ -44,8 +45,9 @@ class TaskSchedule:
         return due
 
     def next_slot(self, scheduler: object, now: float) -> float | None:
+        zone = runtime_timezone()
         slots = [
-            next_cron_slot(expression, scheduler.timezone, now, hash_id=_HASHES[task])
+            next_cron_slot(expression, zone, now, hash_id=_HASHES[task])
             for task, expression in (
                 ("pt", scheduler.cron),
                 ("maintenance", scheduler.maintenance_cron),

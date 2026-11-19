@@ -15,7 +15,7 @@ Production remains on 1.1.0 pending upgrade.
 
 The Scheduler page exposes the first three independent Cron controls. The Media
 Library page exposes inventory and background controls. Each input has inline
-help, explicit IANA timezone and future matching times. The background control
+help and future matching times in the inherited timezone. The background control
 also shows `window_minutes` (1..1440, default 120) and the next window end.
 Previews do not submit tasks, traverse media roots or contact providers.
 
@@ -28,22 +28,26 @@ retain their existing override semantics and do not grant new mutation authority
 
 Saving uses the existing revision-checked API and does not immediately execute a
 past slot. Invalid strings (including `-` and an explicit empty string) disable
-the associated automatic business task. Invalid timezones are rejected.
+the associated automatic business task.
+
+All five schedules and their Web previews use the process timezone. In Docker,
+set the container's `TZ` to the host's IANA timezone, for example `Asia/Shanghai`.
+Without a valid `TZ`, the app uses an identifiable system zone from
+`/etc/localtime` or falls back to UTC. Legacy timezone fields are accepted in
+configuration but no longer control execution. Review scheduled wall times
+before upgrading if old fields differ from the host timezone.
 
 ```yaml
 scheduler:
   cron: "-"
   maintenance_cron: "-"
   intent_search_cron: "-"
-  timezone: Asia/Shanghai
 media_import:
   enabled: false
   scan_schedule:
     cron: "-"
-    timezone: Asia/Shanghai
   background_schedule:
     cron: "-"
-    timezone: Asia/Shanghai
     window_minutes: 120
 ```
 

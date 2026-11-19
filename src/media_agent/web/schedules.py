@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from media_agent.cron_schedule import is_cron_enabled, next_cron_slots
+from media_agent.cron_schedule import is_cron_enabled, next_cron_slots, runtime_timezone
 
 HASH_IDS = {
     "media": b"media-import-scan",
@@ -15,7 +15,7 @@ HASH_IDS = {
 }
 
 
-def preview_schedule(payload, *, now=None):
+def preview_schedule(payload, *, now=None, inherit_timezone=False):
     allowed = {"kind", "cron", "timezone", "window_minutes"}
     if not isinstance(payload, dict) or set(payload) - allowed:
         raise ValueError("expected kind, cron and timezone")
@@ -24,7 +24,9 @@ def preview_schedule(payload, *, now=None):
         raise ValueError("window_minutes must be an integer between 1 and 1440")
     kind = payload.get("kind", "media")
     expression = payload.get("cron")
-    timezone = payload.get("timezone", "UTC")
+    timezone = runtime_timezone()
+    if not inherit_timezone:
+        timezone = payload.get("timezone", timezone)
     if kind not in HASH_IDS:
         raise ValueError("unknown schedule kind")
     if expression is not None and (not isinstance(expression, str) or len(expression) > 256):

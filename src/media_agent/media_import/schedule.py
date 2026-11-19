@@ -2,15 +2,23 @@
 
 import json
 
-from media_agent.cron_schedule import latest_cron_slot
+from media_agent.cron_schedule import latest_cron_slot, runtime_timezone
 
 MEDIA_HASH_ID = b"media-import-scan"
+
+
+def _schedule_fingerprint(schedule):
+    if schedule is None:
+        return json.dumps(None)
+    data = schedule.model_dump(mode="json")
+    data["timezone"] = runtime_timezone()
+    return json.dumps(data, sort_keys=True)
 
 
 def latest_slot(schedule, now):
     if schedule.cron is None:
         return None
-    return latest_cron_slot(schedule.cron, schedule.timezone, now, hash_id=MEDIA_HASH_ID)
+    return latest_cron_slot(schedule.cron, runtime_timezone(), now, hash_id=MEDIA_HASH_ID)
 
 
 def claim_slot(store, schedule, profiles, now):
@@ -19,7 +27,7 @@ def claim_slot(store, schedule, profiles, now):
     Changes activate on observation, not retroactively. The checkpoint is recorded
     before work starts so failures and worker interruption do not retry the slot.
     """
-    fingerprint = json.dumps(schedule.model_dump(mode="json") if schedule else None, sort_keys=True)
+    fingerprint = _schedule_fingerprint(schedule)
     with store._connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
@@ -72,7 +80,7 @@ BACKGROUND_HASH_ID = b"media-import-background"
 
 def background_window_open(store, schedule, now):
     """Persist activation and use the original slot as the fixed window start."""
-    fingerprint = json.dumps(schedule.model_dump(mode="json") if schedule else None, sort_keys=True)
+    fingerprint = _schedule_fingerprint(schedule)
     with store._connect() as conn:
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
@@ -98,7 +106,7 @@ def background_window_open(store, schedule, now):
             return True
         if schedule.cron is None:
             return False
-        slot = latest_cron_slot(schedule.cron, schedule.timezone, now, hash_id=BACKGROUND_HASH_ID)
+        slot = latest_cron_slot(schedule.cron, runtime_timezone(), now, hash_id=BACKGROUND_HASH_ID)
         return (
             slot is not None
             and slot > state["activated"]

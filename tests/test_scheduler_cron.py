@@ -183,3 +183,23 @@ def test_disabled_cron_refreshes_heartbeat_with_short_guard(monkeypatch, tmp_pat
     assert clock[0] >= 100
     assert len(writes) >= 9
     assert max(b - a for a, b in zip(writes, writes[1:], strict=False)) <= 30
+
+def test_task_and_media_slots_inherit_container_timezone(monkeypatch):
+    from media_agent.media_import.config import ScanSchedule
+    from media_agent.media_import.schedule import latest_slot
+    from media_agent.task_schedule import TaskSchedule
+
+    monkeypatch.setenv("TZ", "Asia/Shanghai")
+    previous = 15 * 3600
+    slot = 19 * 3600  # 03:00 the following day in Asia/Shanghai.
+    task = TaskSchedule()
+    scheduler = SchedulerConfig(
+        cron="0 3 * * *",
+        maintenance_cron="0 3 * * *",
+        intent_search_cron="0 3 * * *",
+        timezone="UTC",
+    )
+    assert task.observe(scheduler, previous) == set()
+    assert task.next_slot(scheduler, previous) == slot
+    assert task.observe(scheduler, slot) == {"pt", "maintenance", "intent"}
+    assert latest_slot(ScanSchedule(cron="0 3 * * *", timezone="UTC"), slot) == slot
